@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<script src="/assets/jquery-2.1.1.min.js"></script>
+		<script src="/assets/script.js"></script>
+		<style>
+			div, span, textarea, input {
+				padding: 0px;
+				margin: 0px;
+				display: block;
+				box-sizing: border-box;
+			}
+
+			.clearfix {}
+			.clearfix:after {
+				content: '';
+				clear: both;
+				display: block;
+			}
+			.clearer {
+				clear: both;
+			}
+
+			.chat {
+				border: 2px solid gray;
+			}
+
+			.chat {
+				border: 1px solid gray;
+				padding: 10px;
+			}
+
+			#chat_form {
+				padding: 10px 0px;
+
+			}
+
+			.chat_window {
+				display: block;
+				margin-right: 10px;
+				float: left;
+				width: 700px;
+				height: 500px;
+			}
+			.chat_members {
+				display: block;
+				float: left;
+				width: 200px;
+				height: 500px;
+				border: 1px solid gray;
+			}
+
+			.member {
+				font-size: 10px;
+			}
+
+			.chat_input {
+				display: block;
+				float: left;
+				width: 700px;
+				margin-right: 10px;
+			}
+			.chat_submit {
+				display: block;
+				float: left;
+				width: 200px;
+			}
+			
+
+			.message {
+
+			}
+			.message.error { color: red; }
+			.message.join { color: green; }
+			.message.leave { color: orange; }
+			.message.me { font-weight: bold; }
+		</style>
+	</head>
+	<body>
+		<h1></h1>
+		<div class="chat">
+			<div class="chat_window"></div>
+			<div class="chat_members"></div>
+			
+			<div class="clearer"></div>
+
+			<form id="chat_form" class="clearfix">
+				<input class="chat_input" type="text" name=""/>
+				<input class="chat_submit" type="submit"/>
+			</form>
+		</div>
+	</body>
+</html>
