@@ -8,6 +8,8 @@ import (
 type MessagesChannel chan Message
 type ConnectionsChannel chan *Connection
 
+var ControlChannel chan int = make(chan int, 10)
+
 func main() {
 	var incomingConnections ConnectionsChannel = make(ConnectionsChannel, 10)
 	var incomingMessages MessagesChannel = make(MessagesChannel, 100)
@@ -30,7 +32,8 @@ func main() {
 	log.Println("running")
 
 	for {
-
+		signal <- ControlChannel
+		log.Println("Received signal ", signal)
 	}
 
 	log.Println("exit")
