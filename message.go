@@ -2,10 +2,8 @@ package main
 
 type Message interface {
 	GetUserId() uint64
-	GetResponseChannel() MessageChannel
+	GetResponseChannel() MessagesChannel
 }
-
-type MessageChannel chan Message
 
 type LoginMessage struct {
 	Message

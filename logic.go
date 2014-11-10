@@ -1,9 +1,9 @@
 package main
 
 type Logic struct {
-	chanByUserId map[uint64]MessageChannel
+	chanByUserId map[uint64]MessagesChannel
 
-	incomingMessages MessageChannel
+	incomingMessages MessagesChannel
 }
 
 // отправляет сообщение всем

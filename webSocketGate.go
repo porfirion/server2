@@ -8,7 +8,9 @@ import (
 )
 
 type WebSocketGate struct {
-	incomingConnections chan *Connection
+	addr                string
+	incomingConnections ConnectionsChannel
+	incomingMessages    MessagesChannel
 }
 
 var upgrader = websocket.Upgrader{
@@ -16,19 +18,26 @@ var upgrader = websocket.Upgrader{
 	WriteBufferSize: 1024,
 }
 
-func (gate *WebSocketGate) Start(incomingConnections chan *Connection) {
-	gate.incomingConnections = incomingConnections
+func (gate *WebSocketGate) Start() {
+
 	http.HandleFunc("/", gate.indexHandler)
 	http.HandleFunc("/assets/", gate.assetsHandler)
 	http.HandleFunc("/ws", gate.wsHandler)
 
-	log.Println("ADDR: " + HTTP_HOST + ":" + HTTP_PORT)
-	if err := http.ListenAndServe(HTTP_HOST+":"+HTTP_PORT, nil); err != nil {
-		log.Fatal("ListenAndServe error:", err)
-	}
+	// if err := http.ListenAndServe(gate.addr, nil); err != nil {
+	// 	log.Fatal("ListenAndServe error:", err)
+	// } else {
+	// 	log.Println("Listening " + gate.addr)
+	// }
+
+	//
+
+	server := &http.Server{Addr: gate.addr}
+	go server.ListenAndServe()
 }
 
 func (gate *WebSocketGate) wsHandler(rw http.ResponseWriter, request *http.Request) {
+	log.Println("new websocket connection")
 	webSocket, err := upgrader.Upgrade(rw, request, nil)
 
 	if _, ok := err.(websocket.HandshakeError); ok {

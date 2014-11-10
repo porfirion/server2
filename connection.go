@@ -9,29 +9,32 @@ type WebsocketConnection struct {
 	conn *websocket.Conn
 }
 
-func (conn *WebsocketConnection) StartReading(ch chan Message) {
+func (conn *WebsocketConnection) StartReading(ch MessagesChannel) {
 
 }
 
 func (conn *WebsocketConnection) WriteMessage(msg Message) {}
 
 func NewWebsocketConnection(conn *websocket.Conn) Connection {
-	return &WebsocketConnection{conn: conn}
+	connection := &WebsocketConnection{conn}
+	return connection
 }
 
 type TcpConnection struct {
+	conn net.Conn
 }
 
-func (conn *TcpConnection) StartReading(ch chan Message) {
+func (conn *TcpConnection) StartReading(ch MessagesChannel) {
 
 }
 func (conn *TcpConnection) WriteMessage(msg Message) {}
 
 func NewTcpConnection(conn net.Conn) Connection {
-	return &TcpConnection{}
+	connection := &TcpConnection{conn}
+	return connection
 }
 
 type Connection interface {
-	StartReading(ch chan Message)
+	StartReading(ch MessagesChannel)
 	WriteMessage(msg Message)
 }

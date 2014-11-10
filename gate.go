@@ -1,5 +1,5 @@
 package main
 
 type Gate interface {
-	Start(chan MessageChannel)
+	Start(ConnectionsChannel, MessagesChannel)
 }
