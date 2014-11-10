@@ -1,24 +1,27 @@
 package main
 
 import (
-	"fmt"
+	"log"
 )
 
 type ConnectionsPool struct {
-	peer2sserver        MessagesChannel    // сообщения, которые отправляются на обработку в сервер
-	server2peer         MessagesChannel    // сообщения, которые приходят на отправку из сервера
+	logic               *Logic
 	incomingConnections ConnectionsChannel // входящие соединения
+	connections         []Connection
 }
 
 func (pool *ConnectionsPool) processConnection(connection Connection) {
-
+	pool.connections = append(pool.connections, connection)
+	connection.StartReading(pool.logic.IncomingMessages)
 }
 
-func (pool *ConnectionsPool) start(incomingConnections ConnectionsChannel) {
-	pool.incomingConnections = incomingConnections
+func (pool *ConnectionsPool) Start() {
+	pool.connections = make([]Connection, 100)
 
 	select {
-	case connection := <-incomingConnections:
-		fmt.Println("Connection received", connection)
+	case connection := <-pool.incomingConnections:
+		log.Println("Connection received: ", connection)
+
+		pool.processConnection(connection)
 	}
 }

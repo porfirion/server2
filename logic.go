@@ -1,9 +1,14 @@
 package main
 
+import (
+	"fmt"
+	"log"
+)
+
 type Logic struct {
 	chanByUserId map[uint64]MessagesChannel
 
-	incomingMessages MessagesChannel
+	IncomingMessages MessagesChannel
 }
 
 // отправляет сообщение всем
@@ -36,14 +41,18 @@ func (logic *Logic) ProcessMessage(msg Message) {
 		delete(logic.chanByUserId, msg.GetUserId())
 	case Ping:
 
-	default:
+	case DataMessage:
+		fmt.Println(string(msg.(DataMessage).data))
 
+	default:
+		log.Println("Unknown message type")
 	}
 }
 
 func (logic *Logic) run() {
 	select {
-	case msg := <-logic.incomingMessages:
+	case msg := <-logic.IncomingMessages:
+		log.Println("Message received!")
 		logic.ProcessMessage(msg)
 	}
 }

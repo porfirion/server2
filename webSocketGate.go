@@ -4,13 +4,28 @@ import (
 	"github.com/gorilla/websocket"
 	"html/template"
 	"log"
+	"net"
 	"net/http"
 )
+
+type WebsocketConnection struct {
+	conn *websocket.Conn
+}
+
+func (conn *WebsocketConnection) StartReading(ch MessagesChannel) {
+
+}
+
+func (conn *WebsocketConnection) WriteMessage(msg Message) {}
+
+func NewWebsocketConnection(conn *websocket.Conn) Connection {
+	connection := &WebsocketConnection{conn}
+	return connection
+}
 
 type WebSocketGate struct {
 	addr                string
 	incomingConnections ConnectionsChannel
-	incomingMessages    MessagesChannel
 }
 
 var upgrader = websocket.Upgrader{
@@ -24,16 +39,14 @@ func (gate *WebSocketGate) Start() {
 	http.HandleFunc("/assets/", gate.assetsHandler)
 	http.HandleFunc("/ws", gate.wsHandler)
 
-	// if err := http.ListenAndServe(gate.addr, nil); err != nil {
-	// 	log.Fatal("ListenAndServe error:", err)
-	// } else {
-	// 	log.Println("Listening " + gate.addr)
-	// }
+	server := &http.Server{}
+	listener, err := net.ListenTCP("tcp4", &net.TCPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 8080})
 
-	//
+	if err != nil {
+		log.Fatal("error creating listener")
+	}
 
-	server := &http.Server{Addr: gate.addr}
-	go server.ListenAndServe()
+	go server.Serve(listener)
 }
 
 func (gate *WebSocketGate) wsHandler(rw http.ResponseWriter, request *http.Request) {
@@ -48,7 +61,7 @@ func (gate *WebSocketGate) wsHandler(rw http.ResponseWriter, request *http.Reque
 	}
 
 	conn := NewWebsocketConnection(webSocket)
-	gate.incomingConnections <- &conn
+	gate.incomingConnections <- conn
 }
 
 func (gate *WebSocketGate) indexHandler(rw http.ResponseWriter, request *http.Request) {

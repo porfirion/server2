@@ -2,13 +2,44 @@ package main
 
 import (
 	"fmt"
+	"io"
+	"log"
 	"net"
 )
+
+type TcpConnection struct {
+	conn net.Conn
+}
+
+func (connection *TcpConnection) StartReading(ch MessagesChannel) {
+	log.Println("starting reading")
+	defer connection.conn.Close()
+
+	var buffer []byte
+
+	for {
+		buffer = make([]byte, 1024)
+		if n, err := connection.conn.Read(buffer); err != nil && err != io.EOF {
+			log.Println("error reading from connection")
+			fmt.Println(err)
+			break
+		} else {
+			log.Println("read bytes: ", n)
+		}
+
+		ch <- DataMessage{&BaseMessage{0, nil}, buffer}
+	}
+}
+func (connection *TcpConnection) WriteMessage(msg Message) {}
+
+func NewTcpConnection(conn net.Conn) Connection {
+	connection := &TcpConnection{conn}
+	return connection
+}
 
 type TcpGate struct {
 	addr                *net.TCPAddr
 	incomingConnections ConnectionsChannel
-	incomingMessages    MessagesChannel
 }
 
 func (gate *TcpGate) Start() {
@@ -16,11 +47,11 @@ func (gate *TcpGate) Start() {
 	listener, err := net.ListenTCP("tcp4", gate.addr)
 
 	if err != nil {
-		fmt.Println("Error opening listener: ", err)
+		log.Println("Error opening listener: ", err)
 		return
 	}
 
-	fmt.Println("Listening tcp..", gate.addr)
+	log.Println("Listening tcp..", gate.addr)
 
 	// main loop
 	defer listener.Close()
@@ -28,14 +59,14 @@ func (gate *TcpGate) Start() {
 	for {
 		conn, err := listener.AcceptTCP()
 		if err != nil {
-			fmt.Println(err)
+			log.Println("Error: ", err)
 		}
 
 		connection := NewTcpConnection(conn)
 
-		fmt.Println("Connected! (", conn.RemoteAddr(), ")")
+		log.Println("Connected! ", conn.RemoteAddr())
 
-		gate.incomingConnections <- &connection
+		gate.incomingConnections <- connection
 	}
-	fmt.Println("finished")
+	log.Println("finished")
 }
