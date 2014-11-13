@@ -7,16 +7,23 @@ import (
 type ConnectionsPool struct {
 	logic               *Logic
 	incomingConnections ConnectionsChannel // входящие соединения
-	connections         []Connection
+	players             []*Player
 }
 
 func (pool *ConnectionsPool) processConnection(connection Connection) {
-	pool.connections = append(pool.connections, connection)
-	connection.StartReading(pool.logic.IncomingMessages)
+	newPlayer := connection.GetAuth()
+	if newPlayer != nil {
+		pool.players = append(pool.players, newPlayer)
+
+		go connection.StartReading(pool.logic.IncomingMessages)
+	} else {
+		log.Println("error receiving auth. closing connection")
+		connection.Close()
+	}
 }
 
 func (pool *ConnectionsPool) Start() {
-	pool.connections = make([]Connection, 100)
+	pool.players = make([]*Player, 100)
 
 	select {
 	case connection := <-pool.incomingConnections:

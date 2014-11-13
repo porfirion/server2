@@ -13,6 +13,8 @@ var ControlChannel chan int = make(chan int, 10)
 type Connection interface {
 	StartReading(ch MessagesChannel)
 	WriteMessage(msg Message)
+	GetAuth() *Player
+	Close()
 }
 
 func main() {

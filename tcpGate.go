@@ -8,18 +8,18 @@ import (
 )
 
 type TcpConnection struct {
-	conn net.Conn
+	socket net.Conn
 }
 
 func (connection *TcpConnection) StartReading(ch MessagesChannel) {
 	log.Println("starting reading")
-	defer connection.conn.Close()
+	defer connection.Close()
 
 	var buffer []byte
 
 	for {
 		buffer = make([]byte, 1024)
-		if n, err := connection.conn.Read(buffer); err != nil && err != io.EOF {
+		if n, err := connection.socket.Read(buffer); err != nil && err != io.EOF {
 			log.Println("error reading from connection")
 			fmt.Println(err)
 			break
@@ -31,9 +31,17 @@ func (connection *TcpConnection) StartReading(ch MessagesChannel) {
 	}
 }
 func (connection *TcpConnection) WriteMessage(msg Message) {}
+func (connection *TcpConnection) Close() {
+	connection.socket.Close()
+}
 
-func NewTcpConnection(conn net.Conn) Connection {
-	connection := &TcpConnection{conn}
+func (connection *TcpConnection) GetAuth() *Player {
+	log.Println("TcpConnection.GetAuth is not implemented")
+	return nil
+}
+
+func NewTcpConnection(socket net.Conn) Connection {
+	connection := &TcpConnection{socket}
 	return connection
 }
 
@@ -57,14 +65,14 @@ func (gate *TcpGate) Start() {
 	defer listener.Close()
 
 	for {
-		conn, err := listener.AcceptTCP()
+		socket, err := listener.AcceptTCP()
 		if err != nil {
 			log.Println("Error: ", err)
 		}
 
-		connection := NewTcpConnection(conn)
+		connection := NewTcpConnection(socket)
 
-		log.Println("Connected! ", conn.RemoteAddr())
+		log.Println("Connected tcp from ", socket.RemoteAddr())
 
 		gate.incomingConnections <- connection
 	}

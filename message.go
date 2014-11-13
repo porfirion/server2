@@ -23,23 +23,33 @@ func (msg *BaseMessage) SetResponseChannel(channel MessagesChannel) {
 	msg.responseChannel = channel
 }
 
-type LoginMessage struct {
+type JoinMessage struct {
 	Message
 }
 
-type LogoutMessage struct {
+type LeaveMessage struct {
 	Message
 }
 
-type Ping struct {
+type PingMessage struct {
 	Message
 }
 
-type Pong struct {
+type PongMessage struct {
 	Message
+}
+
+type TextMessage struct {
+	Message
+	text string
 }
 
 type DataMessage struct {
 	Message
 	data []byte
+}
+
+type AuthMessage struct {
+	Message
+	name string
 }

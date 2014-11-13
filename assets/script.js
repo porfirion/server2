@@ -25,8 +25,8 @@ var uuid;
 
 function onopenHandler() {
 	var msg = {
-		MessageType: MessageTypeLogin,
-		Data: JSON.stringify({
+		messageType: MessageTypeLogin,
+		data: JSON.stringify({
 			UUID: uuid
 		})
 	}
