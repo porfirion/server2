@@ -24,13 +24,7 @@ var websocket;
 var uuid;
 
 function onopenHandler() {
-	var msg = {
-		messageType: MessageTypeLogin,
-		data: JSON.stringify({
-			UUID: uuid
-		})
-	}
-	websocket.send(JSON.stringify(msg))
+	SendMessage(MessageTypeLogin, {uuid: uuid});
 }
 function oncloseHandler() {
 	ShowMessage("server is down", "error");
@@ -100,7 +94,8 @@ function ShowMessage(text, messageType) {
 function SendMessage(type, data) {
 	var msg = {
 		MessageType: type,
-		Data: JSON.stringify(data)
+		// Data: JSON.stringify(data)
+		Data: btoa(JSON.stringify(data))
 	}
 	websocket.send(JSON.stringify(msg))
 }

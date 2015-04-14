@@ -27,7 +27,7 @@ func (connection *TcpConnection) StartReading(ch MessagesChannel) {
 			log.Println("read bytes: ", n)
 		}
 
-		ch <- DataMessage{&BaseMessage{0, nil}, buffer}
+		ch <- DataMessage{buffer}
 	}
 }
 func (connection *TcpConnection) WriteMessage(msg Message) {}

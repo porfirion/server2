@@ -10,15 +10,16 @@ type ConnectionsChannel chan Connection
 
 var ControlChannel chan int = make(chan int, 10)
 
+const format = "%T(%v)\n"
+
 type Connection interface {
 	StartReading(ch MessagesChannel)
 	WriteMessage(msg Message)
-	GetAuth() *Player
 	Close()
 }
 
 func main() {
-	var incomingConnections ConnectionsChannel = make(ConnectionsChannel, 10)
+	var incomingConnections ConnectionsChannel = make(ConnectionsChannel, 100)
 	var incomingMessages MessagesChannel = make(MessagesChannel, 100)
 
 	// стартуем логику. она готова, чтобы принимать и обрабатывать соощения
@@ -26,7 +27,7 @@ func main() {
 	go logic.run()
 
 	log.Println("starting websocket gate")
-	ws := &WebSocketGate{":8080", incomingConnections}
+	ws := &WebSocketGate{&net.TCPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 8080}, incomingConnections}
 	ws.Start()
 	log.Println("websocket gate started")
 

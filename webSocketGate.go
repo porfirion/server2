@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/gorilla/websocket"
 	"html/template"
 	"io"
@@ -13,27 +14,63 @@ import (
 
 type WebsocketMessageWrapper struct {
 	MessageType int
-	Data        string
+	Data        []byte
 }
+
+func (wrapper *WebsocketMessageWrapper) GetMessage() (msg Message) {
+	// log.Println("Getting message from ", string(wrapper.Data))
+	// fmt.Println(string(wrapper.Data))
+	var err error
+	switch wrapper.MessageType {
+	case 1:
+		var res AuthMessage
+		err = json.Unmarshal(wrapper.Data, &res)
+		msg = res
+		fmt.Println(err, res)
+	case 1000:
+		var res DataMessage
+		err = json.Unmarshal(wrapper.Data, &res)
+		msg = res
+		fmt.Println(err, res)
+	case 1001:
+		var res TextMessage
+		err = json.Unmarshal(wrapper.Data, &res)
+		msg = res
+		fmt.Println(err, res)
+	default:
+		log.Println("Unknown message type: ", wrapper.MessageType)
+	}
+
+	fmt.Println("Parsed data message:", msg, err)
+	if err == nil {
+		return
+	} else {
+		return nil
+	}
+}
+
+/**
+ * Web Socket Connection
+ */
 
 type WebsocketConnection struct {
 	ws *websocket.Conn
 }
 
-func ParseMessage(data []byte) Message {
+func ParseMessage(data []byte) (*WebsocketMessageWrapper, error) {
+	log.Println("Parsing message: ", string(data), data)
 	wrapper := new(WebsocketMessageWrapper)
 
 	err := json.Unmarshal(data, wrapper)
 
 	if err != nil {
 		log.Println("error: ", err)
-		return nil
+		return nil, errors.New("Can't parse message")
 	}
 
-	log.Println("Parsed")
-	log.Println(wrapper)
+	log.Println("Parsed wrapper", wrapper)
 
-	return nil
+	return wrapper, nil
 }
 
 func (connection *WebsocketConnection) ReadMessage() (Message, error) {
@@ -52,24 +89,29 @@ func (connection *WebsocketConnection) ReadMessage() (Message, error) {
 		return nil, io.EOF
 	} else if msgType == websocket.PingMessage {
 		log.Println("Ping message received")
-	} else if msg := ParseMessage(data); msg == nil {
+		return nil, nil
+	} else if wrapper, err := ParseMessage(data); err != nil {
 		log.Println("error parsing message", err)
-		return nil, errors.New("error parsing message")
+		return nil, err
 	} else {
+		var msg Message = wrapper.GetMessage()
+		fmt.Printf(format, msg)
+		fmt.Println(msg)
 		return msg, nil
 	}
-
-	return new(DataMessage), nil
 }
 
 func (connection *WebsocketConnection) StartReading(ch MessagesChannel) {
 	defer connection.Close()
 
 	for {
-		if msg, err := connection.ReadMessage(); err != nil {
+		msg, err := connection.ReadMessage()
+		if err != nil {
 			log.Println("Error reading message")
 			break
-		} else {
+		}
+		if msg != nil {
+			fmt.Println("Sending message to channel", msg)
 			ch <- msg
 		}
 	}
@@ -81,27 +123,18 @@ func (connection *WebsocketConnection) Close() {
 	log.Println("Closing websocket connection")
 	connection.ws.Close()
 }
-func (connection *WebsocketConnection) GetAuth() *Player {
-	msg, err := connection.ReadMessage()
-	if err != nil {
-		log.Println("couldn't read logic from websocket")
-		return nil
-	} else if auth, ok := msg.(AuthMessage); ok {
-		player := &Player{auth.name, connection}
-		return player
-	} else {
-		log.Println("Not an auth mesage")
-		return nil
-	}
-}
 
 func NewWebsocketConnection(ws *websocket.Conn) Connection {
 	connection := &WebsocketConnection{ws}
 	return connection
 }
 
+/**
+ * Web Socket Gate
+ */
+
 type WebSocketGate struct {
-	addr                string
+	addr                *net.TCPAddr
 	incomingConnections ConnectionsChannel
 }
 
@@ -117,7 +150,7 @@ func (gate *WebSocketGate) Start() {
 	http.HandleFunc("/ws", gate.wsHandler)
 
 	server := &http.Server{}
-	listener, err := net.ListenTCP("tcp4", &net.TCPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 8080})
+	listener, err := net.ListenTCP("tcp4", gate.addr)
 
 	if err != nil {
 		log.Fatal("error creating listener")
@@ -126,27 +159,46 @@ func (gate *WebSocketGate) Start() {
 	go server.Serve(listener)
 }
 
+/**
+ * Обработчик входящих подключений по websocket
+ * @param  {[type]} gate *WebSocketGate) wsHandler(rw http.ResponseWriter, request *http.Request [description]
+ * @return {[type]} [description]
+ */
 func (gate *WebSocketGate) wsHandler(rw http.ResponseWriter, request *http.Request) {
-	log.Println("new websocket connection")
+	log.Println("WSGate: new websocket connection")
 	webSocket, err := upgrader.Upgrade(rw, request, nil)
+	log.Println("Upgraded")
 
 	if _, ok := err.(websocket.HandshakeError); ok {
+		log.Println("WSGate: Not a websocket handshake")
 		http.Error(rw, "Not a websocket handshake", 400)
 		return
 	} else if err != nil {
+		log.Println("WSGate: Unknown error", err)
 		return
 	}
 
 	conn := NewWebsocketConnection(webSocket)
+	log.Println("WSGate: connection sent to channel")
 	gate.incomingConnections <- conn
 }
 
+/**
+ * Отдаёт главную (и единственную) страницу
+ * @param  {[type]} gate *WebSocketGate) indexHandler(rw http.ResponseWriter, request *http.Request [description]
+ * @return {[type]} [description]
+ */
 func (gate *WebSocketGate) indexHandler(rw http.ResponseWriter, request *http.Request) {
 	indexTempl := template.Must(template.ParseFiles("templates/index.html"))
 	data := struct{}{}
 	indexTempl.Execute(rw, data)
 }
 
+/**
+ * Отвечает за отдачу статики
+ * @param  {[type]} gate *WebSocketGate) assetsHandler(rw http.ResponseWriter, request *http.Request [description]
+ * @return {[type]} [description]
+ */
 func (gate *WebSocketGate) assetsHandler(rw http.ResponseWriter, request *http.Request) {
 	http.ServeFile(rw, request, request.URL.Path[1:])
 }

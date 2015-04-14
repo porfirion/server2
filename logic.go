@@ -32,24 +32,23 @@ func (logic *Logic) SendMessageExcept(msg Message, unwanted []uint64) {
 }
 
 func (logic *Logic) ProcessMessage(message Message) {
+	fmt.Println("Processing message")
+	fmt.Printf(format, message)
 	switch msg := message.(type) {
-	case JoinMessage:
-
-	case LeaveMessage:
-		// delete(logic.chanByUserId, msg.GetUserId())
-	case PingMessage:
-
+	case DataMessage:
+		fmt.Println("Data message received", msg.Data)
 	case TextMessage:
-		fmt.Println(msg.text)
-
+		fmt.Println("Text message received", msg.Text)
+	case AuthMessage:
+		fmt.Println("Auth message received", msg.Uuid)
 	default:
 		log.Println("Unknown message type")
 	}
 }
 
 func (logic *Logic) run() {
-	select {
-	case msg := <-logic.IncomingMessages:
+	for {
+		msg := <-logic.IncomingMessages
 		log.Println("Message received!")
 		logic.ProcessMessage(msg)
 	}
