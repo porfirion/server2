@@ -31,7 +31,12 @@ function oncloseHandler() {
 }
 function onmessageHandler(event) {
 	var wrapper = JSON.parse(event.data);
-	var data = JSON.parse(wrapper.Data);
+	try {
+		var data = JSON.parse(wrapper.Data);
+	}
+	catch (ex) {
+		console.error(ex);
+	}
 	window.console.log("msg type " + wrapper.MessageType, data);
 	if (wrapper.MessageType == MessageTypeWelcome) {
 		ShowMessage("WELCOME!")

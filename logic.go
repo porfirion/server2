@@ -1,12 +1,12 @@
 package main
 
 import (
-	"fmt"
 	"log"
 )
 
 type Logic struct {
 	IncomingMessages MessagesChannel
+	OutgoingMessages MessagesChannel
 }
 
 // отправляет сообщение всем
@@ -32,24 +32,22 @@ func (logic *Logic) SendMessageExcept(msg Message, unwanted []uint64) {
 }
 
 func (logic *Logic) ProcessMessage(message Message) {
-	fmt.Println("Processing message")
-	fmt.Printf(format, message)
 	switch msg := message.(type) {
 	case DataMessage:
-		fmt.Println("Data message received", msg.Data)
+		log.Println("Data message received", msg.Data)
 	case TextMessage:
-		fmt.Println("Text message received", msg.Text)
+		log.Println("Text message received", msg.Text)
 	case AuthMessage:
-		fmt.Println("Auth message received", msg.Uuid)
+		log.Println("Auth message received", msg.Uuid)
+		logic.OutgoingMessages <- &TextMessage{Text: "hello!"}
 	default:
 		log.Println("Unknown message type")
 	}
 }
 
-func (logic *Logic) run() {
-	for {
-		msg := <-logic.IncomingMessages
-		log.Println("Message received!")
+func (logic *Logic) Start() {
+	log.Println("Logic started")
+	for msg := range logic.IncomingMessages {
 		logic.ProcessMessage(msg)
 	}
 }

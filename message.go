@@ -14,3 +14,10 @@ type DataMessage struct {
 type AuthMessage struct {
 	Uuid string
 }
+
+type ServerMessage struct {
+	Targets []int
+	Data    Message
+}
+
+type MessagesChannel chan Message

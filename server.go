@@ -5,43 +5,30 @@ import (
 	"net"
 )
 
-type MessagesChannel chan Message
-type ConnectionsChannel chan Connection
-
 var ControlChannel chan int = make(chan int, 10)
 
 const format = "%T(%v)\n"
 
-type Connection interface {
-	StartReading(ch MessagesChannel)
-	WriteMessage(msg Message)
-	Close()
-}
-
 func main() {
 	var incomingConnections ConnectionsChannel = make(ConnectionsChannel, 100)
-	var incomingMessages MessagesChannel = make(MessagesChannel, 100)
+
+	var incomingMessages MessagesChannel = make(MessagesChannel)
+	var outgoingMessages MessagesChannel = make(MessagesChannel)
 
 	// стартуем логику. она готова, чтобы принимать и обрабатывать соощения
-	logic := &Logic{IncomingMessages: incomingMessages}
-	go logic.run()
+	logic := &Logic{IncomingMessages: incomingMessages, OutgoingMessages: outgoingMessages}
+	go logic.Start()
 
-	log.Println("starting websocket gate")
-	ws := &WebSocketGate{&net.TCPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 8080}, incomingConnections}
-	ws.Start()
-	log.Println("websocket gate started")
-
-	log.Println("starting tcp gate")
-	ts := &TcpGate{&net.TCPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 25001}, incomingConnections}
-	go ts.Start()
-	log.Println("tcp gate started")
-
-	log.Println("starting pool")
 	pool := &ConnectionsPool{logic: logic, incomingConnections: incomingConnections}
 	go pool.Start()
-	log.Println("pool started")
 
-	log.Println("running")
+	wsGate := &WebSocketGate{&net.TCPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 8080}, incomingConnections}
+	go wsGate.Start()
+
+	tcpGate := &TcpGate{&net.TCPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 25001}, incomingConnections}
+	go tcpGate.Start()
+
+	log.Println("Running")
 
 	for {
 		signal := <-ControlChannel

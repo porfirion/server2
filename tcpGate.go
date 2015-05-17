@@ -8,7 +8,8 @@ import (
 )
 
 type TcpConnection struct {
-	socket net.Conn
+	socket          net.Conn
+	responseChannel MessagesChannel
 }
 
 func (connection *TcpConnection) StartReading(ch MessagesChannel) {
@@ -30,7 +31,14 @@ func (connection *TcpConnection) StartReading(ch MessagesChannel) {
 		ch <- DataMessage{buffer}
 	}
 }
-func (connection *TcpConnection) WriteMessage(msg Message) {}
+func (connection *TcpConnection) StartWriting() {
+	log.Println("Not implemented")
+}
+
+func (connection *TcpConnection) GetResponseChannel() MessagesChannel {
+	return connection.responseChannel
+}
+
 func (connection *TcpConnection) Close() {
 	connection.socket.Close()
 }
@@ -41,7 +49,8 @@ func (connection *TcpConnection) GetAuth() *Player {
 }
 
 func NewTcpConnection(socket net.Conn) Connection {
-	connection := &TcpConnection{socket}
+	connection := &TcpConnection{socket, make(MessagesChannel)}
+	connection.StartWriting()
 	return connection
 }
 
@@ -59,7 +68,7 @@ func (gate *TcpGate) Start() {
 		return
 	}
 
-	log.Println("Listening tcp..", gate.addr)
+	log.Println("Listening tcp:", gate.addr)
 
 	// main loop
 	defer listener.Close()

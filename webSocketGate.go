@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/gorilla/websocket"
 	"html/template"
 	"io"
@@ -17,36 +16,26 @@ type WebsocketMessageWrapper struct {
 	Data        []byte
 }
 
-func (wrapper *WebsocketMessageWrapper) GetMessage() (msg Message) {
-	// log.Println("Getting message from ", string(wrapper.Data))
-	// fmt.Println(string(wrapper.Data))
-	var err error
+func (wrapper *WebsocketMessageWrapper) GetMessage() (msg Message, err error) {
 	switch wrapper.MessageType {
 	case 1:
 		var res AuthMessage
 		err = json.Unmarshal(wrapper.Data, &res)
 		msg = res
-		fmt.Println(err, res)
 	case 1000:
 		var res DataMessage
 		err = json.Unmarshal(wrapper.Data, &res)
 		msg = res
-		fmt.Println(err, res)
 	case 1001:
 		var res TextMessage
 		err = json.Unmarshal(wrapper.Data, &res)
 		msg = res
-		fmt.Println(err, res)
 	default:
 		log.Println("Unknown message type: ", wrapper.MessageType)
 	}
 
-	fmt.Println("Parsed data message:", msg, err)
-	if err == nil {
-		return
-	} else {
-		return nil
-	}
+	//log.Println("Parsed message:", msg, err)
+	return
 }
 
 /**
@@ -54,11 +43,12 @@ func (wrapper *WebsocketMessageWrapper) GetMessage() (msg Message) {
  */
 
 type WebsocketConnection struct {
-	ws *websocket.Conn
+	ws              *websocket.Conn
+	responseChannel MessagesChannel
 }
 
 func ParseMessage(data []byte) (*WebsocketMessageWrapper, error) {
-	log.Println("Parsing message: ", string(data), data)
+	//log.Println("Parsing message: ", string(data), data)
 	wrapper := new(WebsocketMessageWrapper)
 
 	err := json.Unmarshal(data, wrapper)
@@ -68,7 +58,7 @@ func ParseMessage(data []byte) (*WebsocketMessageWrapper, error) {
 		return nil, errors.New("Can't parse message")
 	}
 
-	log.Println("Parsed wrapper", wrapper)
+	//log.Println("Parsed wrapper", wrapper)
 
 	return wrapper, nil
 }
@@ -94,10 +84,7 @@ func (connection *WebsocketConnection) ReadMessage() (Message, error) {
 		log.Println("error parsing message", err)
 		return nil, err
 	} else {
-		var msg Message = wrapper.GetMessage()
-		fmt.Printf(format, msg)
-		fmt.Println(msg)
-		return msg, nil
+		return wrapper.GetMessage()
 	}
 }
 
@@ -111,13 +98,21 @@ func (connection *WebsocketConnection) StartReading(ch MessagesChannel) {
 			break
 		}
 		if msg != nil {
-			fmt.Println("Sending message to channel", msg)
 			ch <- msg
 		}
 	}
 }
+func (connection *WebsocketConnection) StartWriting() {
+	go func() {
+		for message := range connection.responseChannel {
+			connection.ws.WriteJSON(message)
+		}
+	}()
+}
 
-func (connection *WebsocketConnection) WriteMessage(msg Message) {}
+func (connection *WebsocketConnection) GetResponseChannel() MessagesChannel {
+	return connection.responseChannel
+}
 
 func (connection *WebsocketConnection) Close() {
 	log.Println("Closing websocket connection")
@@ -125,7 +120,8 @@ func (connection *WebsocketConnection) Close() {
 }
 
 func NewWebsocketConnection(ws *websocket.Conn) Connection {
-	connection := &WebsocketConnection{ws}
+	connection := &WebsocketConnection{ws, make(MessagesChannel)}
+	connection.StartWriting()
 	return connection
 }
 
@@ -144,7 +140,6 @@ var upgrader = websocket.Upgrader{
 }
 
 func (gate *WebSocketGate) Start() {
-
 	http.HandleFunc("/", gate.indexHandler)
 	http.HandleFunc("/assets/", gate.assetsHandler)
 	http.HandleFunc("/ws", gate.wsHandler)
@@ -156,7 +151,9 @@ func (gate *WebSocketGate) Start() {
 		log.Fatal("error creating listener")
 	}
 
-	go server.Serve(listener)
+	log.Println("Listening http:", gate.addr)
+
+	server.Serve(listener)
 }
 
 /**
@@ -165,9 +162,7 @@ func (gate *WebSocketGate) Start() {
  * @return {[type]} [description]
  */
 func (gate *WebSocketGate) wsHandler(rw http.ResponseWriter, request *http.Request) {
-	log.Println("WSGate: new websocket connection")
 	webSocket, err := upgrader.Upgrade(rw, request, nil)
-	log.Println("Upgraded")
 
 	if _, ok := err.(websocket.HandshakeError); ok {
 		log.Println("WSGate: Not a websocket handshake")
@@ -179,7 +174,8 @@ func (gate *WebSocketGate) wsHandler(rw http.ResponseWriter, request *http.Reque
 	}
 
 	conn := NewWebsocketConnection(webSocket)
-	log.Println("WSGate: connection sent to channel")
+	log.Println("WSGate: new websocket connection")
+
 	gate.incomingConnections <- conn
 }
 
