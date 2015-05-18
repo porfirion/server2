@@ -12,7 +12,7 @@ type ConnectionsPool struct {
 }
 
 func (pool *ConnectionsPool) processConnection(connection Connection) {
-	go connection.StartReading(pool.logic.IncomingMessages)
+	connection.StartReading(pool.logic.IncomingMessages)
 
 	var connectionId = <-pool.ConnectionsEnumerator
 	pool.Connections[connectionId] = connection

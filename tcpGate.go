@@ -13,23 +13,27 @@ type TcpConnection struct {
 }
 
 func (connection *TcpConnection) StartReading(ch MessagesChannel) {
-	log.Println("starting reading")
-	defer connection.Close()
+	go func() {
+		log.Println("starting reading")
+		defer connection.Close()
 
-	var buffer []byte
+		var buffer []byte
 
-	for {
-		buffer = make([]byte, 1024)
-		if n, err := connection.socket.Read(buffer); err != nil && err != io.EOF {
-			log.Println("error reading from connection")
-			fmt.Println(err)
-			break
-		} else {
-			log.Println("read bytes: ", n)
+		for {
+			buffer = make([]byte, 1024)
+			if n, err := connection.socket.Read(buffer); err != nil && err != io.EOF {
+				log.Println("error reading from connection")
+				fmt.Println(err)
+				break
+			} else {
+				log.Println("read bytes: ", n)
+			}
+
+			ch <- DataMessage{buffer}
 		}
 
-		ch <- DataMessage{buffer}
-	}
+		log.Println("Reading finished")
+	}()
 }
 func (connection *TcpConnection) StartWriting() {
 	log.Println("Not implemented")
