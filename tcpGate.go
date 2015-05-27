@@ -8,8 +8,8 @@ import (
 )
 
 type TcpConnection struct {
-	socket          net.Conn
-	responseChannel MessagesChannel
+	*BasicConnection
+	socket net.Conn
 }
 
 func (connection *TcpConnection) StartReading(ch MessagesChannel) {
@@ -39,10 +39,6 @@ func (connection *TcpConnection) StartWriting() {
 	log.Println("Not implemented")
 }
 
-func (connection *TcpConnection) GetResponseChannel() MessagesChannel {
-	return connection.responseChannel
-}
-
 func (connection *TcpConnection) Close() {
 	connection.socket.Close()
 }
@@ -53,7 +49,7 @@ func (connection *TcpConnection) GetAuth() *Player {
 }
 
 func NewTcpConnection(socket net.Conn) Connection {
-	connection := &TcpConnection{socket, make(MessagesChannel)}
+	connection := &TcpConnection{socket: socket}
 	connection.StartWriting()
 	return connection
 }

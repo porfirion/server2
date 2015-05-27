@@ -6,7 +6,7 @@ import (
 
 type Logic struct {
 	IncomingMessages MessagesChannel
-	OutgoingMessages MessagesChannel
+	OutgoingMessages ServerMessagesChannel
 }
 
 // отправляет сообщение всем
@@ -39,7 +39,7 @@ func (logic *Logic) ProcessMessage(message Message) {
 		log.Println("Text message received", msg.Text)
 	case AuthMessage:
 		log.Println("Auth message received", msg.Uuid)
-		logic.OutgoingMessages <- &TextMessage{Text: "hello!"}
+		logic.OutgoingMessages <- &ServerMessage{Data: &TextMessage{Text: "hello!"}, Targets: []int{}}
 	default:
 		log.Println("Unknown message type")
 	}

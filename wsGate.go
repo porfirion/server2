@@ -53,7 +53,7 @@ func (gate *WebSocketGate) wsHandler(rw http.ResponseWriter, request *http.Reque
 	}
 
 	conn := NewWebsocketConnection(webSocket)
-	log.Println("WSGate: new websocket connection")
+	log.Println("WSGate: new websocket connection", conn)
 
 	gate.incomingConnections <- conn
 }

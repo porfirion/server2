@@ -35,8 +35,8 @@ func (wrapper *WebsocketMessageWrapper) GetMessage() (msg Message, err error) {
 }
 
 type WebsocketConnection struct {
-	ws              *websocket.Conn
-	responseChannel MessagesChannel
+	*BasicConnection
+	ws *websocket.Conn
 }
 
 func (connection *WebsocketConnection) ParseMessage(data []byte) (*WebsocketMessageWrapper, error) {
@@ -60,11 +60,9 @@ func (connection *WebsocketConnection) ReadMessage() (Message, error) {
 			log.Println("EOF")
 		}
 		log.Println("Error reading websocket", err)
-		connection.Close()
 		return nil, io.EOF
 	} else if msgType == websocket.CloseMessage {
 		log.Println("Close message received")
-		connection.Close()
 		return nil, io.EOF
 	} else if msgType == websocket.PingMessage {
 		log.Println("Ping message received")
@@ -92,35 +90,32 @@ func (connection *WebsocketConnection) StartReading(ch MessagesChannel) {
 			}
 		}
 
-		log.Println("Reading finished")
+		log.Println("Reading finished for", connection.id)
 	}()
 }
 func (connection *WebsocketConnection) StartWriting() {
 	go func() {
-		log.Println("Writing started")
-		defer log.Println("Writing finished")
+		log.Println("Writing started ", connection.id)
 
-		for message := range connection.responseChannel {
+		for message := range connection.GetResponseChannel() {
+			log.Println("For ", connection.id, " message ", message)
 			connection.ws.WriteJSON(message)
 		}
-	}()
-}
 
-func (connection *WebsocketConnection) GetResponseChannel() MessagesChannel {
-	return connection.responseChannel
+		log.Println("Writing finished for", connection.id)
+	}()
 }
 
 func (connection *WebsocketConnection) Close() {
 	log.Println("Closing websocket connection")
-	log.Println(connection.responseChannel)
-	log.Println(len(connection.responseChannel))
-	log.Println(cap(connection.responseChannel))
-	//close(connection.responseChannel)
+	close(connection.responseChannel)
 	connection.ws.Close()
+	connection.closingChannel <- connection.id
 }
 
 func NewWebsocketConnection(ws *websocket.Conn) Connection {
-	connection := &WebsocketConnection{ws, make(MessagesChannel)}
+	connection := &WebsocketConnection{ws: ws, BasicConnection: &BasicConnection{}}
 	connection.StartWriting()
+	log.Println("Created new ws connection", connection)
 	return connection
 }

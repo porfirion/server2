@@ -21,3 +21,5 @@ type ServerMessage struct {
 }
 
 type MessagesChannel chan Message
+
+type ServerMessagesChannel chan *ServerMessage

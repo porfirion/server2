@@ -13,7 +13,7 @@ func main() {
 	var incomingConnections ConnectionsChannel = make(ConnectionsChannel, 100)
 
 	var incomingMessages MessagesChannel = make(MessagesChannel)
-	var outgoingMessages MessagesChannel = make(MessagesChannel)
+	var outgoingMessages ServerMessagesChannel = make(ServerMessagesChannel)
 
 	// стартуем логику. она готова, чтобы принимать и обрабатывать соощения
 	logic := &Logic{IncomingMessages: incomingMessages, OutgoingMessages: outgoingMessages}
