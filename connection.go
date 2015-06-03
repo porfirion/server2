@@ -1,13 +1,14 @@
 package main
 
 type Connection interface {
-	StartReading(ch MessagesChannel)
+	StartReading(ch UserMessagesChannel)
 	Close()
 	GetResponseChannel() MessagesChannel
 	SetId(id int)
 	GetId() int
 	IsClosed() bool
 	SetClosingChannel(chan int)
+	GetAuth() (*AuthMessage, error)
 }
 
 type BasicConnection struct {

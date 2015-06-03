@@ -3,6 +3,7 @@
 	<head>
 		<script src="/assets/jquery-2.1.1.min.js"></script>
 		<script src="/assets/script.js"></script>
+		<link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.0.0-wip/css/bootstrap.min.css">
 		<style>
 			div, span, textarea, input {
 				padding: 0px;
@@ -47,6 +48,9 @@
 				float: left;
 				width: 700px;
 				height: 500px;
+				padding: 10px;
+
+				counter-reset: message;
 			}
 			.chat_members {
 				display: block;
@@ -75,6 +79,10 @@
 			.message {
 
 			}
+			.message:before {
+				content: counter(message) ". ";
+				counter-increment: message;
+			}
 			.message.error { color: red; }
 			.message.join { color: green; }
 			.message.leave { color: orange; }
@@ -90,8 +98,8 @@
 			<div class="clearer"></div>
 
 			<form id="chat_form" class="clearfix">
-				<input class="chat_input" type="text" name=""/>
-				<input class="chat_submit" type="submit"/>
+				<input class="chat_input form-control" type="text" name=""/>
+				<input class="chat_submit btn btn-default" type="submit"/>
 			</form>
 		</div>
 	</body>

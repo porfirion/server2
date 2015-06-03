@@ -5,47 +5,41 @@ import (
 )
 
 type Logic struct {
-	IncomingMessages MessagesChannel
+	IncomingMessages UserMessagesChannel
 	OutgoingMessages ServerMessagesChannel
+	Users            map[int]User
 }
 
 // отправляет сообщение всем
-func (logic *Logic) SendMessageAll(msg Message) {
-	// for _, ch := range logic.chanByUserId {
-	// 	ch <- msg
-	// }
+func (logic *Logic) SendMessage(msg Message, targets []int) {
+	logic.OutgoingMessages <- ServerMessage{Data: msg, Targets: targets}
 }
 
-// отправляет сообщение только одному адресату
-func (logic *Logic) SendMessageId(msg Message, connId uint64) {
-	// logic.chanByUserId[connId] <- msg
+func (logic *Logic) SendTextMessage(text string, sender int, targets []int) {
+	logic.SendMessage(TextMessage{Text: text, Sender: sender}, targets)
 }
 
-// отпрвляет сообщение нескольких определённым адресатам
-func (logic *Logic) SendMessageMultiple(msg Message, targets []uint64) {
-
-}
-
-// отправлет сообщение всем кроме
-func (logic *Logic) SendMessageExcept(msg Message, unwanted []uint64) {
-
-}
-
-func (logic *Logic) ProcessMessage(message Message) {
-	switch msg := message.(type) {
+func (logic *Logic) ProcessMessage(message UserMessage) {
+	switch msg := message.Data.(type) {
 	case DataMessage:
-		log.Println("Data message received", msg.Data)
+		log.Println("Data message received: ", message)
 	case TextMessage:
-		log.Println("Text message received", msg.Text)
-	case AuthMessage:
-		log.Println("Auth message received", msg.Uuid)
-		logic.OutgoingMessages <- &ServerMessage{Data: &TextMessage{Text: "hello!"}, Targets: []int{}}
+		log.Println("Text message received: ", message)
+		logic.SendTextMessage("User "+logic.Users[message.Source].Name+" says "+msg.Text, logic.Users[message.Source].Id, []int{})
+	case LoginMessage:
+		log.Println("Login message received", msg.User)
+
+		logic.Users[msg.User.Id] = msg.User
+
+		logic.SendTextMessage("Logged "+msg.Name, 0, []int{})
+		logic.SendTextMessage("Wellcome, "+msg.Name, 0, []int{message.Source})
 	default:
 		log.Println("Unknown message type")
 	}
 }
 
 func (logic *Logic) Start() {
+	logic.Users = make(map[int]User)
 	log.Println("Logic started")
 	for msg := range logic.IncomingMessages {
 		logic.ProcessMessage(msg)

@@ -1,11 +1,5 @@
-MessageTypeLogin    = 1;
-MessageTypeWelcome  = 2;
-MessageTypeForbidden = 3;
-MessageTypeJoin     = 10;
-MessageTypeLeave    = 11;
-
-MessageTypeSyncMembers = 101;
-
+MessageTypeAuth =    1;
+MessageTypeData = 1000;
 MessageTypeText = 1001;
 
 var members = {};
@@ -24,7 +18,7 @@ var websocket;
 var uuid;
 
 function onopenHandler() {
-	SendMessage(MessageTypeLogin, {uuid: uuid});
+	SendMessage(MessageTypeAuth, {Uuid: uuid});
 }
 function oncloseHandler() {
 	ShowMessage("server is down", "error");
@@ -32,43 +26,27 @@ function oncloseHandler() {
 function onmessageHandler(event) {
 	var wrapper = JSON.parse(event.data);
 	try {
+		console.log(wrapper.Data);
 		var data = JSON.parse(wrapper.Data);
 	}
 	catch (ex) {
 		console.error(ex);
 	}
 	window.console.log("msg type " + wrapper.MessageType, data);
-	if (wrapper.MessageType == MessageTypeWelcome) {
-		ShowMessage("WELCOME!")
-	}
-	else if (wrapper.MessageType == MessageTypeJoin) {
-		ShowMessage(data.UUID + " joined!", "join");
-		NewMember(data.UUID)
-	}
-	else if (wrapper.MessageType == MessageTypeLeave) {
-		if (data.UUID in members) {
-			members[data.UUID].anchor.remove();	
-			delete(members[data.UUID]);
+	
+	if (wrapper.MessageType == MessageTypeText) {
+		if (data.Sender == 0) {
+			ShowMessage(" server: \"" + data.Text + "\"", "text-muted");
 		}
-
-		ShowMessage(data.UUID + ' leaved!', 'leave');
-	}
-	else if (wrapper.MessageType == MessageTypeSyncMembers) {
-		window.console.log('Synchronizing members...');
-		for (var i = 0; i < data.Members.length; i++) {
-			NewMember(data.Members[i]);
-		}
-	}
-	else if (wrapper.MessageType == MessageTypeText) {
-		if (data.UUID == uuid) {
-			ShowMessage(" me: \"" + data.Text + "\"", "me");
+		else if (data.Sender == uuid) {
+			ShowMessage(" me: \"" + data.Text + "\"", "text-primary");
 		}
 		else {
-			ShowMessage(data.UUID + " says: \"" + data.Text + "\"");
+			ShowMessage(data.Sender + " says: \"" + data.Text + "\"");
 		}
 	}
 	else {
-		ShowMessage(event.data);
+		ShowMessage("Error parsing " + event.data, "text-danger");
 	}
 }
 
@@ -99,8 +77,8 @@ function ShowMessage(text, messageType) {
 function SendMessage(type, data) {
 	var msg = {
 		MessageType: type,
-		// Data: JSON.stringify(data)
-		Data: btoa(JSON.stringify(data))
+		 Data: JSON.stringify(data)
+		// Data: btoa(JSON.stringify(data))
 	}
 	websocket.send(JSON.stringify(msg))
 }
@@ -116,7 +94,13 @@ jQuery(document).ready(function() {
 	$('#chat_form').submit(function(event) {
 		event.preventDefault();
 
-		SendMessage(MessageTypeText, {Text: $('.chat_input').val()});
+		var text = $('.chat_input').val();
+		try {
+			SendMessage(MessageTypeText, {Text: text});
+		} catch (err) {
+			ShowMessage("Unable to send " + text, "text-danger");
+		}
+
 		$('.chat_input').val('');
 	})
 });

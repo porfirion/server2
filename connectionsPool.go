@@ -13,12 +13,29 @@ type ConnectionsPool struct {
 }
 
 func (pool *ConnectionsPool) processConnection(connection Connection) {
-	connection.StartReading(pool.logic.IncomingMessages)
+	go func() {
+		authMessage, err := connection.GetAuth()
+		if err != nil {
+			log.Println("Error authorization", err)
+			/**
+			 * TODO по идее нужно прибить это соединение, а то оно так и будет крутиться
+			 * Также неплохо бы отправить ответ в соединение, что не прошла авторизация по таким-то причинам
+			 */
+		} else {
+			log.Println("Authorization successful: ", authMessage)
 
-	var connectionId = <-pool.ConnectionsEnumerator
-	pool.Connections[connectionId] = connection
-	connection.SetId(connectionId)
-	connection.SetClosingChannel(pool.ClosingChannel)
+			var connectionId = <-pool.ConnectionsEnumerator
+
+			user := User{Id: connectionId, Name: authMessage.Uuid}
+
+			connection.SetId(connectionId)
+			connection.SetClosingChannel(pool.ClosingChannel)
+
+			pool.Connections[connectionId] = connection
+			pool.logic.IncomingMessages <- UserMessage{Data: LoginMessage{user}, Source: connectionId}
+			connection.StartReading(pool.logic.IncomingMessages)
+		}
+	}()
 }
 
 func (pool *ConnectionsPool) InitEnumerator() {
@@ -38,7 +55,7 @@ func (pool *ConnectionsPool) RemoveConnection(connectionId int) {
 	delete(pool.Connections, connectionId)
 }
 
-func (pool *ConnectionsPool) DispathMessage(msg *ServerMessage) {
+func (pool *ConnectionsPool) DispathMessage(msg ServerMessage) {
 	if len(msg.Targets) == 0 {
 		for _, conn := range pool.Connections {
 			conn.GetResponseChannel() <- msg.Data
@@ -66,9 +83,10 @@ func (pool *ConnectionsPool) Start() {
 			pool.processConnection(connection)
 		case message := <-pool.logic.OutgoingMessages:
 			pool.DispathMessage(message)
-			log.Println("Outgoing message", message)
+			// log.Println("Outgoing message", message)
 		case connectionId := <-pool.ClosingChannel:
 			pool.RemoveConnection(connectionId)
+			log.Println("Closing connection", connectionId)
 		}
 	}
 

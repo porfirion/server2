@@ -10,22 +10,22 @@ import (
 
 type WebsocketMessageWrapper struct {
 	MessageType int
-	Data        []byte
+	Data        string
 }
 
 func (wrapper *WebsocketMessageWrapper) GetMessage() (msg Message, err error) {
 	switch wrapper.MessageType {
 	case 1:
 		var res AuthMessage
-		err = json.Unmarshal(wrapper.Data, &res)
+		err = json.Unmarshal([]byte(wrapper.Data), &res)
 		msg = res
 	case 1000:
 		var res DataMessage
-		err = json.Unmarshal(wrapper.Data, &res)
+		err = json.Unmarshal([]byte(wrapper.Data), &res)
 		msg = res
 	case 1001:
 		var res TextMessage
-		err = json.Unmarshal(wrapper.Data, &res)
+		err = json.Unmarshal([]byte(wrapper.Data), &res)
 		msg = res
 	default:
 		log.Println("Unknown message type: ", wrapper.MessageType)
@@ -75,7 +75,7 @@ func (connection *WebsocketConnection) ReadMessage() (Message, error) {
 	}
 }
 
-func (connection *WebsocketConnection) StartReading(ch MessagesChannel) {
+func (connection *WebsocketConnection) StartReading(ch UserMessagesChannel) {
 	go func() {
 		defer connection.Close()
 
@@ -86,7 +86,8 @@ func (connection *WebsocketConnection) StartReading(ch MessagesChannel) {
 				break
 			}
 			if msg != nil {
-				ch <- msg
+
+				ch <- UserMessage{connection.id, msg}
 			}
 		}
 
@@ -98,8 +99,14 @@ func (connection *WebsocketConnection) StartWriting() {
 		log.Println("Writing started ", connection.id)
 
 		for message := range connection.GetResponseChannel() {
-			log.Println("For ", connection.id, " message ", message)
-			connection.ws.WriteJSON(message)
+			// log.Println("For ", connection.id, " message ", message)
+			bytes, err := json.Marshal(message)
+			if err == nil {
+				connection.ws.WriteJSON(WebsocketMessageWrapper{1001, string(bytes)})
+			} else {
+				log.Println("Error serializing message", message)
+			}
+
 		}
 
 		log.Println("Writing finished for", connection.id)
@@ -111,6 +118,19 @@ func (connection *WebsocketConnection) Close() {
 	close(connection.responseChannel)
 	connection.ws.Close()
 	connection.closingChannel <- connection.id
+}
+
+func (connection *WebsocketConnection) GetAuth() (*AuthMessage, error) {
+	msg, err := connection.ReadMessage()
+	if err == nil {
+		if auth, ok := msg.(AuthMessage); ok {
+			return &auth, nil
+		} else {
+			return nil, errors.New("Wrong message type")
+		}
+	} else {
+		return nil, err
+	}
 }
 
 func NewWebsocketConnection(ws *websocket.Conn) Connection {

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -12,7 +13,7 @@ type TcpConnection struct {
 	socket net.Conn
 }
 
-func (connection *TcpConnection) StartReading(ch MessagesChannel) {
+func (connection *TcpConnection) StartReading(ch UserMessagesChannel) {
 	go func() {
 		log.Println("starting reading")
 		defer connection.Close()
@@ -29,7 +30,7 @@ func (connection *TcpConnection) StartReading(ch MessagesChannel) {
 				log.Println("read bytes: ", n)
 			}
 
-			ch <- DataMessage{buffer}
+			ch <- UserMessage{connection.id, DataMessage{buffer}}
 		}
 
 		log.Println("Reading finished")
@@ -43,9 +44,9 @@ func (connection *TcpConnection) Close() {
 	connection.socket.Close()
 }
 
-func (connection *TcpConnection) GetAuth() *Player {
+func (connection *TcpConnection) GetAuth() (*AuthMessage, error) {
 	log.Println("TcpConnection.GetAuth is not implemented")
-	return nil
+	return nil, errors.New("Not implemented")
 }
 
 func NewTcpConnection(socket net.Conn) Connection {

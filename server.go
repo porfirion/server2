@@ -12,7 +12,7 @@ const format = "%T(%v)\n"
 func main() {
 	var incomingConnections ConnectionsChannel = make(ConnectionsChannel, 100)
 
-	var incomingMessages MessagesChannel = make(MessagesChannel)
+	var incomingMessages UserMessagesChannel = make(UserMessagesChannel)
 	var outgoingMessages ServerMessagesChannel = make(ServerMessagesChannel)
 
 	// стартуем логику. она готова, чтобы принимать и обрабатывать соощения
