@@ -23,12 +23,6 @@
 			}
 
 			.chat {
-				border: 2px solid gray;
-			}
-
-			.chat {
-				border: 1px solid gray;
-				padding: 10px;
 				min-width: 940px;
 			}
 
@@ -90,17 +84,23 @@
 		</style>
 	</head>
 	<body>
-		<h1></h1>
-		<div class="chat">
-			<div class="chat_window"></div>
-			<div class="chat_members"></div>
-			
-			<div class="clearer"></div>
+		<div class="page-header">
+			<h1></h1>
+		</div>
+		<div class="panel panel-default">
+			<div class="panel-body">
+				<div class="chat">
+					<div class="chat_window"></div>
+					<div class="chat_members"></div>
+					
+					<div class="clearer"></div>
 
-			<form id="chat_form" class="clearfix">
-				<input class="chat_input form-control" type="text" name=""/>
-				<input class="chat_submit btn btn-default" type="submit"/>
-			</form>
+					<form id="chat_form" class="clearfix">
+						<input class="chat_input form-control" type="text" name=""/>
+						<input class="chat_submit btn btn-default" type="submit"/>
+					</form>
+				</div>
+			</div>
 		</div>
 	</body>
 </html>

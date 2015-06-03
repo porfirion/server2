@@ -21,6 +21,7 @@ func (pool *ConnectionsPool) processConnection(connection Connection) {
 			 * TODO по идее нужно прибить это соединение, а то оно так и будет крутиться
 			 * Также неплохо бы отправить ответ в соединение, что не прошла авторизация по таким-то причинам
 			 */
+			connection.GetResponseChannel() <- ErrorMessage{Code: 0, Description: "Authorization failed"}
 		} else {
 			log.Println("Authorization successful: ", authMessage)
 
@@ -31,8 +32,12 @@ func (pool *ConnectionsPool) processConnection(connection Connection) {
 			connection.SetId(connectionId)
 			connection.SetClosingChannel(pool.ClosingChannel)
 
+			// извещаем клиента о том, что он подключился
+			connection.GetResponseChannel() <- WellcomeMessage{Id: connectionId}
+
 			pool.Connections[connectionId] = connection
 			pool.logic.IncomingMessages <- UserMessage{Data: LoginMessage{user}, Source: connectionId}
+
 			connection.StartReading(pool.logic.IncomingMessages)
 		}
 	}()

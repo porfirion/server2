@@ -102,7 +102,7 @@ func (connection *WebsocketConnection) StartWriting() {
 			// log.Println("For ", connection.id, " message ", message)
 			bytes, err := json.Marshal(message)
 			if err == nil {
-				connection.ws.WriteJSON(WebsocketMessageWrapper{1001, string(bytes)})
+				connection.ws.WriteJSON(WebsocketMessageWrapper{GetMessageTypeId(message), string(bytes)})
 			} else {
 				log.Println("Error serializing message", message)
 			}
