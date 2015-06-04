@@ -1,7 +1,3 @@
-MessageTypeAuth =    1;
-MessageTypeData = 1000;
-MessageTypeText = 1001;
-
 var members = {};
 
 function generateUUID(){
@@ -14,55 +10,90 @@ function generateUUID(){
 	return uuid;
 }
 
-var websocket;
-var uuid;
+function getName() {
+	var names = [
+		"Ivan", "Mikhail", "Ilya", "Sergey", "Alexander", "Egor", "Diman", "Alexey"
+	];
 
-function onopenHandler() {
-	SendMessage(MessageTypeAuth, {Uuid: uuid});
+	var rndNameId = Math.round(Math.random() * names.length - 1);
+	var rndNum = Math.round(Math.random() * 1000000);
+
+	console.log(rndNameId, rndNum, names[rndNameId]);
+
+	return names[rndNameId] + rndNum;
 }
-function oncloseHandler() {
-	ShowMessage("server is down", "error");
-}
-function onmessageHandler(event) {
-	var wrapper = JSON.parse(event.data);
-	try {
-		console.log(wrapper.Data);
-		var data = JSON.parse(wrapper.Data);
+
+
+var myName = null;
+var myId = null;
+
+
+function onmessage(messageType, data) {
+	switch (messageType) {
+		case MessageType.TEXT:
+			if (data.Sender == 0) {
+				ShowMessage(data.Text, "text-primary");
+			}
+			else if (data.Sender == myId) {
+				ShowMessage(data.Text, "text-success");
+			}
+			else {
+				var username = data.Sender in members ? members[data.Sender].name : 'Unknown';
+				ShowMessage(username + ": " + data.Text);
+			}
+			break;
+		case MessageType.WELLCOME:
+			myId = data.Id;
+			NewMember(myId, myName)
+			break;
+		case MessageType.USER_LIST:
+			for (var i = 0, user; user = data.Users[i]; i++) {
+				NewMember(user.Id, user.Name);
+			}
+			break;
+		case MessageType.USER_LOGGEDIN:
+			ShowMessage(data.Name + " logged in", "text-muted");
+			NewMember(data.Id, data.Name);
+			break;
+		case MessageType.USER_LOGGEDOUT:
+			RemoveMember(data.Id);
+			break;
+		default:
+			ShowMessage("Unknown message type: " + messageType + data, "text-danger");
+			break;
 	}
-	catch (ex) {
-		console.error(ex);
-	}
-	window.console.log("msg type " + wrapper.MessageType, data);
-	
-	if (wrapper.MessageType == MessageTypeText) {
-		if (data.Sender == 0) {
-			ShowMessage(" server: \"" + data.Text + "\"", "text-muted");
-		}
-		else if (data.Sender == uuid) {
-			ShowMessage(" me: \"" + data.Text + "\"", "text-primary");
-		}
-		else {
-			ShowMessage(data.Sender + " says: \"" + data.Text + "\"");
-		}
+	if (messageType == MessageType.TEXT) {
+		
 	}
 	else {
-		ShowMessage("Error parsing " + event.data, "text-danger");
+		
 	}
 }
 
-function NewMember(uuid) {
-	if (!(uuid in members)) {
+function NewMember(id, name) {
+	if (!(id in members)) {
 		var member = {
-			uuid: uuid,
-			anchor: $('<div class="member">'+uuid+'</div>'),
+			id: id,
+			name: name,
+			anchor: $('<div class="member" aria-hidden="true" data-id="' + id + '">'+name+'</div>'),
 		};
 		$('.chat_members').append(member.anchor);
-		members[uuid] = member;
+		if (id == myId) {
+			member.anchor.css('font-weight', 'bold');
+		}
+		members[id] = member;
 
 		return member;
 	}
 	else {
-		return members[uuid];
+		return members[id];
+	}
+}
+function RemoveMember(id) {
+	if (id in members) {
+		ShowMessage(members[id].name + " logged out");
+		members[id].anchor.remove();
+		delete members[id];
 	}
 }
 
@@ -74,33 +105,24 @@ function ShowMessage(text, messageType) {
 	$('.chat_window').append('<div class="message ' + messageType + '">' + text + '</div>');
 }
 
-function SendMessage(type, data) {
-	var msg = {
-		MessageType: type,
-		 Data: JSON.stringify(data)
-		// Data: btoa(JSON.stringify(data))
-	}
-	websocket.send(JSON.stringify(msg))
-}
-
 jQuery(document).ready(function() {
-	uuid = generateUUID();
-	$('h1').html(uuid);
-	websocket = new WebSocket("ws://" + window.location.host + "/ws");
-	websocket.onopen = onopenHandler;
-	websocket.onclose = oncloseHandler;
-	websocket.onmessage = onmessageHandler;
+	myName = getName();
+	$('h1').html(myName);
+	var client = new WsClient("ws://" + window.location.host + "/ws", myName, onmessage);
 
 	$('#chat_form').submit(function(event) {
 		event.preventDefault();
 
 		var text = $('.chat_input').val();
 		try {
-			SendMessage(MessageTypeText, {Text: text});
+			client.sendMessage(MessageType.TEXT, {Text: text});
 		} catch (err) {
 			ShowMessage("Unable to send " + text, "text-danger");
+			console.error(err);
 		}
 
 		$('.chat_input').val('');
+
+		return false;
 	})
 });

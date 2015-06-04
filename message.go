@@ -1,5 +1,9 @@
 package main
 
+import (
+	"fmt"
+)
+
 type Message interface {
 }
 
@@ -24,7 +28,7 @@ type DataMessage struct {
  * Посылается пользователм на сервер для прохождения авторизации
  */
 type AuthMessage struct {
-	Uuid string
+	Name string
 }
 
 /**
@@ -38,28 +42,41 @@ type WellcomeMessage struct {
  * Посылается пулом соединений для извещения о входе
  */
 type LoginMessage struct {
-	User
+	Id   int
+	Name string
 }
 
 /**
  * Посылается пулом сообщений для извещения о выходе
  */
 type LogoutMessage struct {
-	User
+	Id int
 }
 
 /**
  * Используется для синронизации списка пользователей с клиентом
  */
 type UserListMessage struct {
-	Users []User
+	Users []struct {
+		Id   int
+		Name string
+	}
+}
+type UserLoggedinMessage struct {
+	Id   int
+	Name string
+}
+
+type UserLoggedoutMessage struct {
+	Id int
 }
 
 /* SPECIAL STRUCTURES */
 
 type ServerMessage struct {
-	Targets []int
 	Data    Message
+	Targets []int // send only to
+	Except  []int // do not send to
 }
 
 type UserMessage struct {
@@ -97,8 +114,13 @@ func GetMessageTypeId(msg Message) int {
 		res = 1001
 	case UserListMessage:
 		res = 10000
+	case UserLoggedinMessage:
+		res = 10001
+	case UserLoggedoutMessage:
+		res = 10002
 	default:
 		// Unknown message type
+		fmt.Printf("Unknown message type %#v\n", msg)
 		res = 0
 	}
 

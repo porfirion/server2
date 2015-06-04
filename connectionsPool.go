@@ -27,8 +27,6 @@ func (pool *ConnectionsPool) processConnection(connection Connection) {
 
 			var connectionId = <-pool.ConnectionsEnumerator
 
-			user := User{Id: connectionId, Name: authMessage.Uuid}
-
 			connection.SetId(connectionId)
 			connection.SetClosingChannel(pool.ClosingChannel)
 
@@ -36,7 +34,7 @@ func (pool *ConnectionsPool) processConnection(connection Connection) {
 			connection.GetResponseChannel() <- WellcomeMessage{Id: connectionId}
 
 			pool.Connections[connectionId] = connection
-			pool.logic.IncomingMessages <- UserMessage{Data: LoginMessage{user}, Source: connectionId}
+			pool.logic.IncomingMessages <- UserMessage{Data: LoginMessage{Id: connectionId, Name: authMessage.Name}, Source: connectionId}
 
 			connection.StartReading(pool.logic.IncomingMessages)
 		}
@@ -57,16 +55,35 @@ func (pool *ConnectionsPool) InitEnumerator() {
 
 func (pool *ConnectionsPool) RemoveConnection(connectionId int) {
 	log.Println("Removing connection", connectionId)
+
 	delete(pool.Connections, connectionId)
+
+	pool.logic.IncomingMessages <- UserMessage{Data: LogoutMessage{connectionId}, Source: connectionId}
 }
 
 func (pool *ConnectionsPool) DispathMessage(msg ServerMessage) {
 	if len(msg.Targets) == 0 {
+	AllConnectionsLoop:
 		for _, conn := range pool.Connections {
+			if len(msg.Except) > 0 {
+				for _, id := range msg.Except {
+					if conn.GetId() == id {
+						continue AllConnectionsLoop
+					}
+				}
+			}
 			conn.GetResponseChannel() <- msg.Data
 		}
 	} else {
+	TargetConnectionsLoop:
 		for _, connectionId := range msg.Targets {
+			if len(msg.Except) > 0 {
+				for _, id := range msg.Except {
+					if connectionId == id {
+						continue TargetConnectionsLoop
+					}
+				}
+			}
 			pool.Connections[connectionId].GetResponseChannel() <- msg.Data
 		}
 	}

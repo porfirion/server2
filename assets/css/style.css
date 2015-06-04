@@ -49,7 +49,8 @@ div, span, textarea, input {
 }
 
 .member {
-	font-size: 10px;
+	line-height: 25px;
+  	padding-left: 10px;
 }
 
 .chat_input {
