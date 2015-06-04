@@ -22,7 +22,7 @@ func main() {
 	pool := &ConnectionsPool{logic: logic, incomingConnections: incomingConnections}
 	go pool.Start()
 
-	wsGate := &WebSocketGate{&net.TCPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 8080}, incomingConnections}
+	wsGate := &WebSocketGate{&net.TCPAddr{IP: net.IPv4(0, 0, 0, 0), Port: 8080}, incomingConnections}
 	go wsGate.Start()
 
 	tcpGate := &TcpGate{&net.TCPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 25001}, incomingConnections}
