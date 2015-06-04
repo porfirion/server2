@@ -1,87 +1,11 @@
 <!DOCTYPE html>
 <html>
 	<head>
-		<script src="/assets/jquery-2.1.1.min.js"></script>
-		<script src="/assets/script.js"></script>
-		<link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.0.0-wip/css/bootstrap.min.css">
-		<style>
-			div, span, textarea, input {
-				padding: 0px;
-				margin: 0px;
-				display: block;
-				box-sizing: border-box;
-			}
-
-			.clearfix {}
-			.clearfix:after {
-				content: '';
-				clear: both;
-				display: block;
-			}
-			.clearer {
-				clear: both;
-			}
-
-			.chat {
-				min-width: 940px;
-			}
-
-			.chat_window, .chat_members {
-				border: 1px solid gray;
-				box-sizing: border-box;
-			}
-
-			#chat_form {
-				padding: 10px 0px;
-
-			}
-
-			.chat_window {
-				display: block;
-				margin-right: 10px;
-				float: left;
-				width: 700px;
-				height: 500px;
-				padding: 10px;
-
-				counter-reset: message;
-			}
-			.chat_members {
-				display: block;
-				float: left;
-				width: 200px;
-				height: 500px;
-			}
-
-			.member {
-				font-size: 10px;
-			}
-
-			.chat_input {
-				display: block;
-				float: left;
-				width: 700px;
-				margin-right: 10px;
-			}
-			.chat_submit {
-				display: block;
-				float: left;
-				width: 200px;
-			}
-			
-
-			.message {
-
-			}
-			.message:before {
-				content: counter(message) ". ";
-				counter-increment: message;
-			}
-			.message.error { color: red; }
-			.message.join { color: green; }
-			.message.leave { color: orange; }
-			.message.me { font-weight: bold; }
-		</style>
+		<script src="/assets/js/jquery-2.1.1.min.js"></script>
+		<script src="/assets/js/script.js"></script>
+		<link rel="stylesheet" href="/assets/css/bootstrap.min.css">
+		<link rel="stylesheet" href="/assets/css/bootstrap-theme.min.css">
+		<link rel="stylesheet" href="/assets/css/style.css">
 	</head>
 	<body>
 		<div class="page-header">
