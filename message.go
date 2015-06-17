@@ -71,6 +71,10 @@ type UserLoggedoutMessage struct {
 	Id int
 }
 
+type SyncPositionsMessage struct {
+	Positions map[string]Position
+}
+
 /* SPECIAL STRUCTURES */
 
 type ServerMessage struct {
@@ -118,6 +122,8 @@ func GetMessageTypeId(msg Message) int {
 		res = 10001
 	case UserLoggedoutMessage:
 		res = 10002
+	case SyncPositionsMessage:
+		res = 10003
 	default:
 		// Unknown message type
 		fmt.Printf("Unknown message type %#v\n", msg)

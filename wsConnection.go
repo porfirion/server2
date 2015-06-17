@@ -99,12 +99,12 @@ func (connection *WebsocketConnection) StartWriting() {
 		log.Println("Writing started ", connection.id)
 
 		for message := range connection.GetResponseChannel() {
-			// log.Println("For ", connection.id, " message ", message)
+			log.Println("For ", connection.id, " message ", message)
 			bytes, err := json.Marshal(message)
 			if err == nil {
 				connection.ws.WriteJSON(WebsocketMessageWrapper{GetMessageTypeId(message), string(bytes)})
 			} else {
-				log.Println("Error serializing message", message)
+				log.Println("Error serializing message", message, err)
 			}
 
 		}

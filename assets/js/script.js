@@ -58,6 +58,9 @@ function onmessage(messageType, data) {
 		case MessageType.USER_LOGGEDOUT:
 			RemoveMember(data.Id);
 			break;
+		case MessageType.SYNC_USERS_POSITIONS:
+			ShowMessage("Unimplemented sync users positions");
+			break;
 		default:
 			ShowMessage("Unknown message type: " + messageType + data, "text-danger");
 			break;
