@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"reflect"
 )
 
 type Message interface {
@@ -75,6 +76,10 @@ type SyncPositionsMessage struct {
 	Positions map[string]Position
 }
 
+type SyncTimeMessage struct {
+	Time int
+}
+
 /* SPECIAL STRUCTURES */
 
 type ServerMessage struct {
@@ -124,6 +129,8 @@ func GetMessageTypeId(msg Message) int {
 		res = 10002
 	case SyncPositionsMessage:
 		res = 10003
+	case SyncTimeMessage:
+		res = 10004
 	default:
 		// Unknown message type
 		fmt.Printf("Unknown message type %#v\n", msg)
@@ -131,4 +138,34 @@ func GetMessageTypeId(msg Message) int {
 	}
 
 	return res
+}
+
+func GetMessageTypeById(typeId int) reflect.Type {
+	switch typeId {
+	case 1:
+		return reflect.TypeOf(AuthMessage{})
+	case 2:
+		return reflect.TypeOf(WellcomeMessage{})
+	default:
+		fmt.Println("Unknown message type ", typeId)
+		return nil
+	}
+}
+
+func getValueByTypeId(typeId int) interface{} {
+	switch typeId {
+	case 1:
+		return AuthMessage{}
+	case 2:
+		return WellcomeMessage{}
+	case 10:
+		return LoginMessage{}
+	case 11:
+		return LogoutMessage{}
+	case 100:
+		return ErrorMessage{}
+	default:
+		fmt.Println("Unknown message type", typeId)
+		return nil
+	}
 }

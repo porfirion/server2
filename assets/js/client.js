@@ -1,13 +1,14 @@
 "use strict";
 
 function WsClient(wsAddr, name, onmessage) {
-	var websocket = false;
+	
 	var reconnectTimeout = 1;
 
 	var _this = this;
 
 	this.name = name;
 	this.id = null;
+	this.websocket = false;
 
 	this.sendMessage = function(type, data) {
 		var msg = {
@@ -16,7 +17,7 @@ function WsClient(wsAddr, name, onmessage) {
 			// Data: btoa(JSON.stringify(data)),
 		}
 		try {
-			websocket.send(JSON.stringify(msg))
+			this.websocket.send(JSON.stringify(msg))
 		} catch (err) {
 			console.error(err);
 		}
@@ -27,7 +28,7 @@ function WsClient(wsAddr, name, onmessage) {
 	};
 
 	var oncloseHandler = function() {
-		websocket = null;
+		this.websocket = null;
 		this.id = null;
 		window.setTimeout(connect, reconnectTimeout * 1000)
 	};
@@ -48,12 +49,21 @@ function WsClient(wsAddr, name, onmessage) {
 		onmessage.call(this, wrapper.MessageType, data);
 	};
 
+	var onerrorHandler = function() {
+		console.warn('WebSocket error:', arguments);
+		_this.WebSocket = null
+
+		console.log('Reconnecting...');
+		connect()
+	}
+
 	var connect = function() {
-		if (!websocket) {
-			websocket = new WebSocket(wsAddr);
-			websocket.onopen = onopenHandler;
-			websocket.onclose = oncloseHandler;
-			websocket.onmessage = onmessageHandler;
+		if (!_this.websocket) {
+			_this.websocket = new WebSocket(wsAddr);
+			_this.websocket.onopen = onopenHandler.bind(_this);
+			_this.websocket.onclose = oncloseHandler.bind(_this);
+			_this.websocket.onmessage = onmessageHandler.bind(_this);
+			_this.websocket.onerror = onerrorHandler.bind(_this);
 		}
 	};
 
@@ -72,4 +82,5 @@ var MessageType = {
 	USER_LOGGEDIN:  10001,
 	USER_LOGGEDOUT: 10002,
 	SYNC_USERS_POSITIONS: 10003,
+	SYNC_TIME: 10004,
 }

@@ -26,6 +26,7 @@ function getName() {
 
 var myName = null;
 var myId = null;
+var client = null;
 
 
 function onmessage(messageType, data) {
@@ -64,12 +65,6 @@ function onmessage(messageType, data) {
 		default:
 			ShowMessage("Unknown message type: " + messageType + data, "text-danger");
 			break;
-	}
-	if (messageType == MessageType.TEXT) {
-		
-	}
-	else {
-		
 	}
 }
 
@@ -111,7 +106,13 @@ function ShowMessage(text, messageType) {
 jQuery(document).ready(function() {
 	myName = getName();
 	$('h1').html(myName);
-	var client = new WsClient("ws://" + window.location.host + "/ws", myName, onmessage);
+	client = new WsClient("ws://" + window.location.host + "/ws", myName, onmessage);
+
+	setInterval(function() {
+		client.sendMessage(MessageType.SYNC_TIME, 0);
+		console.log('sent');
+	}, 1000);
+
 
 	$('#chat_form').submit(function(event) {
 		event.preventDefault();

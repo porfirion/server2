@@ -6,6 +6,7 @@ import (
 	"github.com/gorilla/websocket"
 	"io"
 	"log"
+	"time"
 )
 
 type WebsocketMessageWrapper struct {
@@ -27,8 +28,12 @@ func (wrapper *WebsocketMessageWrapper) GetMessage() (msg Message, err error) {
 		var res TextMessage
 		err = json.Unmarshal([]byte(wrapper.Data), &res)
 		msg = res
+	case 10004:
+		var res SyncTimeMessage
+		err = json.Unmarshal([]byte(wrapper.Data), &res)
+		msg = res
 	default:
-		log.Println("Unknown message type: ", wrapper.MessageType)
+		log.Println("Unknown message type(get): ", wrapper.MessageType)
 	}
 
 	return
@@ -86,8 +91,13 @@ func (connection *WebsocketConnection) StartReading(ch UserMessagesChannel) {
 				break
 			}
 			if msg != nil {
-
-				ch <- UserMessage{connection.id, msg}
+				switch msg.(type) {
+				case SyncTimeMessage:
+					log.Println("Sync time message")
+					log.Println(time.Now().UnixNano() / int64(time.Millisecond))
+				default:
+					ch <- UserMessage{connection.id, msg}
+				}
 			}
 		}
 
