@@ -169,3 +169,25 @@ func getValueByTypeId(typeId int) interface{} {
 		return nil
 	}
 }
+
+var dict map[reflect.Type]int = map[reflect.Type]int{
+	reflect.TypeOf(AuthMessage{}):     1,
+	reflect.TypeOf(WellcomeMessage{}): 2,
+}
+
+func IdByType(value interface{}) int {
+	if id, ok := dict[reflect.TypeOf(value)]; ok {
+		return id
+	} else {
+		return 0
+	}
+}
+
+func ValueById(typeId int) interface{} {
+	for typeDec, id := range dict {
+		if id == typeId {
+			return reflect.Zero(typeDec).Interface()
+		}
+	}
+	return nil
+}
