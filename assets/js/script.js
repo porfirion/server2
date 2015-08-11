@@ -18,7 +18,7 @@ function getName() {
 	var rndNameId = Math.round(Math.random() * names.length - 1);
 	var rndNum = Math.round(Math.random() * 1000000);
 
-	console.log(rndNameId, rndNum, names[rndNameId]);
+	// console.log(rndNameId, rndNum, names[rndNameId]);
 
 	return names[rndNameId] + rndNum;
 }
@@ -27,6 +27,7 @@ function getName() {
 var myName = null;
 var myId = null;
 var client = null;
+var syncTimeTimer = null;
 
 
 function onmessage(messageType, data) {
@@ -68,6 +69,18 @@ function onmessage(messageType, data) {
 	}
 }
 
+function onclose() {
+	console.log('Timer: ', syncTimeTimer);
+
+	if (syncTimeTimer) {
+		clearInterval(syncTimeTimer);
+	}
+	
+	syncTimeTimer = null;
+	$('.chat_members').empty();
+	ShowMessage('disconnected');
+}
+
 function NewMember(id, name) {
 	if (!(id in members)) {
 		var member = {
@@ -106,13 +119,15 @@ function ShowMessage(text, messageType) {
 jQuery(document).ready(function() {
 	myName = getName();
 	$('h1').html(myName);
-	client = new WsClient("ws://" + window.location.host + "/ws", myName, onmessage);
-
-	setInterval(function() {
-		client.sendMessage(MessageType.SYNC_TIME, 0);
-		console.log('sent');
-	}, 1000);
-
+	client = new WsClient("ws://" + window.location.host + "/ws", myName);
+	client.on('message', onmessage);
+	client.on('close', onclose);
+	client.on('open', function() {
+		syncTimeTimer = setInterval(function() {
+			client.sendMessage(MessageType.SYNC_TIME, 0);
+			console.log('sent');
+		}, 1000);
+	});
 
 	$('#chat_form').submit(function(event) {
 		event.preventDefault();

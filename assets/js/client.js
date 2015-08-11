@@ -1,6 +1,6 @@
 "use strict";
 
-function WsClient(wsAddr, name, onmessage) {
+function WsClient(wsAddr, name) {
 	
 	var reconnectTimeout = 1;
 
@@ -9,6 +9,7 @@ function WsClient(wsAddr, name, onmessage) {
 	this.name = name;
 	this.id = null;
 	this.websocket = false;
+	this.handlers = {};
 
 	this.sendMessage = function(type, data) {
 		var msg = {
@@ -23,17 +24,60 @@ function WsClient(wsAddr, name, onmessage) {
 		}
 	};
 
+	this.on = function(eventType, handler) {
+		if (!(eventType in _this.handlers)) {
+			_this.handlers[eventType] = [];
+		}
+		_this.handlers[eventType].push(handler);
+
+		return _this;
+	}
+
+	this.off = function(eventType, handler) {
+		if (eventType in _this.handlers) {
+			if (_this.handlers[eventType].indexOf(handler) > -1) {
+				_this.handlers[eventType].splice(_this.handlers[eventType].indexOf(handler), 1);
+			}
+		}
+	}
+	this.trigger = function(eventType) {
+		if (eventType in _this.handlers) {
+			for (var i = 0; i < _this.handlers[eventType].length; i++) {
+				if (arguments.length > 1) {
+					_this.handlers[eventType][i].apply(null, Array.prototype.slice.call(arguments, 1));
+				} else {
+					_this.handlers[eventType][i].call(null);
+				}
+			}
+		}
+	}
+
 	var onopenHandler = function() {
+		console.log('on open');
 		_this.sendMessage(MessageType.AUTH, {Name: name});
+
+		_this.trigger('open');
 	};
 
 	var oncloseHandler = function() {
-		this.websocket = null;
-		this.id = null;
-		window.setTimeout(connect, reconnectTimeout * 1000)
+		console.log('on close');
+		_this.websocket = null;
+		_this.id = null;
+		// window.setTimeout(connect, reconnectTimeout * 1000);
+		_this.trigger('close');
 	};
 
+	var onerrorHandler = function() {
+		console.warn('WebSocket error:', arguments);
+		//_this.websocket = null;
+		_this.trigger('error');
+
+		// console.log('Reconnecting...');
+		// connect()
+	}
+
 	var onmessageHandler = function (event) {
+		console.log('on message');
 		try {
 			var wrapper = JSON.parse(event.data);
 			var data = JSON.parse(wrapper.Data);
@@ -46,16 +90,11 @@ function WsClient(wsAddr, name, onmessage) {
 			this.id = data.Id;
 		}
 
-		onmessage.call(this, wrapper.MessageType, data);
+		console.log('Message type: ', wrapper.MessageType);
+
+		_this.trigger('message', wrapper.MessageType, data);
+		// onmessage.call(this, wrapper.MessageType, data);
 	};
-
-	var onerrorHandler = function() {
-		console.warn('WebSocket error:', arguments);
-		_this.WebSocket = null
-
-		console.log('Reconnecting...');
-		connect()
-	}
 
 	var connect = function() {
 		if (!_this.websocket) {
