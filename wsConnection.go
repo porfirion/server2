@@ -87,7 +87,7 @@ func (connection *WebsocketConnection) StartReading(ch UserMessagesChannel) {
 		for {
 			msg, err := connection.ReadMessage()
 			if err != nil {
-				log.Println("Error reading message")
+				log.Println("Error reading message: ", err)
 				break
 			}
 			if msg != nil {
