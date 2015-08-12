@@ -3,9 +3,11 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/gorilla/websocket"
 	"io"
 	"log"
+	"reflect"
 	"time"
 )
 
@@ -15,26 +17,16 @@ type WebsocketMessageWrapper struct {
 }
 
 func (wrapper *WebsocketMessageWrapper) GetMessage() (msg Message, err error) {
-	switch wrapper.MessageType {
-	case 1:
-		var res AuthMessage
-		err = json.Unmarshal([]byte(wrapper.Data), &res)
-		msg = res
-	case 1000:
-		var res DataMessage
-		err = json.Unmarshal([]byte(wrapper.Data), &res)
-		msg = res
-	case 1001:
-		var res TextMessage
-		err = json.Unmarshal([]byte(wrapper.Data), &res)
-		msg = res
-	case 10004:
-		var res SyncTimeMessage
-		err = json.Unmarshal([]byte(wrapper.Data), &res)
-		msg = res
-	default:
-		log.Println("Unknown message type(get): ", wrapper.MessageType)
-	}
+	res := GetValueByTypeId(wrapper.MessageType)
+
+	fmt.Println(reflect.TypeOf(res))
+
+	fmt.Printf("unmarshalling into %#v\n", res)
+
+	err = json.Unmarshal([]byte(wrapper.Data), &res)
+
+	fmt.Printf("unmarshalled: %#v error: %#v\n", res, err)
+	msg = res
 
 	return
 }
@@ -82,7 +74,7 @@ func (connection *WebsocketConnection) ReadMessage() (Message, error) {
 
 func (connection *WebsocketConnection) StartReading(ch UserMessagesChannel) {
 	go func() {
-		defer connection.Close()
+		defer connection.Close(0, "unimplemented")
 
 		for {
 			msg, err := connection.ReadMessage()
@@ -123,8 +115,12 @@ func (connection *WebsocketConnection) StartWriting() {
 	}()
 }
 
-func (connection *WebsocketConnection) Close() {
+func (connection *WebsocketConnection) Close(code int, message string) {
 	log.Println("Closing websocket connection")
+	//	if (len(message) > 0) {
+	//		connection.responseChannel <-
+	//	}
+
 	close(connection.responseChannel)
 	connection.ws.Close()
 	connection.closingChannel <- connection.id

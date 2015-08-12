@@ -107,8 +107,8 @@ func (pool *ConnectionsPool) Start() {
 			pool.DispathMessage(message)
 			// log.Println("Outgoing message", message)
 		case connectionId := <-pool.ClosingChannel:
-			pool.RemoveConnection(connectionId)
 			log.Println("Closing connection", connectionId)
+			pool.RemoveConnection(connectionId)
 		}
 	}
 

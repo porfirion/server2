@@ -124,7 +124,7 @@ jQuery(document).ready(function() {
 	client.on('close', onclose);
 	client.on('open', function() {
 		syncTimeTimer = setInterval(function() {
-			client.sendMessage(MessageType.SYNC_TIME, 0);
+			client.sendMessage(MessageType.SYNC_TIME, {time: 0});
 			console.log('sent');
 		}, 1000);
 	});

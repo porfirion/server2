@@ -2,7 +2,7 @@ package main
 
 type Connection interface {
 	StartReading(ch UserMessagesChannel)
-	Close()
+	Close(code int, message string)
 	GetResponseChannel() MessagesChannel
 	SetId(id int)
 	GetId() int

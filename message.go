@@ -98,14 +98,14 @@ type MessagesChannel chan Message
 type ServerMessagesChannel chan ServerMessage
 type UserMessagesChannel chan UserMessage
 
-func GetMessageTypeId(msg Message) int {
+/*func GetMessageTypeId(msg Message) int {
 	var res int = 0
-	/*
-		1     - 99    Initial messages
-		100   - 999   Errors
-		1000  - 9999  Information messages
-		10000 - 99999 Complex information messages
-	*/
+
+	//	1     - 99    Initial messages
+	//	100   - 999   Errors
+	//	1000  - 9999  Information messages
+	//	10000 - 99999 Complex information messages
+
 	switch msg.(type) {
 	case AuthMessage:
 		res = 1
@@ -138,56 +138,38 @@ func GetMessageTypeId(msg Message) int {
 	}
 
 	return res
-}
-
-func GetMessageTypeById(typeId int) reflect.Type {
-	switch typeId {
-	case 1:
-		return reflect.TypeOf(AuthMessage{})
-	case 2:
-		return reflect.TypeOf(WellcomeMessage{})
-	default:
-		fmt.Println("Unknown message type ", typeId)
-		return nil
-	}
-}
-
-func getValueByTypeId(typeId int) interface{} {
-	switch typeId {
-	case 1:
-		return AuthMessage{}
-	case 2:
-		return WellcomeMessage{}
-	case 10:
-		return LoginMessage{}
-	case 11:
-		return LogoutMessage{}
-	case 100:
-		return ErrorMessage{}
-	default:
-		fmt.Println("Unknown message type", typeId)
-		return nil
-	}
-}
+}*/
 
 var dict map[reflect.Type]int = map[reflect.Type]int{
-	reflect.TypeOf(AuthMessage{}):     1,
-	reflect.TypeOf(WellcomeMessage{}): 2,
+	reflect.TypeOf(AuthMessage{}):          1,
+	reflect.TypeOf(WellcomeMessage{}):      2,
+	reflect.TypeOf(LoginMessage{}):         10,
+	reflect.TypeOf(LogoutMessage{}):        11,
+	reflect.TypeOf(ErrorMessage{}):         100,
+	reflect.TypeOf(DataMessage{}):          1000,
+	reflect.TypeOf(TextMessage{}):          1001,
+	reflect.TypeOf(UserListMessage{}):      10000,
+	reflect.TypeOf(UserLoggedinMessage{}):  10001,
+	reflect.TypeOf(UserLoggedoutMessage{}): 10002,
+	reflect.TypeOf(SyncPositionsMessage{}): 10003,
+	reflect.TypeOf(SyncTimeMessage{}):      10004,
 }
 
-func IdByType(value interface{}) int {
+func GetMessageTypeId(value interface{}) int {
 	if id, ok := dict[reflect.TypeOf(value)]; ok {
 		return id
 	} else {
-		return 0
+		return -1
 	}
 }
 
-func ValueById(typeId int) interface{} {
+func GetValueByTypeId(typeId int) interface{} {
 	for typeDec, id := range dict {
+		fmt.Printf("Type: %#v Id: %#v", typeDec, id)
 		if id == typeId {
-			return reflect.Zero(typeDec).Interface()
+			return reflect.New(typeDec).Interface()
 		}
 	}
+	fmt.Println("Unknown message type", typeId)
 	return nil
 }
