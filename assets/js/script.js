@@ -33,37 +33,46 @@ var syncTimeTimer = null;
 function onmessage(messageType, data) {
 	switch (messageType) {
 		case MessageType.TEXT:
-			if (data.Sender == 0) {
-				ShowMessage(data.Text, "text-primary");
+			if (data.sender == 0) {
+				ShowMessage(data.text, "text-primary");
 			}
 			else if (data.Sender == myId) {
-				ShowMessage(data.Text, "text-success");
+				ShowMessage(data.text, "text-success");
 			}
 			else {
-				var username = data.Sender in members ? members[data.Sender].name : 'Unknown';
-				ShowMessage(username + ": " + data.Text);
+				var username = data.sender in members ? members[data.sender].name : 'Unknown sender';
+				ShowMessage(username + ": " + data.text);
 			}
 			break;
 		case MessageType.WELLCOME:
-			myId = data.Id;
+			myId = data.id;
 			NewMember(myId, myName)
 			break;
 		case MessageType.USER_LIST:
-			for (var i = 0, user; user = data.Users[i]; i++) {
-				NewMember(user.Id, user.Name);
+			for (var i = 0, user; user = data.users[i]; i++) {
+				NewMember(user.id, user.name);
 			}
 			break;
 		case MessageType.USER_LOGGEDIN:
-			ShowMessage(data.Name + " logged in", "text-muted");
-			NewMember(data.Id, data.Name);
+			ShowMessage(data.name + " logged in", "text-muted");
+			NewMember(data.id, data.name);
 			break;
 		case MessageType.USER_LOGGEDOUT:
-			RemoveMember(data.Id);
+			RemoveMember(data.id);
 			break;
-		case MessageType.SYNC_USERS_POSITIONS:
-			ShowMessage("Unimplemented sync users positions");
+		// case MessageType.SYNC_USERS_POSITIONS:
+		// 	ShowMessage("Unimplemented sync users positions");
+		// 	break;
+		case MessageType.ERROR:
+			ShowMessage('Error: ' + data.description);
 			break;
 		default:
+			for (var key in MessageType) {
+				if (MessageType[key] == messageType) {
+					ShowMessage('Not implemented ' + key.toUpperCase());
+					return;
+				}
+			}
 			ShowMessage("Unknown message type: " + messageType + data, "text-danger");
 			break;
 	}
@@ -124,8 +133,8 @@ jQuery(document).ready(function() {
 	client.on('close', onclose);
 	client.on('open', function() {
 		syncTimeTimer = setInterval(function() {
-			client.sendMessage(MessageType.SYNC_TIME, {time: 0});
-			console.log('sent');
+			//client.sendMessage(MessageType.SYNC_TIME, {time: 0});
+			//console.log('sent');
 		}, 1000);
 	});
 

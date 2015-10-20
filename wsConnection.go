@@ -7,28 +7,25 @@ import (
 	"github.com/gorilla/websocket"
 	"io"
 	"log"
-	"reflect"
+	// "reflect"
 	"time"
 )
 
 type WebsocketMessageWrapper struct {
-	MessageType int
-	Data        string
+	MessageType int    `json:"type"`
+	Data        string `json:"data"`
 }
 
-func (wrapper *WebsocketMessageWrapper) GetMessage() (msg Message, err error) {
+func (wrapper *WebsocketMessageWrapper) GetMessage() (msg interface{}, err error) {
 	res := GetValueByTypeId(wrapper.MessageType)
 
-	fmt.Println(reflect.TypeOf(res))
+	//fmt.Printf("unmarshalling into %#v, (type %v)\n", res, reflect.TypeOf(res))
 
-	fmt.Printf("unmarshalling into %#v\n", res)
+	err = json.Unmarshal([]byte(wrapper.Data), res)
 
-	err = json.Unmarshal([]byte(wrapper.Data), &res)
+	//fmt.Printf("unmarshalled: %#v error: %#v\n", res, err)
 
-	fmt.Printf("unmarshalled: %#v error: %#v\n", res, err)
-	msg = res
-
-	return
+	return res, err
 }
 
 type WebsocketConnection struct {
@@ -49,7 +46,7 @@ func (connection *WebsocketConnection) ParseMessage(data []byte) (*WebsocketMess
 	return wrapper, nil
 }
 
-func (connection *WebsocketConnection) ReadMessage() (Message, error) {
+func (connection *WebsocketConnection) ReadMessage() (interface{}, error) {
 	msgType, data, err := connection.ws.ReadMessage()
 
 	if err != nil {
@@ -101,7 +98,7 @@ func (connection *WebsocketConnection) StartWriting() {
 		log.Println("Writing started ", connection.id)
 
 		for message := range connection.GetResponseChannel() {
-			log.Println("For ", connection.id, " message ", message)
+			log.Println(fmt.Sprintf("WsCon. Sending message %T for %d", message, connection.id))
 			bytes, err := json.Marshal(message)
 			if err == nil {
 				connection.ws.WriteJSON(WebsocketMessageWrapper{GetMessageTypeId(message), string(bytes)})
@@ -129,9 +126,10 @@ func (connection *WebsocketConnection) Close(code int, message string) {
 func (connection *WebsocketConnection) GetAuth() (*AuthMessage, error) {
 	msg, err := connection.ReadMessage()
 	if err == nil {
-		if auth, ok := msg.(AuthMessage); ok {
-			return &auth, nil
+		if auth, ok := msg.(*AuthMessage); ok {
+			return auth, nil
 		} else {
+			fmt.Printf("Converted message %#v\n", msg)
 			return nil, errors.New("Wrong message type")
 		}
 	} else {

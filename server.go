@@ -10,6 +10,9 @@ var ControlChannel chan int = make(chan int, 10)
 const format = "%T(%v)\n"
 
 func main() {
+	// log.SetFlags(log.Ltime | log.Lshortfile) - may be very useful to know where print was called
+	log.SetFlags(log.Lmicroseconds)
+
 	var incomingConnections ConnectionsChannel = make(ConnectionsChannel, 100)
 
 	var incomingMessages UserMessagesChannel = make(UserMessagesChannel)

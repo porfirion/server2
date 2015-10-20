@@ -34,7 +34,7 @@ func (pool *ConnectionsPool) processConnection(connection Connection) {
 			connection.GetResponseChannel() <- WellcomeMessage{Id: connectionId}
 
 			pool.Connections[connectionId] = connection
-			pool.logic.IncomingMessages <- UserMessage{Data: LoginMessage{Id: connectionId, Name: authMessage.Name}, Source: connectionId}
+			pool.logic.IncomingMessages <- UserMessage{Data: &LoginMessage{Id: connectionId, Name: authMessage.Name}, Source: connectionId}
 
 			connection.StartReading(pool.logic.IncomingMessages)
 		}
@@ -58,7 +58,7 @@ func (pool *ConnectionsPool) RemoveConnection(connectionId int) {
 
 	delete(pool.Connections, connectionId)
 
-	pool.logic.IncomingMessages <- UserMessage{Data: LogoutMessage{connectionId}, Source: connectionId}
+	pool.logic.IncomingMessages <- UserMessage{Data: &LogoutMessage{connectionId}, Source: connectionId}
 }
 
 func (pool *ConnectionsPool) DispathMessage(msg ServerMessage) {

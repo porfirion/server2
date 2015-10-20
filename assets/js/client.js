@@ -13,8 +13,8 @@ function WsClient(wsAddr, name) {
 
 	this.sendMessage = function(type, data) {
 		var msg = {
-			MessageType: type,
-			Data: JSON.stringify(data),
+			type: type,
+			data: JSON.stringify(data),
 			// Data: btoa(JSON.stringify(data)),
 		}
 		try {
@@ -54,7 +54,7 @@ function WsClient(wsAddr, name) {
 
 	var onopenHandler = function() {
 		console.log('on open');
-		_this.sendMessage(MessageType.AUTH, {Name: name});
+		_this.sendMessage(MessageType.AUTH, {name: name});
 
 		_this.trigger('open');
 	};
@@ -80,19 +80,19 @@ function WsClient(wsAddr, name) {
 		console.log('on message');
 		try {
 			var wrapper = JSON.parse(event.data);
-			var data = JSON.parse(wrapper.Data);
+			var data = JSON.parse(wrapper.data);
 		}
 		catch (err) {
 			console.error(err);
 		}
 
-		if (wrapper.MessageType == MessageType.WELLCOME) {
-			this.id = data.Id;
+		if (wrapper.type == MessageType.WELLCOME) {
+			this.id = data.id;
 		}
 
-		console.log('Message type: ', wrapper.MessageType);
+		console.log('Message type: ', wrapper.type);
 
-		_this.trigger('message', wrapper.MessageType, data);
+		_this.trigger('message', wrapper.type, data);
 		// onmessage.call(this, wrapper.MessageType, data);
 	};
 

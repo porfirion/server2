@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"strconv"
 )
 
 type Logic struct {
@@ -10,24 +11,18 @@ type Logic struct {
 	OutgoingMessages ServerMessagesChannel
 	Users            map[int]*User
 	UsersPositions   map[int]Position
+	EventDispatcher  *EventDispatcher
 }
 
-func (logic *Logic) GetUserList(exceptId int) []struct {
-	Id   int
-	Name string
-} {
-	userlist := []struct {
-		Id   int
-		Name string
-	}{}
+func (logic *Logic) GetUserList(exceptId int) []User {
+	userlist := []User{}
 	for userId, user := range logic.Users {
 		if userId != exceptId {
-			userlist = append(userlist, struct {
-				Id   int
-				Name string
-			}{Id: user.Id, Name: user.Name})
+			userlist = append(userlist, User{Id: user.Id, Name: user.Name})
 		}
 	}
+
+	log.Println(fmt.Sprintf("Userlist: %#v", userlist))
 
 	return userlist
 }
@@ -35,8 +30,10 @@ func (logic *Logic) GetUserList(exceptId int) []struct {
 func (logic *Logic) GetUsersPositions() map[string]Position {
 	res := make(map[string]Position)
 	for id, pos := range logic.UsersPositions {
-		res[string(id)] = pos
+		res[strconv.Itoa(id)] = pos
 	}
+
+	log.Println(fmt.Sprintf("Users positions: %#v", res))
 
 	return res
 }
@@ -46,7 +43,7 @@ func (logic *Logic) GetUsersPositions() map[string]Position {
  * @param  {[type]} logic *Logic) SendMessage(msg Message, targets ...[]int [description]
  * @return {[type]} [description]
  */
-func (logic *Logic) SendMessage(msg Message, targets ...[]int) {
+func (logic *Logic) SendMessage(msg interface{}, targets ...[]int) {
 	serverMessage := ServerMessage{Data: msg}
 
 	// real targets
@@ -85,12 +82,12 @@ func (logic *Logic) ProcessMessage(message UserMessage) {
 	}()
 
 	switch msg := message.Data.(type) {
-	case DataMessage:
+	case *DataMessage:
 		log.Println("Data message received: ", message)
-	case TextMessage:
+	case *TextMessage:
 		// log.Println("Text message received: ", message)
 		logic.SendTextMessage(msg.Text, logic.Users[message.Source].Id)
-	case LoginMessage:
+	case *LoginMessage:
 		log.Println("Login message received")
 
 		user := logic.AddUser(msg.Id, msg.Name)
@@ -99,20 +96,25 @@ func (logic *Logic) ProcessMessage(message UserMessage) {
 		logic.SendMessage(UserLoggedinMessage{Id: user.Id, Name: user.Name}, []int{}, []int{user.Id})
 		logic.SendMessage(UserListMessage{logic.GetUserList(user.Id)}, []int{user.Id})
 		logic.SendMessage(SyncPositionsMessage{logic.GetUsersPositions()})
-	case LogoutMessage:
+	case *LogoutMessage:
 		log.Println("Logout message", msg.Id)
 		delete(logic.Users, msg.Id)
 		logic.SendMessage(UserLoggedoutMessage{Id: msg.Id})
 	default:
-		fmt.Printf("Unknown message type %#v\n", message)
+		fmt.Printf("Logic: Unknown message type %#v\n", message)
 	}
 }
 
 func (logic *Logic) Start() {
+	logic.EventDispatcher = &EventDispatcher{}
+	logic.EventDispatcher.Init()
+
 	logic.Users = make(map[int]*User)
 	logic.UsersPositions = make(map[int]Position)
+
 	log.Println("Logic started")
-	for msg := range logic.IncomingMessages {
+	select {
+	case msg := <-logic.IncomingMessages:
 		logic.ProcessMessage(msg)
 	}
 }
