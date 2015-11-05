@@ -19,6 +19,18 @@ div, span, textarea, input {
 	min-width: 940px;
 }
 
+#map-wrapper {
+	width: 910px;
+	height: 400px;
+	position: relative;
+	border: 1px solid #ddd;
+	margin-bottom: 10px;
+}
+#map {
+	width:100%;
+	height: 100%;
+}
+
 .chat_window, .chat_members {
 	border: 1px solid #ddd;
 	box-sizing: border-box;
@@ -34,7 +46,7 @@ div, span, textarea, input {
 	margin-right: 10px;
 	float: left;
 	width: 700px;
-	height: 500px;
+	height: 200px;
 	padding: 10px;
 
 	counter-reset: message;
@@ -45,7 +57,7 @@ div, span, textarea, input {
 	display: block;
 	float: left;
 	width: 200px;
-	height: 500px;
+	height: 200px;
 }
 
 .member {

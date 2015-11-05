@@ -51,7 +51,7 @@ func (connection *WebsocketConnection) ReadMessage() (interface{}, error) {
 
 	if err != nil {
 		if err == io.EOF {
-			log.Println("EOF")
+			log.Println("WSCon: EOF")
 		}
 		log.Println("Error reading websocket", err)
 		return nil, io.EOF
@@ -95,7 +95,7 @@ func (connection *WebsocketConnection) StartReading(ch UserMessagesChannel) {
 }
 func (connection *WebsocketConnection) StartWriting() {
 	go func() {
-		log.Println("Writing started ", connection.id)
+		//log.Println("Writing started ", connection.id)
 
 		for message := range connection.GetResponseChannel() {
 			log.Println(fmt.Sprintf("WsCon. Sending message %T for %d", message, connection.id))
@@ -113,7 +113,7 @@ func (connection *WebsocketConnection) StartWriting() {
 }
 
 func (connection *WebsocketConnection) Close(code int, message string) {
-	log.Println("Closing websocket connection")
+	log.Println("WSCon: Closing websocket connection")
 	//	if (len(message) > 0) {
 	//		connection.responseChannel <-
 	//	}

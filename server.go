@@ -13,7 +13,7 @@ func main() {
 	// log.SetFlags(log.Ltime | log.Lshortfile) - may be very useful to know where print was called
 	log.SetFlags(log.Lmicroseconds)
 
-	var incomingConnections ConnectionsChannel = make(ConnectionsChannel, 100)
+	var incomingConnections ConnectionsChannel = make(ConnectionsChannel)
 
 	var incomingMessages UserMessagesChannel = make(UserMessagesChannel)
 	var outgoingMessages ServerMessagesChannel = make(ServerMessagesChannel)

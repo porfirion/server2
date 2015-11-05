@@ -1,5 +1,3 @@
-var members = {};
-
 function generateUUID(){
 	var d = new Date().getTime();
 	var uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
@@ -14,66 +12,71 @@ function getName() {
 	var names = [
 		"Ivan", "Mikhail", "Ilya", "Sergey", "Alexander", "Egor", "Diman", "Alexey"
 	];
+	var suffix = [
+		"Eagle eye", "Morning star", "Black hoof", "Three finger", "Yellow wolf", "Wasp nest", "Short bull", "Hard needle", "Fetid datura", "Curved horn"
+	];
 
-	var rndNameId = Math.round(Math.random() * names.length - 1);
-	var rndNum = Math.round(Math.random() * 1000000);
+	var rndNameId = Math.round(Math.random() * (names.length - 1));
+	var rndSuffixId = Math.round(Math.random() * (suffix.length - 1));
+	// var rndNum = Math.round(Math.random() * 1000000);
 
 	// console.log(rndNameId, rndNum, names[rndNameId]);
 
-	return names[rndNameId] + rndNum;
+	return names[rndNameId] + " " + suffix[rndSuffixId];
 }
 
-
+var members = {};
 var myName = null;
 var myId = null;
 var client = null;
 var syncTimeTimer = null;
-
+var map = null;
 
 function onmessage(messageType, data) {
 	switch (messageType) {
 		case MessageType.TEXT:
 			if (data.sender == 0) {
-				ShowMessage(data.text, "text-primary");
+				showMessage(data.text, "text-primary");
 			}
 			else if (data.Sender == myId) {
-				ShowMessage(data.text, "text-success");
+				showMessage(data.text, "text-success");
 			}
 			else {
 				var username = data.sender in members ? members[data.sender].name : 'Unknown sender';
-				ShowMessage(username + ": " + data.text);
+				showMessage(username + ": " + data.text);
 			}
 			break;
 		case MessageType.WELLCOME:
 			myId = data.id;
-			NewMember(myId, myName)
+			newMember(myId, myName)
 			break;
 		case MessageType.USER_LIST:
 			for (var i = 0, user; user = data.users[i]; i++) {
-				NewMember(user.id, user.name);
+				newMember(user.id, user.name);
 			}
 			break;
 		case MessageType.USER_LOGGEDIN:
-			ShowMessage(data.name + " logged in", "text-muted");
-			NewMember(data.id, data.name);
+			showMessage(data.name + " logged in", "text-muted");
+			newMember(data.id, data.name);
 			break;
 		case MessageType.USER_LOGGEDOUT:
-			RemoveMember(data.id);
+			removeMember(data.id);
 			break;
-		// case MessageType.SYNC_USERS_POSITIONS:
-		// 	ShowMessage("Unimplemented sync users positions");
-		// 	break;
+		case MessageType.SYNC_USERS_POSITIONS:
+			updateMembersPositions(data.positions);
+			map.draw();
+		 	break;
 		case MessageType.ERROR:
-			ShowMessage('Error: ' + data.description);
+			showMessage('Error: ' + data.description);
 			break;
 		default:
 			for (var key in MessageType) {
 				if (MessageType[key] == messageType) {
-					ShowMessage('Not implemented ' + key.toUpperCase());
+					showMessage('Not implemented ' + key.toUpperCase());
 					return;
 				}
 			}
-			ShowMessage("Unknown message type: " + messageType + data, "text-danger");
+			showMessage("Unknown message type: " + messageType + data, "text-danger");
 			break;
 	}
 }
@@ -87,15 +90,28 @@ function onclose() {
 	
 	syncTimeTimer = null;
 	$('.chat_members').empty();
-	ShowMessage('disconnected');
+	showMessage('disconnected');
 }
 
-function NewMember(id, name) {
+function updateMembersPositions(positions) {
+	for (var key in positions) {
+		if (key in members) {
+			members[key].state.position = positions[key];
+		} else {
+			console.log('No members #' + key);
+		}
+	}
+}
+
+function newMember(id, name) {
 	if (!(id in members)) {
 		var member = {
 			id: id,
 			name: name,
 			anchor: $('<div class="member" aria-hidden="true" data-id="' + id + '">'+name+'</div>'),
+			state: {
+				position: {x: 0, y: 0}
+			}
 		};
 		$('.chat_members').append(member.anchor);
 		if (id == myId) {
@@ -109,15 +125,15 @@ function NewMember(id, name) {
 		return members[id];
 	}
 }
-function RemoveMember(id) {
+function removeMember(id) {
 	if (id in members) {
-		ShowMessage(members[id].name + " logged out");
+		showMessage(members[id].name + " logged out");
 		members[id].anchor.remove();
 		delete members[id];
 	}
 }
 
-function ShowMessage(text, messageType) {
+function showMessage(text, messageType) {
 	if (typeof messageType == 'undefined' || messageType == null) {
 		messageType = "";
 	}
@@ -145,7 +161,7 @@ jQuery(document).ready(function() {
 		try {
 			client.sendMessage(MessageType.TEXT, {Text: text});
 		} catch (err) {
-			ShowMessage("Unable to send " + text, "text-danger");
+			showMessage("Unable to send " + text, "text-danger");
 			console.error(err);
 		}
 
@@ -153,4 +169,13 @@ jQuery(document).ready(function() {
 
 		return false;
 	})
+
+	var elem = document.getElementById("map");
+	var wrapper = document.getElementById('map-wrapper');
+	console.log(wrapper);
+	//elem.width = wrapper.clientWidth;
+	//elem.height = wrapper.clientHeight;
+
+	map = new Map(elem);
+	map.draw();
 });

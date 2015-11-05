@@ -23,7 +23,7 @@ func (pool *ConnectionsPool) processConnection(connection Connection) {
 			 */
 			connection.GetResponseChannel() <- ErrorMessage{Code: 0, Description: "Authorization failed"}
 		} else {
-			log.Println("Authorization successful: ", authMessage)
+			//log.Println("Authorization successful: ", authMessage)
 
 			var connectionId = <-pool.ConnectionsEnumerator
 
@@ -54,11 +54,13 @@ func (pool *ConnectionsPool) InitEnumerator() {
 }
 
 func (pool *ConnectionsPool) RemoveConnection(connectionId int) {
-	log.Println("Removing connection", connectionId)
+	log.Println("CPool: Removing connection", connectionId)
 
 	delete(pool.Connections, connectionId)
 
+	log.Println("CPool: sending message to logic")
 	pool.logic.IncomingMessages <- UserMessage{Data: &LogoutMessage{connectionId}, Source: connectionId}
+	log.Println("CPool: message in sent to logic")
 }
 
 func (pool *ConnectionsPool) DispathMessage(msg ServerMessage) {
@@ -101,14 +103,16 @@ func (pool *ConnectionsPool) Start() {
 		select {
 		case connection := <-pool.incomingConnections:
 			log.Println("CPool: connection received", connection)
-
 			pool.processConnection(connection)
+			log.Println("Processing connection finished")
 		case message := <-pool.logic.OutgoingMessages:
+			log.Println("CPool: Outgoing message", message)
 			pool.DispathMessage(message)
-			// log.Println("Outgoing message", message)
+			log.Println("CPool: Message is sent")
 		case connectionId := <-pool.ClosingChannel:
-			log.Println("Closing connection", connectionId)
+			log.Println("CPool: Closing connection", connectionId)
 			pool.RemoveConnection(connectionId)
+			log.Println("CPool: connection closed")
 		}
 	}
 
