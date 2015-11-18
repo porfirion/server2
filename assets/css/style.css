@@ -20,7 +20,8 @@ div, span, textarea, input {
 }
 
 #map-wrapper {
-	width: 910px;
+	/* this was removed to show the ability to scale */
+	/*width: 910px;*/
 	height: 400px;
 	position: relative;
 	border: 1px solid #ddd;
