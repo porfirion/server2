@@ -144,25 +144,7 @@ Map.prototype.drawGrid = function() {
 	var leftCol = Math.ceil((real.x - real.w / 2) / this.gridSize) * this.gridSize;
 	var topRow = Math.ceil((real.y - real.h / 2) / this.gridSize) * this.gridSize;
 
-
 	ctx.save();
-
-	ctx.save();
-	ctx.strokeStyle = 'magenta';
-	ctx.setLineDash([10, 4]);
-	this.prevOffset = (this.prevOffset + 0.5) % 14;
-	ctx.lineDashOffset = this.prevOffset;
-	ctx.beginPath();
-	// ctx.ellipse(this.lastCursorPosition.x, this.lastCursorPosition.y, 20, 20, 0, 0, Math.PI * 2);
-	ctx.arc(this.lastCursorPosition.x, this.lastCursorPosition.y, 20, 0, Math.PI * 2);
-	ctx.stroke();
-	ctx.restore();
-
-	ctx.strokeStyle = 'lime';
-	ctx.beginPath();
-	// ctx.ellipse(viewportW / 2, viewportH / 2, 10, 10, 0, 0, Math.PI * 2);
-	ctx.arc(viewportW / 2, viewportH / 2, 10, 0, Math.PI * 2);
-	ctx.stroke();
 
 	ctx.strokeStyle = '#ccc';
 	for (var i = 0; i < (real.w / this.gridSize); i++) {
@@ -180,6 +162,24 @@ Map.prototype.drawGrid = function() {
 		ctx.lineTo(viewportW, y);
 		ctx.stroke();	
 	}
+
+	ctx.save();
+	ctx.strokeStyle = 'magenta';
+	ctx.lineWidth = 2;
+	ctx.setLineDash([10, 5]);
+	this.prevOffset = (this.prevOffset + 1.0) % 14;
+	ctx.lineDashOffset = this.prevOffset;
+	ctx.beginPath();
+	// ctx.ellipse(this.lastCursorPosition.x, this.lastCursorPosition.y, 20, 20, 0, 0, Math.PI * 2);
+	ctx.arc(this.lastCursorPosition.x, this.lastCursorPosition.y, 20, 0, Math.PI * 2);
+	ctx.stroke();
+	ctx.restore();
+
+	ctx.strokeStyle = 'lime';
+	ctx.beginPath();
+	// ctx.ellipse(viewportW / 2, viewportH / 2, 10, 10, 0, 0, Math.PI * 2);
+	ctx.arc(viewportW / 2, viewportH / 2, 10, 0, Math.PI * 2);
+	ctx.stroke();
 
 	ctx.restore();
 
