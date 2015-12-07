@@ -90,3 +90,9 @@ div, span, textarea, input {
 .message.join { color: green; }
 .message.leave { color: orange; }
 .message.me { font-weight: bold; }
+
+.framerate {
+	position: absolute;
+	top: 20px;
+	right: 20px;
+}

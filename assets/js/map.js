@@ -8,7 +8,7 @@ function Map(elem) {
 	this.viewport = {
 		x: 0,
 		y: 0,
-		scale: 1,
+		scale: 3,
 	};
 	this.points = [];
 	this.objects = [];
@@ -22,6 +22,15 @@ function Map(elem) {
 	$(elem).on('click', function(event) {
 		console.log(event);
 		this.points.push({x: event.offsetX, y: event.offsetY, color: randomColor()});
+
+		var real = this.viewportToReal({x: event.offsetX, y: event.offsetY});
+
+		for (var i = 0; i < this.objects.length; i++) {
+			if (this.distance(real, this.objects[i]) < this.objects[i].size) {
+				this.objects[i].active = true;
+				console.log(this.objects[i].color);
+			}
+		}
 	}.bind(this));
 
 	$(elem).on('mousemove', function(ev) {
@@ -41,11 +50,13 @@ function Map(elem) {
 		if (params.spinY > 0) {
 			// на себя
 			this.viewport.scale *= 1.1;
+			this.viewport.scale = Math.min(this.viewport.scale, 50);
 		} else {
 			// от себя
 			this.viewport.scale *= 0.95;
+			this.viewport.scale = Math.max(this.viewport.scale, 0.005);
 		}
-		console.log(params);
+		// console.log(params);
 		// console.log(ev.wheelDelta);
 		// console.log(ev.detail);
 		// console.log(ev.originalEvent.wheelDelta);
@@ -55,7 +66,13 @@ function Map(elem) {
 	}.bind(this));
 
 	this.isAnimating = false;
+	this.animations = [];	
+	this.prevAnimationTime = null;
 
+	this.fillObjects();
+}
+
+Map.prototype.fillObjects = function() {
 	this.objects.push({
 		x: 0, 
 		y: 0,
@@ -68,6 +85,15 @@ function Map(elem) {
 		color: 'green',
 		size: 50,
 	});
+
+	for (var i = 0; i < 10000; i++) {
+		this.objects.push({
+			x: Math.random() * 10000 - 5000,
+			y: Math.random() * 10000 - 5000,
+			color: randomColor(),
+			size: Math.random() * 100,
+		});
+	}
 }
 
 Map.prototype.draw = function() {
@@ -97,7 +123,8 @@ Map.prototype._draw = function() {
 	// console.log(ctx, this.elem.width, this.elem.height);
 	// console.log(ctx, this.elem.clientWidth, this.elem.clientHeight);
 
-	ctx.clearRect(0, 0, ctx.width, ctx.height);
+	// ctx.clearRect(0, 0, this.elem.width, this.elem.height);
+
 	ctx.font = "16px serif";
 
 	this.adjustViewport();
@@ -108,26 +135,89 @@ Map.prototype._draw = function() {
 
 	// this.drawAnchors();
 
+	var now = Date.now();
+	if (this.prevAnimationTime != null) {
+		this.animations.push(now - this.prevAnimationTime);
+
+		if (this.animations.length > 100) {
+			this.animations.shift();
+		}
+	}
+
+	this.prevAnimationTime = now;
+
+	this.drawTime();
+
 	window.requestAnimationFrame(this._draw.bind(this));
+}
+
+Map.prototype.drawTime = function() {
+	var ctx = this.ctx;
+	ctx.clearRect(this.elem.width - 200, 0, 200, 100);
+
+	var min = Infinity;
+	var max = -Infinity;
+	var average = 0;
+
+	ctx.strokeStyle = '1px black';
+	ctx.opacity = 1;
+
+	for (var i = 0; i < this.animations.length; i++) {
+		average += this.animations[i];
+		if (this.animations[i] > max)
+			max = this.animations[i];
+		if (this.animations[i] < min)
+			min = this.animations[i];
+
+		ctx.beginPath();
+		ctx.moveTo(this.elem.width - 200 + i * 2, 100);
+		ctx.lineTo(this.elem.width - 200 + i * 2, 100 - this.animations[i]);
+		ctx.stroke();
+	}
+	average = average / this.animations.length;
+
+	ctx.fillText('fps: ' + Math.round(1000 / average, 0), this.elem.width - ctx.measureText('fps: ' + Math.round(1000 / average, 0)).width - 10, 15);
+	ctx.fillText('min: ' + min, this.elem.width - ctx.measureText('min: ' + min).width - 10, 30);
+	ctx.fillText('average: ' + Math.round(average, 2), this.elem.width - ctx.measureText('average: ' + Math.round(average, 2)).width - 10, 45);
+	ctx.fillText('max: ' + max, this.elem.width - ctx.measureText('max: ' + max).width - 10, 60);
 }
 
 Map.prototype.adjustViewport = function() {
 	this.viewport.x += (this.lastCursorPosition.x - this.elem.width / 2) * this.viewport.scale * 0.01;
 	this.viewport.y -= (this.lastCursorPosition.y - this.elem.height / 2) * this.viewport.scale * 0.01;
+
+	this.viewport.x = Math.min(5000, Math.max(-5000, this.viewport.x));
+	this.viewport.y = Math.min(5000, Math.max(-5000, this.viewport.y));
 }
 
 
 Map.prototype.drawObjects = function() {
 	var ctx = this.ctx;
+
+	var real = this.getRealViewport();
+
 	ctx.save();
+	ctx.lineWidth = 3;
 	for (var i = 0; i < this.objects.length; i++) {
 		var obj = this.objects[i];
-		ctx.beginPath();
-		ctx.strokeStyle = obj.color;
-		var vp = this.realToViewport(obj);
-		var os = (obj.size) / this.viewport.scale;
-		ctx.rect(vp.x - os / 2, vp.y - os / 2, os, os);
-		ctx.stroke();
+		var s2 = obj.size / 2;
+		if (obj.x + s2 > real.x - real.w / 2 && real.x + real.w / 2 > obj.x - s2
+			&& obj.y + s2 > real.y - real.h / 2 && real.y + real.h / 2 > obj.y - s2) {
+			ctx.beginPath();
+			ctx.strokeStyle = obj.color;
+			var vp = this.realToViewport(obj);
+			var os = (obj.size) / this.viewport.scale;
+			ctx.rect(vp.x - os / 2, vp.y - os / 2, os, os);
+			ctx.stroke();
+			
+			if (obj.active) {
+				ctx.save();
+				ctx.globalAlpha = 0.3;
+				ctx.fillStyle = obj.color;
+				ctx.fill();
+				ctx.restore();
+			}
+		}
 	}
 	ctx.restore();
 }
@@ -146,6 +236,7 @@ Map.prototype.drawGrid = function() {
 
 	ctx.save();
 
+	// рисуем вертикали
 	ctx.strokeStyle = '#ccc';
 	for (var i = 0; i < (real.w / this.gridSize); i++) {
 		var x = this.xRealToView(leftCol + i * this.gridSize);
@@ -155,6 +246,7 @@ Map.prototype.drawGrid = function() {
 		ctx.stroke();
 	}
 
+	// рисуем горизонтали
 	for (var j = 0; j < (real.h / this.gridSize); j++) {
 		var y = this.yRealToView(topRow + j * this.gridSize);
 		ctx.beginPath();
@@ -163,6 +255,7 @@ Map.prototype.drawGrid = function() {
 		ctx.stroke();	
 	}
 
+	// рисуем курсор
 	ctx.save();
 	ctx.strokeStyle = 'magenta';
 	ctx.lineWidth = 2;
@@ -175,10 +268,18 @@ Map.prototype.drawGrid = function() {
 	ctx.stroke();
 	ctx.restore();
 
+	// рисуем центр
 	ctx.strokeStyle = 'lime';
 	ctx.beginPath();
 	// ctx.ellipse(viewportW / 2, viewportH / 2, 10, 10, 0, 0, Math.PI * 2);
 	ctx.arc(viewportW / 2, viewportH / 2, 10, 0, Math.PI * 2);
+	ctx.stroke();
+
+	ctx.beginPath();
+	var vlt = this.realToViewport({x: -5000, y: -5000});
+	var vrb = this.realToViewport({x: 5000, y: 5000});
+	ctx.rect(vlt.x, vlt.y, vrb.x - vlt.x, vrb.y - vlt.y);
+
 	ctx.stroke();
 
 	ctx.restore();
@@ -317,11 +418,23 @@ Map.prototype.getRealViewport = function() {
 	}
 }
 
+Map.prototype.distance = function(a, b) {
+	return Math.sqrt(Math.pow(a.x - b.x, 2) + Math.pow(a.y - b.y, 2));
+}
+
+function randomComponent() {
+	var comp = (Math.round(Math.random() * 255)).toString(16);
+	if (comp.length < 2) {
+		comp = '0' + comp;
+	}
+	return comp;
+}
+
 function randomColor() {
 	return '#'
-		+ (Math.round(Math.random() * 255)).toString(16)
-		+ (Math.round(Math.random() * 255)).toString(16)
-		+ (Math.round(Math.random() * 255)).toString(16);
+		+ randomComponent()
+		+ randomComponent()
+		+ randomComponent()
 }
 
 // Reasonable defaults
