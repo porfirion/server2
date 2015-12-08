@@ -172,10 +172,17 @@ jQuery(document).ready(function() {
 
 	var elem = document.getElementById("map");
 	var wrapper = document.getElementById('map-wrapper');
-	console.log(wrapper);
+	// console.log(wrapper);
 	//elem.width = wrapper.clientWidth;
 	//elem.height = wrapper.clientHeight;
 
 	map = new Map(elem);
+
+	$(document.body).on('click', '.drawButton', function() {
+		map._draw();
+		return false;
+	});
+
+	
 	map.draw();
 });

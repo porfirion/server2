@@ -1,3 +1,5 @@
+"use strict";
+
 var canvas;
 
 function Map(elem) {
@@ -73,27 +75,50 @@ function Map(elem) {
 }
 
 Map.prototype.fillObjects = function() {
-	this.objects.push({
-		x: 0, 
-		y: 0,
-		color: 'red',
-		size: 20,
-	});
-	this.objects.push({
-		x: 100, 
-		y: 0,
-		color: 'green',
-		size: 50,
-	});
-
-	for (var i = 0; i < 10000; i++) {
-		this.objects.push({
-			x: Math.random() * 10000 - 5000,
-			y: Math.random() * 10000 - 5000,
-			color: randomColor(),
-			size: Math.random() * 100,
-		});
+	// static objects
+	var i;
+	for (i = 0; i < 1000; i++) {
+		this.objects.push(
+			new MapObject(
+				'obstacle',
+				{
+					x: Math.random() * 10000 - 5000,
+					y: Math.random() * 10000 - 5000,
+				},
+				Math.random() * 200,
+				randomColor()
+			)
+		);
 	}
+
+	var chaos = function(_this) {
+		_this.setDirection({
+			x: Math.random() * 100 - 50,
+			y: Math.random() * 100 - 50,
+		});
+		_this.setSpeed(Math.random() * 80 + 20);
+
+		setTimeout(function() { chaos(_this); }, 20000 * Math.random());
+	};
+
+	for (i = 0; i < 10; i++) {
+		var obj = new MapObject(
+			'obstacle',
+			{
+				x: 0,
+				y: 0,
+			},
+			50,
+			'#ff0000'
+		);
+
+		chaos(obj);
+
+		this.objects.push(obj);
+
+	}
+
+	
 }
 
 Map.prototype.draw = function() {
@@ -197,16 +222,40 @@ Map.prototype.drawObjects = function() {
 	var real = this.getRealViewport();
 
 	ctx.save();
-	ctx.lineWidth = 3;
+	ctx.lineWidth = 1;
 	for (var i = 0; i < this.objects.length; i++) {
 		var obj = this.objects[i];
+		var pos = obj.getPos();
 		var s2 = obj.size / 2;
-		if (obj.x + s2 > real.x - real.w / 2 && real.x + real.w / 2 > obj.x - s2
-			&& obj.y + s2 > real.y - real.h / 2 && real.y + real.h / 2 > obj.y - s2) {
-			ctx.beginPath();
-			ctx.strokeStyle = obj.color;
-			var vp = this.realToViewport(obj);
+		if (pos.x + s2 > real.x - real.w / 2 && real.x + real.w / 2 > pos.x - s2
+			&& pos.y + s2 > real.y - real.h / 2 && real.y + real.h / 2 > pos.y - s2) {
+
+			var vp = this.realToViewport(pos);
 			var os = (obj.size) / this.viewport.scale;
+			ctx.strokeStyle = obj.color;
+
+			if (obj.isMoving) {
+				ctx.lineWidth = 2;
+
+				ctx.beginPath();
+				ctx.moveTo(vp.x - os / 2, vp.y + os / 2);
+				ctx.lineTo(vp.x + os / 2, vp.y - os / 2);
+				ctx.moveTo(vp.x - os / 2, vp.y - os / 2);
+				ctx.lineTo(vp.x + os / 2, vp.y + os / 2);
+
+				ctx.moveTo(vp.x, vp.y);
+				ctx.lineCap = 'round';
+				var len = obj.speed / this.viewport.scale * 10;
+				ctx.lineTo(vp.x + obj.direction.x * len, vp.y - obj.direction.y * len);
+
+				ctx.stroke();
+
+
+			} else {
+				ctx.lineWidth = 1;
+			}
+
+			ctx.beginPath();
 			ctx.rect(vp.x - os / 2, vp.y - os / 2, os, os);
 			ctx.stroke();
 			
@@ -240,6 +289,11 @@ Map.prototype.drawGrid = function() {
 	ctx.strokeStyle = '#ccc';
 	for (var i = 0; i < (real.w / this.gridSize); i++) {
 		var x = this.xRealToView(leftCol + i * this.gridSize);
+		if (leftCol + i * this.gridSize == 0) {
+			ctx.strokeStyle = '#888';
+		} else {
+			ctx.strokeStyle = '#ccc';
+		}
 		ctx.beginPath();
 		ctx.moveTo(x, 0);
 		ctx.lineTo(x, viewportH);
@@ -249,6 +303,11 @@ Map.prototype.drawGrid = function() {
 	// рисуем горизонтали
 	for (var j = 0; j < (real.h / this.gridSize); j++) {
 		var y = this.yRealToView(topRow + j * this.gridSize);
+		if (topRow + j * this.gridSize == 0) {
+			ctx.strokeStyle = '#888';
+		} else {
+			ctx.strokeStyle = '#ccc';
+		}
 		ctx.beginPath();
 		ctx.moveTo(0, y);
 		ctx.lineTo(viewportW, y);
@@ -260,7 +319,7 @@ Map.prototype.drawGrid = function() {
 	ctx.strokeStyle = 'magenta';
 	ctx.lineWidth = 2;
 	ctx.setLineDash([10, 5]);
-	this.prevOffset = (this.prevOffset + 1.0) % 14;
+	this.prevOffset = (this.prevOffset + 0.5) % 15;
 	ctx.lineDashOffset = this.prevOffset;
 	ctx.beginPath();
 	// ctx.ellipse(this.lastCursorPosition.x, this.lastCursorPosition.y, 20, 20, 0, 0, Math.PI * 2);
@@ -483,3 +542,70 @@ function normalizeWheel(/*object*/ event) /*object*/ {
            pixelX : pX,
            pixelY : pY };
 }
+
+function MapObject(type, pos, size, color) {
+	this.type = type;
+
+	this.pos = pos || {x: 0, y: 0};
+	this.size = size || 10;
+	this.color = color || randomColor();
+
+	this.speed = 0;
+	this.direction = {x: 0, y: 1};
+	this.posTime = Date.now();
+
+	this.isAnimating = false;
+}
+
+MapObject.prototype.getPos = function() {
+	if (!this.isMoving) {
+		return this.pos;
+	} else {
+		var now = Date.now();
+		var passed = this.speed * (now - this.posTime) / 1000;
+		return {
+			x: this.pos.x + this.direction.x * passed,
+			y: this.pos.y + this.direction.y * passed,
+		}
+	}
+}
+
+MapObject.prototype.setDirection = function(newDirection) {
+	var _this = this;
+
+	this.pos = this.getPos();
+	this.posTime = Date.now();
+
+	var sum = Math.abs(newDirection.x) + Math.abs(newDirection.y);
+
+	this.direction = {
+		x: newDirection.x / sum,
+		y: newDirection.y / sum,
+	};
+}
+
+MapObject.prototype.stop = function() {
+	this.pos = this.getPos();
+	this.posTime = Date.now();
+
+	this.speed = 0;
+	this.isMoving = false;
+}
+
+MapObject.prototype.setSpeed = function(speed) {
+	this.speed = speed;
+	this.isMoving = speed != 0;
+}
+
+MapObject.prototype.adjustState = function(pos, direction, speed, posTime) {
+	this.pos = pos;
+	this.direction = direction;
+	this.setSpeed(speed);
+
+	this.posTime = posTime;
+}
+
+MapObject.prototype.getViewPos = function(viewport) {
+
+}
+
