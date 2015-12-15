@@ -153,6 +153,10 @@ jQuery(document).ready(function() {
 			//console.log('sent');
 		}, 1000);
 	});
+	client.on('syncTime', function() {
+		$('.latency .value').html(client.latencies[client.latencies.length - 1]);
+		$('.timeCorrection .value').html(client.timeCorrections.reduce(function(sum, a) { return sum + a }, 0)/(client.timeCorrections.length||1))
+	});
 
 	$('#chat_form').submit(function(event) {
 		event.preventDefault();

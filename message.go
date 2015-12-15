@@ -71,7 +71,7 @@ type SyncPositionsMessage struct {
 }
 
 type SyncTimeMessage struct {
-	Time int `json:"time"`
+	Time int64 `json:"time"`
 }
 
 /* SPECIAL STRUCTURES */

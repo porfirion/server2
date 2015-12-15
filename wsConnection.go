@@ -19,7 +19,8 @@ type WebsocketMessageWrapper struct {
 func (wrapper *WebsocketMessageWrapper) GetMessage() (msg interface{}, err error) {
 	res := GetValueByTypeId(wrapper.MessageType)
 
-	//fmt.Printf("unmarshalling into %#v, (type %v)\n", res, reflect.TypeOf(res))
+	// fmt.Printf("Unmarshalling into %#v, (type %v)\n", res, reflect.TypeOf(res))
+	// fmt.Printf("Message body: %#v\n", wrapper.Data)
 
 	err = json.Unmarshal([]byte(wrapper.Data), res)
 
@@ -62,7 +63,7 @@ func (connection *WebsocketConnection) ReadMessage() (interface{}, error) {
 		log.Println("Ping message received")
 		return nil, nil
 	} else if wrapper, err := connection.ParseMessage(data); err != nil {
-		log.Println("error parsing message", err)
+		log.Println("Error parsing message", err)
 		return nil, err
 	} else {
 		return wrapper.GetMessage()
@@ -81,9 +82,9 @@ func (connection *WebsocketConnection) StartReading(ch UserMessagesChannel) {
 			}
 			if msg != nil {
 				switch msg.(type) {
-				case SyncTimeMessage:
-					log.Println("Sync time message")
-					log.Println(time.Now().UnixNano() / int64(time.Millisecond))
+				case *SyncTimeMessage:
+					// log.Println("Sync time message", time.Now().UnixNano()/int64(time.Millisecond), int64(time.Now().UnixNano()/int64(time.Millisecond)))
+					connection.responseChannel <- SyncTimeMessage{Time: int64(time.Now().UnixNano() / int64(time.Millisecond))}
 				default:
 					ch <- UserMessage{connection.id, msg}
 				}

@@ -11,12 +11,27 @@ function WsClient(wsAddr, name) {
 	this.websocket = false;
 	this.handlers = {};
 
+	this.lastSyncTimeRequest = null;
+
+	this.latencies = [];
+	this.timeCorrections = [];
+
 	this.sendMessage = function(type, data) {
+		if (this.websocket == null) {
+			console.error('no websocket connection');
+			return;
+		}
+
 		var msg = {
 			type: type,
-			data: JSON.stringify(data),
+			// data: JSON.stringify(data),
 			// Data: btoa(JSON.stringify(data)),
 		}
+
+		if (typeof data != 'undefined' && data != null) {
+			msg.data = JSON.stringify(data);
+		}
+
 		try {
 			this.websocket.send(JSON.stringify(msg))
 		} catch (err) {
@@ -56,6 +71,8 @@ function WsClient(wsAddr, name) {
 		console.log('on open');
 		_this.sendMessage(MessageType.AUTH, {name: name});
 
+		setInterval(this.requestTime.bind(this), 1000);
+
 		_this.trigger('open');
 	};
 
@@ -77,7 +94,7 @@ function WsClient(wsAddr, name) {
 	}
 
 	var onmessageHandler = function (event) {
-		console.log('on message');
+		// console.log('on message');
 		try {
 			var wrapper = JSON.parse(event.data);
 			var data = JSON.parse(wrapper.data);
@@ -88,6 +105,10 @@ function WsClient(wsAddr, name) {
 
 		if (wrapper.type == MessageType.WELLCOME) {
 			this.id = data.id;
+		}
+		if (wrapper.type == MessageType.SYNC_TIME) {
+			this.syncTime(data);
+			return;
 		}
 
 		console.log('Message type: ', wrapper.type);
@@ -105,6 +126,40 @@ function WsClient(wsAddr, name) {
 			_this.websocket.onerror = onerrorHandler.bind(_this);
 		}
 	};
+
+	this.requestTime = function() {
+		this.sendMessage(MessageType.SYNC_TIME, {})
+		this.lastSyncTimeRequest = Date.now()
+	}
+
+	this.syncTime = function(data) {
+		var now = Date.now();
+		var latency = now - this.lastSyncTimeRequest;
+		var assumingNow = (data.time + latency / 3);
+		var correction = Math.round(assumingNow - now);
+		// console.log('sync time!\n sent        : %d\n received    : %d\n latency     : %d\n server time : %d\n correction  : %d\n assuming now: %f', 
+		// 	this.lastSyncTimeRequest,
+		// 	now,
+		// 	latency,
+		// 	data.time,
+		// 	correction,
+		// 	assumingNow
+		// );
+
+		// console.log('time correction : ' + correction);
+		 
+		this.latencies.push(latency);
+		if (this.latencies.length > 10) {
+			this.latencies.shift();
+		}
+
+		this.timeCorrections.push(correction);
+		if (this.timeCorrections.length > 10) {
+			this.timeCorrections.shift();
+		}
+
+		this.trigger('syncTime');
+	}
 
 	connect();
 }
