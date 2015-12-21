@@ -15,8 +15,14 @@ div, span, textarea, input {
 	clear: both;
 }
 
-.chat {
-	min-width: 940px;
+.main-wrapper {
+	position: relative;
+}
+
+#chat {
+	/*min-width: 940px;*/
+	width: 50%;
+	float: left;
 }
 
 #map-wrapper {
@@ -26,6 +32,10 @@ div, span, textarea, input {
 	position: relative;
 	border: 1px solid #ddd;
 	margin-bottom: 10px;
+	width: 48%;
+	margin-left: 2%;
+
+	float: left;
 }
 #map {
 	width:100%;
@@ -44,10 +54,12 @@ div, span, textarea, input {
 
 .chat_window {
 	display: block;
-	margin-right: 10px;
+	/*margin-right: 10px;*/
 	float: left;
-	width: 700px;
-	height: 200px;
+	/*width: 700px;*/
+	/*height: 200px;*/
+	height: 430px;
+	width: 70%;
 	padding: 10px;
 
 	counter-reset: message;
@@ -56,9 +68,11 @@ div, span, textarea, input {
 }
 .chat_members {
 	display: block;
-	float: left;
-	width: 200px;
-	height: 200px;
+	float: right;
+	/*width: 200px;*/
+	height: 430px;
+
+	width: 29%;
 }
 
 .member {
@@ -69,13 +83,13 @@ div, span, textarea, input {
 .chat_input {
 	display: block;
 	float: left;
-	width: 700px;
-	margin-right: 10px;
+	width: 70%;
+	/*margin-right: 10px;*/
 }
 .chat_submit {
 	display: block;
-	float: left;
-	width: 200px;
+	float: right;
+	width: 29%;
 }
 
 
@@ -95,4 +109,18 @@ div, span, textarea, input {
 	position: absolute;
 	top: 20px;
 	right: 20px;
+}
+
+.help-panel {
+	position: absolute;
+	top: 20px;
+	right: 20px;
+	border: 1px solid #ccc;
+	padding: 10px;
+	width: 300px;
+	box-shadow: 0px 0px 10px #ccc;
+}
+
+.help-panel span {
+	display: inline;
 }

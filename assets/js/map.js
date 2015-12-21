@@ -6,6 +6,7 @@ function Map(elem) {
 	canvas = elem;
 	this.elem = elem;
 	this.ctx = this.elem.getContext("2d");
+	var _this = this;
 
 	this.viewport = {
 		x: 0,
@@ -22,17 +23,17 @@ function Map(elem) {
 	this.lastCursorPosition = null;
 
 	$(elem).on('click', function(event) {
-		console.log(event);
 		this.points.push({x: event.offsetX, y: event.offsetY, color: randomColor()});
 
 		var real = this.viewportToReal({x: event.offsetX, y: event.offsetY});
 
-		for (var i = 0; i < this.objects.length; i++) {
-			if (this.distance(real, this.objects[i]) < this.objects[i].size) {
-				this.objects[i].active = true;
-				console.log(this.objects[i].color);
-			}
-		}
+		// for (var i = 0; i < this.objects.length; i++) {
+		// 	if (this.distance(real, this.objects[i]) < this.objects[i].size) {
+		// 		this.objects[i].active = true;
+		// 	}
+		// }
+		
+		$(_this).trigger('game:click', real);
 	}.bind(this));
 
 	$(elem).on('mousemove', function(ev) {
@@ -44,7 +45,8 @@ function Map(elem) {
 	}.bind(this));
 
 	$(elem).on('mouseout', function(ev) {
-		this.lastCursorPosition = {x: this.elem.width / 2, y: this.elem.height / 2};
+		// this.lastCursorPosition = {x: this.elem.width / 2, y: this.elem.height / 2};
+		this.lastCursorPosition = null;
 	}.bind(this));
 
 	$(elem).on('mousewheel DOMMouseScroll', function(ev) {
@@ -58,12 +60,6 @@ function Map(elem) {
 			this.viewport.scale *= 0.95;
 			this.viewport.scale = Math.max(this.viewport.scale, 0.005);
 		}
-		// console.log(params);
-		// console.log(ev.wheelDelta);
-		// console.log(ev.detail);
-		// console.log(ev.originalEvent.wheelDelta);
-		// console.log(ev.originalEvent.detail);
-		// console.log(ev);
 		return false;
 	}.bind(this));
 
@@ -115,10 +111,7 @@ Map.prototype.fillObjects = function() {
 		chaos(obj);
 
 		this.objects.push(obj);
-
 	}
-
-	
 }
 
 Map.prototype.draw = function() {
@@ -134,21 +127,12 @@ Map.prototype._draw = function() {
 	var ctx = this.ctx;
 	var elem = this.elem;
 
-	if (this.lastCursorPosition == null) {
-		this.lastCursorPosition = {x: this.elem.width / 2, y: this.elem.height / 2};
-	}
-
 	elem.width = elem.clientWidth;
 	elem.height = elem.clientHeight;
 
 	// у контекста нет ширины и высоты - они есть только у элемента canvas
 	// ctx.width = this.elem.clientWidth;
 	// ctx.height = this.elem.clientHeight;
-
-	// console.log(ctx, this.elem.width, this.elem.height);
-	// console.log(ctx, this.elem.clientWidth, this.elem.clientHeight);
-
-	// ctx.clearRect(0, 0, this.elem.width, this.elem.height);
 
 	ctx.font = "16px serif";
 
@@ -178,14 +162,19 @@ Map.prototype._draw = function() {
 
 Map.prototype.drawTime = function() {
 	var ctx = this.ctx;
-	ctx.clearRect(this.elem.width - 200, 0, 200, 100);
+	ctx.save();
+
+	ctx.globalAlpha = 0.7;
+	ctx.fillStyle = 'white';
+	ctx.fillRect(this.elem.width - 300, 0, 300, 100);
+	// ctx.clearRect(this.elem.width - 300, 0, 300, 100);
 
 	var min = Infinity;
 	var max = -Infinity;
 	var average = 0;
 
 	ctx.strokeStyle = '1px black';
-	ctx.opacity = 1;
+	
 
 	for (var i = 0; i < this.animations.length; i++) {
 		average += this.animations[i];
@@ -195,21 +184,31 @@ Map.prototype.drawTime = function() {
 			min = this.animations[i];
 
 		ctx.beginPath();
-		ctx.moveTo(this.elem.width - 200 + i * 2, 100);
-		ctx.lineTo(this.elem.width - 200 + i * 2, 100 - this.animations[i]);
+		ctx.moveTo(this.elem.width - 300 + i * 3, 100);
+		ctx.lineTo(this.elem.width - 300 + i * 3, 100 - this.animations[i]);
 		ctx.stroke();
 	}
 	average = average / this.animations.length;
+
+	ctx.fillStyle = 'black';
 
 	ctx.fillText('fps: ' + Math.round(1000 / average, 0), this.elem.width - ctx.measureText('fps: ' + Math.round(1000 / average, 0)).width - 10, 15);
 	ctx.fillText('min: ' + min, this.elem.width - ctx.measureText('min: ' + min).width - 10, 30);
 	ctx.fillText('average: ' + Math.round(average, 2), this.elem.width - ctx.measureText('average: ' + Math.round(average, 2)).width - 10, 45);
 	ctx.fillText('max: ' + max, this.elem.width - ctx.measureText('max: ' + max).width - 10, 60);
+
+	ctx.fillText('viewport: (x: ' + Math.round(this.viewport.x * 100) / 100 + '; y: ' + Math.round(this.viewport.y * 100) / 100 + ')', this.elem.width - 285, 15);
+	ctx.fillText('scale: ' + Math.round(this.viewport.scale * 100) / 100, this.elem.width - 285, 30);
+
+	ctx.restore();
 }
 
 Map.prototype.adjustViewport = function() {
-	this.viewport.x += (this.lastCursorPosition.x - this.elem.width / 2) * this.viewport.scale * 0.01;
-	this.viewport.y -= (this.lastCursorPosition.y - this.elem.height / 2) * this.viewport.scale * 0.01;
+	if (this.lastCursorPosition == null) 
+		return;
+
+	this.viewport.x += (this.lastCursorPosition.x - this.elem.width / 2) * this.viewport.scale * 0.02;
+	this.viewport.y -= (this.lastCursorPosition.y - this.elem.height / 2) * this.viewport.scale * 0.02;
 
 	this.viewport.x = Math.min(5000, Math.max(-5000, this.viewport.x));
 	this.viewport.y = Math.min(5000, Math.max(-5000, this.viewport.y));
@@ -315,17 +314,22 @@ Map.prototype.drawGrid = function() {
 	}
 
 	// рисуем курсор
-	ctx.save();
-	ctx.strokeStyle = 'magenta';
-	ctx.lineWidth = 2;
-	ctx.setLineDash([10, 5]);
-	this.prevOffset = (this.prevOffset + 0.5) % 15;
-	ctx.lineDashOffset = this.prevOffset;
-	ctx.beginPath();
-	// ctx.ellipse(this.lastCursorPosition.x, this.lastCursorPosition.y, 20, 20, 0, 0, Math.PI * 2);
-	ctx.arc(this.lastCursorPosition.x, this.lastCursorPosition.y, 20, 0, Math.PI * 2);
-	ctx.stroke();
-	ctx.restore();
+	if (this.lastCursorPosition) {
+		ctx.save();
+		ctx.strokeStyle = 'magenta';
+		ctx.lineWidth = 2;
+		ctx.setLineDash([10, 5]);
+		this.prevOffset = (this.prevOffset + 0.5) % 15;
+		ctx.lineDashOffset = this.prevOffset;
+
+		ctx.beginPath();
+		// ctx.ellipse(this.lastCursorPosition.x, this.lastCursorPosition.y, 20, 20, 0, 0, Math.PI * 2);
+		ctx.arc(this.lastCursorPosition.x, this.lastCursorPosition.y, 20, 0, Math.PI * 2);
+		ctx.stroke();
+		ctx.restore();
+	}
+	
+	
 
 	// рисуем центр
 	ctx.strokeStyle = 'lime';
@@ -334,12 +338,28 @@ Map.prototype.drawGrid = function() {
 	ctx.arc(viewportW / 2, viewportH / 2, 10, 0, Math.PI * 2);
 	ctx.stroke();
 
+	// рисуем границы области
 	ctx.beginPath();
 	var vlt = this.realToViewport({x: -5000, y: -5000});
 	var vrb = this.realToViewport({x: 5000, y: 5000});
 	ctx.rect(vlt.x, vlt.y, vrb.x - vlt.x, vrb.y - vlt.y);
-
 	ctx.stroke();
+
+	// ctx.globalAlpha = 0.6;
+	ctx.fillStyle = 'black';
+	ctx.font = '14px serif';
+	var real = this.getRealViewport();
+	var l = Math.round(real.x - real.w / 2);
+	var t = Math.round(real.y + real.h / 2);
+	var r = Math.round(real.x + real.w / 2);
+	var b = Math.round(real.y - real.h / 2);
+	
+	ctx.fillText(t, this.elem.width / 2 - ctx.measureText(t).width / 2, 10);
+	ctx.fillText(b, this.elem.width / 2 - ctx.measureText(b).width / 2, this.elem.height);
+
+	
+	ctx.fillText(l, 0, this.elem.height / 2 + 3);
+	ctx.fillText(r, this.elem.width - ctx.measureText(r).width, this.elem.height / 2 + 3);
 
 	ctx.restore();
 

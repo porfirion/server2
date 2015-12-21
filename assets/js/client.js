@@ -137,15 +137,14 @@ function WsClient(wsAddr, name) {
 		var latency = now - this.lastSyncTimeRequest;
 		var assumingNow = (data.time + latency / 3);
 		var correction = Math.round(assumingNow - now);
-		// console.log('sync time!\n sent        : %d\n received    : %d\n latency     : %d\n server time : %d\n correction  : %d\n assuming now: %f', 
-		// 	this.lastSyncTimeRequest,
-		// 	now,
-		// 	latency,
-		// 	data.time,
-		// 	correction,
-		// 	assumingNow
-		// );
-
+		/*console.log('sync time!\n sent        : %d\n received    : %d\n latency     : %d\n server time : %d\n correction  : %d\n assuming now: %f', 
+			this.lastSyncTimeRequest,
+			now,
+			latency,
+			data.time,
+			correction,
+			assumingNow
+		);*/
 		// console.log('time correction : ' + correction);
 		 
 		this.latencies.push(latency);
@@ -177,4 +176,6 @@ var MessageType = {
 	USER_LOGGEDOUT: 10002,
 	SYNC_USERS_POSITIONS: 10003,
 	SYNC_TIME: 10004,
+
+	ACTION_MESSAGE: 1000000,
 }

@@ -186,7 +186,20 @@ jQuery(document).ready(function() {
 		map._draw();
 		return false;
 	});
+	$(document.body).on('click', '.centrateButton', function() {
+		map.viewport.x = 0;
+		map.viewport.y = 0;
+		return false;
+	});
 
+	$(map).on('game:click', function(event, data) {
+		console.log('clicked at ', data);
+
+		client.sendMessage(MessageType.ACTION_MESSAGE, { 
+			actionType: 'goto',
+			actionData: data,
+		});
+	});
 	
 	map.draw();
 });

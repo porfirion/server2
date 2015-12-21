@@ -73,6 +73,15 @@ func (logic *Logic) AddUser(id int, name string) *User {
 	return user
 }
 
+func (logic *Logic) RemoveUser(id int) {
+	delete(logic.Users, id)
+	delete(logic.UsersPositions, id)
+}
+
+func (logic *Logic) ActUser(msg *ActionMessage) {
+	log.Println("UNIMPLEMENTED!")
+}
+
 func (logic *Logic) ProcessMessage(message UserMessage) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -98,11 +107,12 @@ func (logic *Logic) ProcessMessage(message UserMessage) {
 		logic.SendMessage(SyncPositionsMessage{logic.GetUsersPositions()})
 	case *LogoutMessage:
 		log.Println("Logic: Logout message", msg.Id)
-		delete(logic.Users, msg.Id)
-		delete(logic.UsersPositions, msg.Id)
+		logic.RemoveUser(msg.Id)
 		logic.SendMessage(UserLoggedoutMessage{Id: msg.Id})
+	case *ActionMessage:
+		logic.ActUser(msg)
 	default:
-		log.Printf("Logic: Unknown message type %#v\n", message)
+		log.Printf("Logic: Unknown message type %#v from %d\n", message.Data, message.Source)
 	}
 }
 

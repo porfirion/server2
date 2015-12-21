@@ -57,6 +57,7 @@ type LogoutMessage struct {
 type UserListMessage struct {
 	Users []User `json:"users"`
 }
+
 type UserLoggedinMessage struct {
 	Id   int    `json:"id"`
 	Name string `json:"name"`
@@ -66,12 +67,26 @@ type UserLoggedoutMessage struct {
 	Id int `json:"id"`
 }
 
+/**
+ * Отправляет на клиент список объектов с координатами
+ */
 type SyncPositionsMessage struct {
 	Positions map[string]Position `json:"positions"`
 }
 
+/**
+ * Служебное сообщение для ыравнивания времени на сервере и клиенте
+ */
 type SyncTimeMessage struct {
 	Time int64 `json:"time"`
+}
+
+/**
+ * Действие пользователя (двигаться, остановиться, ...)
+ */
+type ActionMessage struct {
+	ActionType string                 `json: "actionType"`
+	ActionData map[string]interface{} `json: "actionData"`
 }
 
 /* SPECIAL STRUCTURES */
@@ -105,6 +120,8 @@ var dict map[reflect.Type]int = map[reflect.Type]int{
 	reflect.TypeOf(UserLoggedoutMessage{}): 10002,
 	reflect.TypeOf(SyncPositionsMessage{}): 10003,
 	reflect.TypeOf(SyncTimeMessage{}):      10004,
+
+	reflect.TypeOf(ActionMessage{}): 1000000,
 }
 
 func GetMessageTypeId(value interface{}) int {
