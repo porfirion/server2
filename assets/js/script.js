@@ -64,7 +64,6 @@ function onmessage(messageType, data) {
 			break;
 		case MessageType.SYNC_USERS_POSITIONS:
 			updateMembersPositions(data.positions);
-			map.draw();
 		 	break;
 		case MessageType.ERROR:
 			showMessage('Error: ' + data.description);
@@ -105,19 +104,14 @@ function updateMembersPositions(positions) {
 
 function newMember(id, name) {
 	if (!(id in members)) {
-		var member = {
-			id: id,
-			name: name,
-			anchor: $('<div class="member" aria-hidden="true" data-id="' + id + '">'+name+'</div>'),
-			state: {
-				position: {x: 0, y: 0}
-			}
-		};
+		var member = new Player(id, name);
+		member.anchor = $('<div class="member" aria-hidden="true" data-id="' + id + '">'+name+'</div>');
 		$('.chat_members').append(member.anchor);
 		if (id == myId) {
 			member.anchor.css('font-weight', 'bold');
 		}
 		members[id] = member;
+		map.addPlayer(member);
 
 		return member;
 	}
@@ -139,6 +133,22 @@ function showMessage(text, messageType) {
 	}
 
 	$('.chat_window').append('<div class="message ' + messageType + '">' + text + '</div>');
+}
+
+
+var Player = function(id, name) {
+	this. id = id;
+	this.name = name;
+
+	this.state = {
+		position: {x: 0, y: 0}
+	};
+}
+
+Player.prototype.setPosition = function(position) {
+	this.state.position = position;
+
+	$(this).trigger('change.position');
 }
 
 jQuery(document).ready(function() {

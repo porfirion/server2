@@ -74,17 +74,11 @@ Map.prototype.fillObjects = function() {
 	// static objects
 	var i;
 	for (i = 0; i < 1000; i++) {
-		this.objects.push(
-			new MapObject(
-				'obstacle',
-				{
+		this.addObject(ObjectType.Obstacle, {
 					x: Math.random() * 10000 - 5000,
-					y: Math.random() * 10000 - 5000,
-				},
-				Math.random() * 200,
-				randomColor()
-			)
-		);
+					y: Math.random() * 10000 - 5000
+			}
+		).setSize(Math.random() * 200).setColor(randomColor());
 	}
 
 	var chaos = function(_this) {
@@ -98,20 +92,34 @@ Map.prototype.fillObjects = function() {
 	};
 
 	for (i = 0; i < 10; i++) {
-		var obj = new MapObject(
-			'obstacle',
-			{
-				x: 0,
-				y: 0,
-			},
-			50,
-			'#ff0000'
-		);
-
+		var obj = this.addObject(ObjectType.NPC);
+		obj.setSize(50);
 		chaos(obj);
-
-		this.objects.push(obj);
 	}
+}
+
+Map.prototype.addObject = function(objectType, coords) {
+	if (typeof objectType == 'undefined') {
+		objectType = ObjectType.Obstacle;
+	}
+
+	if (typeof coords == 'undefined' || coords == null) {
+		coords = { x: 0, y: 0};		
+	}
+	var obj = new MapObject(objectType, coords);
+
+	this.objects.push(obj);
+
+	return obj;
+}
+
+Map.prototype.addPlayer = function(player) {
+	var obj = this.addObject(ObjectType.Player, player.state.position);
+
+	obj.setPlayer(player);
+	obj.setSize(100);
+
+	return obj;
 }
 
 Map.prototype.draw = function() {
@@ -231,32 +239,33 @@ Map.prototype.drawObjects = function() {
 
 			var vp = this.realToViewport(pos);
 			var os = (obj.size) / this.viewport.scale;
-			ctx.strokeStyle = obj.color;
-
-			if (obj.isMoving) {
+			
+			if (obj.type == ObjectType.NPC || obj.type == ObjectType.Player) {
 				ctx.lineWidth = 2;
-
+				ctx.fillStyle = obj.color;
 				ctx.beginPath();
-				ctx.moveTo(vp.x - os / 2, vp.y + os / 2);
-				ctx.lineTo(vp.x + os / 2, vp.y - os / 2);
-				ctx.moveTo(vp.x - os / 2, vp.y - os / 2);
-				ctx.lineTo(vp.x + os / 2, vp.y + os / 2);
+				ctx.rect(vp.x - os / 2, vp.y - os / 2, os, os);
+				ctx.fill();
 
-				ctx.moveTo(vp.x, vp.y);
-				ctx.lineCap = 'round';
-				var len = obj.speed / this.viewport.scale * 10;
-				ctx.lineTo(vp.x + obj.direction.x * len, vp.y - obj.direction.y * len);
-
+				ctx.strokeStyle = 'yellow';
+				ctx.beginPath();
+				ctx.rect(vp.x - os / 2, vp.y - os / 2, os, os);
 				ctx.stroke();
 
-
+				ctx.lineWidth = 1;
+				ctx.strokeStyle = 'blue';
+				ctx.beginPath();
+				ctx.moveTo(vp.x, vp.y);
+				var len = obj.speed / this.viewport.scale * 10;
+				ctx.lineTo(vp.x + obj.direction.x * len, vp.y - obj.direction.y * len);
+				ctx.stroke();
 			} else {
 				ctx.lineWidth = 1;
+				ctx.strokeStyle = obj.color;
+				ctx.beginPath();
+				ctx.rect(vp.x - os / 2, vp.y - os / 2, os, os);
+				ctx.stroke();
 			}
-
-			ctx.beginPath();
-			ctx.rect(vp.x - os / 2, vp.y - os / 2, os, os);
-			ctx.stroke();
 			
 			if (obj.active) {
 				ctx.save();
@@ -567,14 +576,39 @@ function MapObject(type, pos, size, color) {
 	this.type = type;
 
 	this.pos = pos || {x: 0, y: 0};
-	this.size = size || 10;
-	this.color = color || randomColor();
+	this.size = 10;
+
+	if (type == ObjectType.Obstacle) {
+		this.color = 'lightblue';
+	} else if (type == ObjectType.Player) {
+		this.color = 'lime';
+	} else if (type == ObjectType.NPC) { 
+		this.color = 'red';
+	} else {
+		this.color = color || randomColor();
+	}
 
 	this.speed = 0;
 	this.direction = {x: 0, y: 1};
 	this.posTime = Date.now();
 
 	this.isAnimating = false;
+
+	this.player = null;
+
+	return this;
+}
+
+MapObject.prototype.setSize = function(size) {
+	this.size = size;
+
+	return this;
+}
+
+MapObject.prototype.setColor = function(color) {
+	this.color = color;
+
+	return this;
 }
 
 MapObject.prototype.getPos = function() {
@@ -629,3 +663,16 @@ MapObject.prototype.getViewPos = function(viewport) {
 
 }
 
+MapObject.prototype.setPlayer = function(player) {
+	this.player = player;
+
+	$(player).on('change.position', function() {
+		console.log('player changed position - need to update map object');
+	});
+}
+
+var ObjectType = {
+	Obstacle: 'obstacle',
+	NPC: 'npc',
+	Player: 'player',
+}

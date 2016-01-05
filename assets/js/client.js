@@ -111,7 +111,7 @@ function WsClient(wsAddr, name) {
 			return;
 		}
 
-		console.log('Message type: ', wrapper.type);
+		console.log('%c' + wrapper.type + ' (' + getMessageType(wrapper.type) + ')', 'color: green; font-weight: bold;', data);
 
 		_this.trigger('message', wrapper.type, data);
 		// onmessage.call(this, wrapper.MessageType, data);
@@ -178,4 +178,14 @@ var MessageType = {
 	SYNC_TIME: 10004,
 
 	ACTION_MESSAGE: 1000000,
+}
+
+function getMessageType(messageTypeId) {
+	for (var key in MessageType) {
+		if (MessageType[key] == messageTypeId) {
+			return key;
+		}
+	}
+
+	return false;
 }
