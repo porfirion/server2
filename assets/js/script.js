@@ -1,5 +1,3 @@
-var members = {};
-
 function generateUUID(){
 	var d = new Date().getTime();
 	var uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
@@ -14,77 +12,109 @@ function getName() {
 	var names = [
 		"Ivan", "Mikhail", "Ilya", "Sergey", "Alexander", "Egor", "Diman", "Alexey"
 	];
+	var suffix = [
+		"Eagle eye", "Morning star", "Black hoof", "Three finger", "Yellow wolf", "Wasp nest", "Short bull", "Hard needle", "Fetid datura", "Curved horn"
+	];
 
-	var rndNameId = Math.round(Math.random() * names.length - 1);
-	var rndNum = Math.round(Math.random() * 1000000);
+	var rndNameId = Math.round(Math.random() * (names.length - 1));
+	var rndSuffixId = Math.round(Math.random() * (suffix.length - 1));
+	// var rndNum = Math.round(Math.random() * 1000000);
 
-	console.log(rndNameId, rndNum, names[rndNameId]);
+	// console.log(rndNameId, rndNum, names[rndNameId]);
 
-	return names[rndNameId] + rndNum;
+	return names[rndNameId] + " " + suffix[rndSuffixId];
 }
 
-
+var members = {};
 var myName = null;
 var myId = null;
-
+var client = null;
+var syncTimeTimer = null;
+var map = null;
 
 function onmessage(messageType, data) {
 	switch (messageType) {
 		case MessageType.TEXT:
-			if (data.Sender == 0) {
-				ShowMessage(data.Text, "text-primary");
+			if (data.sender == 0) {
+				showMessage(data.text, "text-primary");
 			}
 			else if (data.Sender == myId) {
-				ShowMessage(data.Text, "text-success");
+				showMessage(data.text, "text-success");
 			}
 			else {
-				var username = data.Sender in members ? members[data.Sender].name : 'Unknown';
-				ShowMessage(username + ": " + data.Text);
+				var username = data.sender in members ? members[data.sender].name : 'Unknown sender';
+				showMessage(username + ": " + data.text);
 			}
 			break;
 		case MessageType.WELLCOME:
-			myId = data.Id;
-			NewMember(myId, myName)
+			myId = data.id;
+			newMember(myId, myName)
 			break;
 		case MessageType.USER_LIST:
-			for (var i = 0, user; user = data.Users[i]; i++) {
-				NewMember(user.Id, user.Name);
+			for (var i = 0, user; user = data.users[i]; i++) {
+				newMember(user.id, user.name);
 			}
 			break;
 		case MessageType.USER_LOGGEDIN:
-			ShowMessage(data.Name + " logged in", "text-muted");
-			NewMember(data.Id, data.Name);
+			showMessage(data.name + " logged in", "text-muted");
+			newMember(data.id, data.name);
 			break;
 		case MessageType.USER_LOGGEDOUT:
-			RemoveMember(data.Id);
+			removeMember(data.id);
 			break;
 		case MessageType.SYNC_USERS_POSITIONS:
-			ShowMessage("Unimplemented sync users positions");
+			updateMembersPositions(data.positions);
+		 	break;
+		case MessageType.ERROR:
+			showMessage('Error: ' + data.description);
 			break;
 		default:
-			ShowMessage("Unknown message type: " + messageType + data, "text-danger");
+			for (var key in MessageType) {
+				if (MessageType[key] == messageType) {
+					showMessage('Not implemented ' + key.toUpperCase());
+					return;
+				}
+			}
+			showMessage("Unknown message type: " + messageType + data, "text-danger");
 			break;
-	}
-	if (messageType == MessageType.TEXT) {
-		
-	}
-	else {
-		
 	}
 }
 
-function NewMember(id, name) {
+function onclose() {
+	console.log('Timer: ', syncTimeTimer);
+
+	if (syncTimeTimer) {
+		clearInterval(syncTimeTimer);
+	}
+	
+	syncTimeTimer = null;
+	$('.chat_members').empty();
+	showMessage('disconnected');
+}
+
+function updateMembersPositions(positions) {
+	for (var key in positions) {
+		if (key in members) {
+			members[key].setPosition(positions[key]);
+		} else {
+			console.log('No members #' + key);
+		}
+	}
+}
+
+function newMember(id, name) {
 	if (!(id in members)) {
-		var member = {
-			id: id,
-			name: name,
-			anchor: $('<div class="member" aria-hidden="true" data-id="' + id + '">'+name+'</div>'),
-		};
+		var member = new Player(id, name);
+		member.anchor = $('<div class="member" aria-hidden="true" data-id="' + id + '">'+name+'</div>');
 		$('.chat_members').append(member.anchor);
 		if (id == myId) {
+			member.isMe = true;
 			member.anchor.css('font-weight', 'bold');
+		} else {
+			member.isMe = false;
 		}
 		members[id] = member;
+		map.addPlayer(member);
 
 		return member;
 	}
@@ -92,15 +122,16 @@ function NewMember(id, name) {
 		return members[id];
 	}
 }
-function RemoveMember(id) {
+function removeMember(id) {
 	if (id in members) {
-		ShowMessage(members[id].name + " logged out");
+		showMessage(members[id].name + " logged out");
 		members[id].anchor.remove();
+		map.removePlayer(id);
 		delete members[id];
 	}
 }
 
-function ShowMessage(text, messageType) {
+function showMessage(text, messageType) {
 	if (typeof messageType == 'undefined' || messageType == null) {
 		messageType = "";
 	}
@@ -108,10 +139,38 @@ function ShowMessage(text, messageType) {
 	$('.chat_window').append('<div class="message ' + messageType + '">' + text + '</div>');
 }
 
+
+var Player = function(id, name) {
+	this. id = id;
+	this.name = name;
+
+	this.state = {
+		position: {x: 0, y: 0}
+	};
+}
+
+Player.prototype.setPosition = function(position) {
+	this.state.position = position;
+
+	$(this).trigger('change.position');
+}
+
 jQuery(document).ready(function() {
 	myName = getName();
 	$('h1').html(myName);
-	var client = new WsClient("ws://" + window.location.host + "/ws", myName, onmessage);
+	client = new WsClient("ws://" + window.location.host + "/ws", myName);
+	client.on('message', onmessage);
+	client.on('close', onclose);
+	client.on('open', function() {
+		syncTimeTimer = setInterval(function() {
+			//client.sendMessage(MessageType.SYNC_TIME, {time: 0});
+			//console.log('sent');
+		}, 1000);
+	});
+	client.on('syncTime', function() {
+		$('.latency .value').html(client.latencies[client.latencies.length - 1]);
+		$('.timeCorrection .value').html(client.timeCorrections.reduce(function(sum, a) { return sum + a }, 0)/(client.timeCorrections.length||1))
+	});
 
 	$('#chat_form').submit(function(event) {
 		event.preventDefault();
@@ -120,7 +179,7 @@ jQuery(document).ready(function() {
 		try {
 			client.sendMessage(MessageType.TEXT, {Text: text});
 		} catch (err) {
-			ShowMessage("Unable to send " + text, "text-danger");
+			showMessage("Unable to send " + text, "text-danger");
 			console.error(err);
 		}
 
@@ -128,4 +187,33 @@ jQuery(document).ready(function() {
 
 		return false;
 	})
+
+	var elem = document.getElementById("map");
+	var wrapper = document.getElementById('map-wrapper');
+	// console.log(wrapper);
+	//elem.width = wrapper.clientWidth;
+	//elem.height = wrapper.clientHeight;
+
+	map = new Map(elem);
+
+	$(document.body).on('click', '.drawButton', function() {
+		map._draw();
+		return false;
+	});
+	$(document.body).on('click', '.centrateButton', function() {
+		map.viewport.x = 0;
+		map.viewport.y = 0;
+		return false;
+	});
+
+	$(map).on('game:click', function(event, data) {
+		console.log('clicked at ', data);
+
+		client.sendMessage(MessageType.ACTION_MESSAGE, { 
+			actionType: 'goto',
+			actionData: data,
+		});
+	});
+	
+	map.draw();
 });

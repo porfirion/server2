@@ -16,7 +16,7 @@ type TcpConnection struct {
 func (connection *TcpConnection) StartReading(ch UserMessagesChannel) {
 	go func() {
 		log.Println("starting reading")
-		defer connection.Close()
+		defer connection.Close(0, "Unimplemented")
 
 		var buffer []byte
 
@@ -40,7 +40,7 @@ func (connection *TcpConnection) StartWriting() {
 	log.Println("Not implemented")
 }
 
-func (connection *TcpConnection) Close() {
+func (connection *TcpConnection) Close(code int, message string) {
 	connection.socket.Close()
 }
 

@@ -2,133 +2,143 @@ package main
 
 import (
 	"fmt"
+	"reflect"
 )
 
-type Message interface {
-}
-
 type ErrorMessage struct {
-	Code        int
-	Description string
+	Code        int    `json: "code"`
+	Description string `json: "description"`
 }
 
 /**
  * При получении сервером ретранслируется всем адресатам
  */
 type TextMessage struct {
-	Sender int
-	Text   string
+	Sender int    `json:"sender"`
+	Text   string `json:"text"`
 }
 
 type DataMessage struct {
-	Data []byte
+	Data []byte `json:"data"`
 }
 
 /**
  * Посылается пользователм на сервер для прохождения авторизации
  */
 type AuthMessage struct {
-	Name string
+	Name string `json:"name"`
 }
 
 /**
  * Посылается клиенту, чтобы сообщить, что он успешно подключился и сказать ему его id
  */
 type WellcomeMessage struct {
-	Id int
+	Id int `json:"id"`
 }
 
 /**
  * Посылается пулом соединений для извещения о входе
  */
 type LoginMessage struct {
-	Id   int
-	Name string
+	Id   int    `json:"id"`
+	Name string `json:"name"`
 }
 
 /**
  * Посылается пулом сообщений для извещения о выходе
  */
 type LogoutMessage struct {
-	Id int
+	Id int `json:"id"`
 }
 
 /**
  * Используется для синронизации списка пользователей с клиентом
  */
 type UserListMessage struct {
-	Users []struct {
-		Id   int
-		Name string
-	}
+	Users []User `json:"users"`
 }
+
 type UserLoggedinMessage struct {
-	Id   int
-	Name string
+	Id   int    `json:"id"`
+	Name string `json:"name"`
 }
 
 type UserLoggedoutMessage struct {
-	Id int
+	Id int `json:"id"`
 }
 
+/**
+ * Отправляет на клиент список объектов с координатами
+ */
 type SyncPositionsMessage struct {
-	Positions map[string]Position
+	Positions map[string]Position `json:"positions"`
+}
+
+/**
+ * Служебное сообщение для ыравнивания времени на сервере и клиенте
+ */
+type SyncTimeMessage struct {
+	Time int64 `json:"time"`
+}
+
+/**
+ * Действие пользователя (двигаться, остановиться, ...)
+ */
+type ActionMessage struct {
+	ActionType string                 `json: "actionType"`
+	ActionData map[string]interface{} `json: "actionData"`
 }
 
 /* SPECIAL STRUCTURES */
 
 type ServerMessage struct {
-	Data    Message
+	Data    interface{}
 	Targets []int // send only to
 	Except  []int // do not send to
 }
 
 type UserMessage struct {
 	Source int
-	Data   Message
+	Data   interface{}
 }
 
-type MessagesChannel chan Message
+type MessagesChannel chan interface{}
 
 type ServerMessagesChannel chan ServerMessage
 type UserMessagesChannel chan UserMessage
 
-func GetMessageTypeId(msg Message) int {
-	var res int = 0
-	/*
-		1     - 99    Initial messages
-		100   - 999   Errors
-		1000  - 9999  Information messages
-		10000 - 99999 Complex information messages
-	*/
-	switch msg.(type) {
-	case AuthMessage:
-		res = 1
-	case WellcomeMessage:
-		res = 2
-	case LoginMessage:
-		res = 10
-	case LogoutMessage:
-		res = 11
-	case ErrorMessage:
-		res = 100
-	case DataMessage:
-		res = 1000
-	case TextMessage:
-		res = 1001
-	case UserListMessage:
-		res = 10000
-	case UserLoggedinMessage:
-		res = 10001
-	case UserLoggedoutMessage:
-		res = 10002
-	case SyncPositionsMessage:
-		res = 10003
-	default:
-		// Unknown message type
-		fmt.Printf("Unknown message type %#v\n", msg)
-		res = 0
-	}
+var dict map[reflect.Type]int = map[reflect.Type]int{
+	reflect.TypeOf(AuthMessage{}):          1,
+	reflect.TypeOf(WellcomeMessage{}):      2,
+	reflect.TypeOf(LoginMessage{}):         10,
+	reflect.TypeOf(LogoutMessage{}):        11,
+	reflect.TypeOf(ErrorMessage{}):         100,
+	reflect.TypeOf(DataMessage{}):          1000,
+	reflect.TypeOf(TextMessage{}):          1001,
+	reflect.TypeOf(UserListMessage{}):      10000,
+	reflect.TypeOf(UserLoggedinMessage{}):  10001,
+	reflect.TypeOf(UserLoggedoutMessage{}): 10002,
+	reflect.TypeOf(SyncPositionsMessage{}): 10003,
+	reflect.TypeOf(SyncTimeMessage{}):      10004,
 
-	return res
+	reflect.TypeOf(ActionMessage{}): 1000000,
+}
+
+func GetMessageTypeId(value interface{}) int {
+	if id, ok := dict[reflect.TypeOf(value)]; ok {
+		return id
+	} else {
+		fmt.Println("Type is not presented in list")
+		return -1
+	}
+}
+
+func GetValueByTypeId(typeId int) interface{} {
+	for typeDec, id := range dict {
+		if id == typeId {
+			return reflect.New(typeDec).Interface()
+		}
+	}
+	fmt.Println("Can't get value. Unknown message type", typeId)
+	return nil
 }

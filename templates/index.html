@@ -3,6 +3,8 @@
 	<head>
 		<script src="/assets/js/jquery-2.1.1.min.js"></script>
 		<script src="/assets/js/client.js"></script>
+		<script src="/assets/js/map_object.js"></script>
+		<script src="/assets/js/map.js"></script>
 		<script src="/assets/js/script.js"></script>
 		<link rel="stylesheet" href="/assets/css/bootstrap.min.css">
 		<link rel="stylesheet" href="/assets/css/bootstrap-theme.min.css">
@@ -12,9 +14,15 @@
 		<div class="page-header">
 			<h1></h1>
 		</div>
+		<div class="panel help-panel">
+			<div class="latency">Latency: <span class="value"></span></div>
+			<div class="timeCorrection">Time correction: <span class="value"></span></div>
+			<a href="#" class="btn btn-default btn-xs drawButton btn-disabled">Draw</a>
+			<a href="#" class="btn btn-default btn-xs centrateButton">Centrate</a>
+		</div>
 		<div class="panel panel-default">
-			<div class="panel-body">
-				<div class="chat">
+			<div class="panel-body main-wrapper">
+				<div id="chat">
 					<div class="chat_window"></div>
 					<div class="chat_members"></div>
 					
@@ -24,6 +32,10 @@
 						<input class="chat_input form-control" type="text" name=""/>
 						<input class="chat_submit btn btn-default" type="submit"/>
 					</form>
+				</div>
+
+				<div id="map-wrapper">
+					<canvas id="map" width="1000" height="1000"></canvas>
 				</div>
 			</div>
 		</div>
