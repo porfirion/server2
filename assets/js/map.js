@@ -22,6 +22,8 @@ function Map(elem) {
 
 	this.lastCursorPosition = null;
 
+	this.players = {};
+
 	$(elem).on('click', function(event) {
 		this.points.push({x: event.offsetX, y: event.offsetY, color: randomColor()});
 
@@ -112,6 +114,11 @@ Map.prototype.addObject = function(objectType, coords) {
 
 	return obj;
 }
+Map.prototype.removeObject = function(obj) {
+	var index = this.objects.indexOf(obj);
+
+	this.objects.splice(index, 1);
+}
 
 Map.prototype.addPlayer = function(player) {
 	var obj = this.addObject(ObjectType.Player, player.state.position);
@@ -119,7 +126,12 @@ Map.prototype.addPlayer = function(player) {
 	obj.setPlayer(player);
 	obj.setSize(100);
 
+	this.players[player.id] = obj;
 	return obj;
+}
+
+Map.prototype.removePlayer = function(playerId) {
+	this.removeObject(this.players[playerId]);
 }
 
 Map.prototype.draw = function() {
@@ -244,13 +256,16 @@ Map.prototype.drawObjects = function() {
 				ctx.lineWidth = 2;
 				ctx.fillStyle = obj.color;
 				ctx.beginPath();
-				ctx.rect(vp.x - os / 2, vp.y - os / 2, os, os);
+				ctx.arc(vp.x, vp.y, os, 0, Math.PI * 2);
+				// ctx.rect(vp.x - os / 2, vp.y - os / 2, os, os);
 				ctx.fill();
-
 				ctx.strokeStyle = 'yellow';
-				ctx.beginPath();
-				ctx.rect(vp.x - os / 2, vp.y - os / 2, os, os);
 				ctx.stroke();
+
+				// ctx.strokeStyle = 'yellow';
+				// ctx.beginPath();
+				// ctx.rect(vp.x - os / 2, vp.y - os / 2, os, os);
+				// ctx.stroke();
 
 				ctx.lineWidth = 1;
 				ctx.strokeStyle = 'blue';
@@ -259,6 +274,12 @@ Map.prototype.drawObjects = function() {
 				var len = obj.speed / this.viewport.scale * 10;
 				ctx.lineTo(vp.x + obj.direction.x * len, vp.y - obj.direction.y * len);
 				ctx.stroke();
+
+				if (obj.type == ObjectType.Player) {
+					var measure = ctx.measureText(obj.player.name);
+					ctx.strokeText(obj.player.name, vp.x - measure.width / 2, vp.y - os / 2);
+				}
+
 			} else {
 				ctx.lineWidth = 1;
 				ctx.strokeStyle = obj.color;
@@ -269,7 +290,7 @@ Map.prototype.drawObjects = function() {
 			
 			if (obj.active) {
 				ctx.save();
-				ctx.globalAlpha = 0.3;
+				//ctx.globalAlpha = 0.3;
 				ctx.fillStyle = obj.color;
 				ctx.fill();
 				ctx.restore();
@@ -570,109 +591,4 @@ function normalizeWheel(/*object*/ event) /*object*/ {
            spinY  : sY,
            pixelX : pX,
            pixelY : pY };
-}
-
-function MapObject(type, pos, size, color) {
-	this.type = type;
-
-	this.pos = pos || {x: 0, y: 0};
-	this.size = 10;
-
-	if (type == ObjectType.Obstacle) {
-		this.color = 'lightblue';
-	} else if (type == ObjectType.Player) {
-		this.color = 'lime';
-	} else if (type == ObjectType.NPC) { 
-		this.color = 'red';
-	} else {
-		this.color = color || randomColor();
-	}
-
-	this.speed = 0;
-	this.direction = {x: 0, y: 1};
-	this.posTime = Date.now();
-
-	this.isAnimating = false;
-
-	this.player = null;
-
-	return this;
-}
-
-MapObject.prototype.setSize = function(size) {
-	this.size = size;
-
-	return this;
-}
-
-MapObject.prototype.setColor = function(color) {
-	this.color = color;
-
-	return this;
-}
-
-MapObject.prototype.getPos = function() {
-	if (!this.isMoving) {
-		return this.pos;
-	} else {
-		var now = Date.now();
-		var passed = this.speed * (now - this.posTime) / 1000;
-		return {
-			x: this.pos.x + this.direction.x * passed,
-			y: this.pos.y + this.direction.y * passed,
-		}
-	}
-}
-
-MapObject.prototype.setDirection = function(newDirection) {
-	var _this = this;
-
-	this.pos = this.getPos();
-	this.posTime = Date.now();
-
-	var sum = Math.abs(newDirection.x) + Math.abs(newDirection.y);
-
-	this.direction = {
-		x: newDirection.x / sum,
-		y: newDirection.y / sum,
-	};
-}
-
-MapObject.prototype.stop = function() {
-	this.pos = this.getPos();
-	this.posTime = Date.now();
-
-	this.speed = 0;
-	this.isMoving = false;
-}
-
-MapObject.prototype.setSpeed = function(speed) {
-	this.speed = speed;
-	this.isMoving = speed != 0;
-}
-
-MapObject.prototype.adjustState = function(pos, direction, speed, posTime) {
-	this.pos = pos;
-	this.direction = direction;
-	this.setSpeed(speed);
-
-	this.posTime = posTime;
-}
-
-MapObject.prototype.getViewPos = function(viewport) {
-
-}
-
-MapObject.prototype.setPlayer = function(player) {
-	this.player = player;
-
-	$(player).on('change.position', function() {
-		console.log('player changed position - need to update map object');
-	});
-}
-
-var ObjectType = {
-	Obstacle: 'obstacle',
-	NPC: 'npc',
-	Player: 'player',
 }

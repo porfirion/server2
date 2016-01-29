@@ -2,7 +2,9 @@ package main
 
 import (
 	"log"
+	"math/rand"
 	"strconv"
+	"time"
 )
 
 type Logic struct {
@@ -69,7 +71,7 @@ func (logic *Logic) SendTextMessageToUser(text string, sender int, userId int) {
 func (logic *Logic) AddUser(id int, name string) *User {
 	user := &User{Id: id, Name: name}
 	logic.Users[id] = user
-	logic.UsersPositions[id] = Position{X: 0, Y: 0}
+	logic.UsersPositions[id] = Position{X: rand.Int63n(1000) - int64(500), Y: rand.Int63n(1000) - int64(500)}
 	return user
 }
 
@@ -117,6 +119,7 @@ func (logic *Logic) ProcessMessage(message UserMessage) {
 }
 
 func (logic *Logic) Start() {
+	rand.Seed(int64(time.Now().Nanosecond()))
 	logic.EventDispatcher = &EventDispatcher{}
 	logic.EventDispatcher.Init()
 

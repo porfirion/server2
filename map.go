@@ -1,8 +1,8 @@
 package main
 
 type Position struct {
-	X int `json:"x"`
-	Y int `json:"y"`
+	X int64 `json:"x"`
+	Y int64 `json:"y"`
 }
 
 type MapObject struct {

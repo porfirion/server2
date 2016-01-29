@@ -95,7 +95,7 @@ function onclose() {
 function updateMembersPositions(positions) {
 	for (var key in positions) {
 		if (key in members) {
-			members[key].state.position = positions[key];
+			members[key].setPosition(positions[key]);
 		} else {
 			console.log('No members #' + key);
 		}
@@ -108,7 +108,10 @@ function newMember(id, name) {
 		member.anchor = $('<div class="member" aria-hidden="true" data-id="' + id + '">'+name+'</div>');
 		$('.chat_members').append(member.anchor);
 		if (id == myId) {
+			member.isMe = true;
 			member.anchor.css('font-weight', 'bold');
+		} else {
+			member.isMe = false;
 		}
 		members[id] = member;
 		map.addPlayer(member);
@@ -123,6 +126,7 @@ function removeMember(id) {
 	if (id in members) {
 		showMessage(members[id].name + " logged out");
 		members[id].anchor.remove();
+		map.removePlayer(id);
 		delete members[id];
 	}
 }

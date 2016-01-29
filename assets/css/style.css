@@ -28,11 +28,11 @@ div, span, textarea, input {
 #map-wrapper {
 	/* this was removed to show the ability to scale */
 	/*width: 910px;*/
+	/*width: 48%;*/
 	height: 700px;
 	position: relative;
 	border: 1px solid #ddd;
 	margin-bottom: 10px;
-	width: 48%;
 	margin-left: 2%;
 
 	float: left;
