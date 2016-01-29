@@ -253,13 +253,13 @@ Map.prototype.drawObjects = function() {
 			var os = (obj.size) / this.viewport.scale;
 			
 			if (obj.type == ObjectType.NPC || obj.type == ObjectType.Player) {
-				ctx.lineWidth = 2;
+				ctx.lineWidth = 1;
 				ctx.fillStyle = obj.color;
 				ctx.beginPath();
 				ctx.arc(vp.x, vp.y, os, 0, Math.PI * 2);
 				// ctx.rect(vp.x - os / 2, vp.y - os / 2, os, os);
 				ctx.fill();
-				ctx.strokeStyle = 'yellow';
+				ctx.strokeStyle = '#777';
 				ctx.stroke();
 
 				// ctx.strokeStyle = 'yellow';
@@ -276,8 +276,9 @@ Map.prototype.drawObjects = function() {
 				ctx.stroke();
 
 				if (obj.type == ObjectType.Player) {
+					ctx.fillStyle = 'blue';
 					var measure = ctx.measureText(obj.player.name);
-					ctx.strokeText(obj.player.name, vp.x - measure.width / 2, vp.y - os / 2);
+					ctx.fillText(obj.player.name, vp.x - measure.width / 2, vp.y - os / 2);
 				}
 
 			} else {
