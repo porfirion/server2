@@ -157,7 +157,7 @@ Player.prototype.setPosition = function(position) {
 
 jQuery(document).ready(function() {
 	myName = getName();
-	$('h1').html(myName);
+	$('.playerName').html(myName);
 	client = new WsClient("ws://" + window.location.host + "/ws", myName);
 	client.on('message', onmessage);
 	client.on('close', onclose);
@@ -204,6 +204,14 @@ jQuery(document).ready(function() {
 		map.viewport.x = 0;
 		map.viewport.y = 0;
 		return false;
+	});
+
+	$(document).on('click', '.floatingButton', function() {
+		var x = $(this).data('x');
+		var y = $(this).data('y');
+
+		map.viewport.x += Number(x) * map.viewport.scale * 20;
+		map.viewport.y += Number(y) * map.viewport.scale * 20;
 	});
 
 	$(map).on('game:click', function(event, data) {

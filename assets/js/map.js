@@ -62,6 +62,8 @@ function Map(elem) {
 			this.viewport.scale *= 0.95;
 			this.viewport.scale = Math.max(this.viewport.scale, 0.005);
 		}
+
+		// capture all scrolling over map
 		return false;
 	}.bind(this));
 
@@ -132,6 +134,8 @@ Map.prototype.addPlayer = function(player) {
 
 Map.prototype.removePlayer = function(playerId) {
 	this.removeObject(this.players[playerId]);
+
+	delete this.players[playerId];
 }
 
 Map.prototype.draw = function() {
@@ -236,56 +240,72 @@ Map.prototype.adjustViewport = function() {
 
 
 Map.prototype.drawObjects = function() {
+	var measure, str;
+
 	var ctx = this.ctx;
 
-	var real = this.getRealViewport();
+	var viewportReal = this.getRealViewport(); // real position and size of viewport
 
 	ctx.save();
 	ctx.lineWidth = 1;
 	for (var i = 0; i < this.objects.length; i++) {
 		var obj = this.objects[i];
-		var pos = obj.getPos();
-		var s2 = obj.size / 2;
-		if (pos.x + s2 > real.x - real.w / 2 && real.x + real.w / 2 > pos.x - s2
-			&& pos.y + s2 > real.y - real.h / 2 && real.y + real.h / 2 > pos.y - s2) {
+		var objPosReal = obj.getPos(); // object real position
+		var objRadiusReal = obj.size / 2; // half of object size
 
-			var vp = this.realToViewport(pos);
-			var os = (obj.size) / this.viewport.scale;
+		var isVisible = objPosReal.x + objRadiusReal >= viewportReal.x - viewportReal.w / 2 && viewportReal.x + viewportReal.w / 2 >= objPosReal.x - objRadiusReal
+				&& objPosReal.y + objRadiusReal >= viewportReal.y - viewportReal.h / 2 && viewportReal.y + viewportReal.h / 2 >= objPosReal.y - objRadiusReal;
+
+		if (isVisible) {
+
+			var objPosViewport = this.realToViewport(objPosReal); // viewport position of object
+			var objSizeViewport = (obj.size) / this.viewport.scale; // viewport size of object
 			
 			if (obj.type == ObjectType.NPC || obj.type == ObjectType.Player) {
+				
+				// рисуем закрашенный кружок
 				ctx.lineWidth = 1;
 				ctx.fillStyle = obj.color;
 				ctx.beginPath();
-				ctx.arc(vp.x, vp.y, os, 0, Math.PI * 2);
-				// ctx.rect(vp.x - os / 2, vp.y - os / 2, os, os);
+				ctx.arc(objPosViewport.x, objPosViewport.y, objSizeViewport / 2, 0, Math.PI * 2);
+				// ctx.rect(objPosViewport.x - objSizeViewport / 2, objPosViewport.y - objSizeViewport / 2, objSizeViewport, objSizeViewport);
 				ctx.fill();
 				ctx.strokeStyle = '#777';
 				ctx.stroke();
 
 				// ctx.strokeStyle = 'yellow';
 				// ctx.beginPath();
-				// ctx.rect(vp.x - os / 2, vp.y - os / 2, os, os);
+				// ctx.rect(objPosViewport.x - objSizeViewport / 2, objPosViewport.y - objSizeViewport / 2, objSizeViewport, objSizeViewport);
 				// ctx.stroke();
 
+				// рисуем вектор движения
 				ctx.lineWidth = 1;
 				ctx.strokeStyle = 'blue';
 				ctx.beginPath();
-				ctx.moveTo(vp.x, vp.y);
-				var len = obj.speed / this.viewport.scale * 10;
-				ctx.lineTo(vp.x + obj.direction.x * len, vp.y - obj.direction.y * len);
+				ctx.moveTo(objPosViewport.x, objPosViewport.y);
+				var len = obj.speed / this.viewport.scale * 10; // length of vector
+				ctx.lineTo(objPosViewport.x + obj.direction.x * len, objPosViewport.y - obj.direction.y * len);
 				ctx.stroke();
+
+				// тип объекта
+				ctx.fillStyle = 'black';
+				this.drawTextCentered(ctx, obj.type, objPosViewport.x, objPosViewport.y - objSizeViewport / 2);
 
 				if (obj.type == ObjectType.Player) {
 					ctx.fillStyle = 'blue';
-					var measure = ctx.measureText(obj.player.name);
-					ctx.fillText(obj.player.name, vp.x - measure.width / 2, vp.y - os / 2);
+					this.drawTextCentered(ctx, obj.player.name, objPosViewport.x, objPosViewport.y - objSizeViewport / 2 + 15);
 				}
+
+				// положение объекта
+				str = Math.round(objPosReal.x, 0) + ':' + Math.round(objPosReal.y, 0);
+				ctx.fillStyle = 'black';
+				this.drawTextCentered(ctx, str, objPosViewport.x, objPosViewport.y - objSizeViewport / 2 + 30);
 
 			} else {
 				ctx.lineWidth = 1;
 				ctx.strokeStyle = obj.color;
 				ctx.beginPath();
-				ctx.rect(vp.x - os / 2, vp.y - os / 2, os, os);
+				ctx.rect(objPosViewport.x - objSizeViewport / 2, objPosViewport.y - objSizeViewport / 2, objSizeViewport, objSizeViewport);
 				ctx.stroke();
 			}
 			
@@ -530,6 +550,11 @@ Map.prototype.getRealViewport = function() {
 
 Map.prototype.distance = function(a, b) {
 	return Math.sqrt(Math.pow(a.x - b.x, 2) + Math.pow(a.y - b.y, 2));
+}
+
+Map.prototype.drawTextCentered = function(ctx, text, x, y) {
+	var measure = ctx.measureText(text);
+	ctx.fillText(text, x - measure.width / 2, y);
 }
 
 function randomComponent() {
