@@ -7,12 +7,16 @@ import (
 	"time"
 )
 
+var SimulationTime int
+
 type Logic struct {
 	IncomingMessages UserMessagesChannel
 	OutgoingMessages ServerMessagesChannel
 	Users            map[int]*User
 	UsersPositions   map[int]Position
+	UsersObjects     map[int]*MapObject
 	EventDispatcher  *EventDispatcher
+	Objects          []MapObject
 }
 
 func (logic *Logic) GetUserList(exceptId int) []User {
@@ -70,18 +74,42 @@ func (logic *Logic) SendTextMessageToUser(text string, sender int, userId int) {
 
 func (logic *Logic) AddUser(id int, name string) *User {
 	user := &User{Id: id, Name: name}
+	pos := Position{X: rand.Int63n(1000) - int64(500), Y: rand.Int63n(1000) - int64(500)}
+	obj := &MapObject{Pos: pos, User: user, Speed: 0.0}
 	logic.Users[id] = user
-	logic.UsersPositions[id] = Position{X: rand.Int63n(1000) - int64(500), Y: rand.Int63n(1000) - int64(500)}
+	logic.UsersPositions[id] = pos
+	logic.UsersObjects[id] = obj
+
 	return user
+}
+
+func (logic *Logic) ProcessActionMessage(userId int, msg *ActionMessage) {
+	switch msg.ActionType {
+	case "move":
+		user := logic.Users[userId]
+		obj := logic.UsersObjects[userId]
+
+		x, okX := msg.ActionData["x"].(int64)
+		y, okY := msg.ActionData["y"].(int64)
+		if okX && okY {
+			obj.AdjustPosition()
+			obj.MoveTo(Position{X: x, Y: y}, 1.0)
+		} else {
+			log.Println("can't get x and y")
+		}
+
+		log.Println(user.Name+" is moving to", msg.ActionData)
+	default:
+		log.Println("Unknown action type: ", msg.ActionType)
+	}
+
+	log.Println("UNIMPLEMENTED!")
 }
 
 func (logic *Logic) RemoveUser(id int) {
 	delete(logic.Users, id)
 	delete(logic.UsersPositions, id)
-}
-
-func (logic *Logic) ActUser(msg *ActionMessage) {
-	log.Println("UNIMPLEMENTED!")
+	delete(logic.UsersObjects, id)
 }
 
 func (logic *Logic) ProcessMessage(message UserMessage) {
@@ -112,7 +140,7 @@ func (logic *Logic) ProcessMessage(message UserMessage) {
 		logic.RemoveUser(msg.Id)
 		logic.SendMessage(UserLoggedoutMessage{Id: msg.Id})
 	case *ActionMessage:
-		logic.ActUser(msg)
+		logic.ProcessActionMessage(message.Source, msg)
 	default:
 		log.Printf("Logic: Unknown message type %#v from %d\n", message.Data, message.Source)
 	}

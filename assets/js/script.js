@@ -218,7 +218,7 @@ jQuery(document).ready(function() {
 		console.log('clicked at ', data);
 
 		client.sendMessage(MessageType.ACTION_MESSAGE, { 
-			actionType: 'goto',
+			actionType: 'move',
 			actionData: data,
 		});
 	});
