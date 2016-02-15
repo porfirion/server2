@@ -7,9 +7,9 @@ import (
 type ConnectionsPool struct {
 	logic                 *Logic
 	incomingConnections   ConnectionsChannel // входящие соединения
-	ConnectionsEnumerator chan int
-	Connections           map[int]Connection
-	ClosingChannel        chan int
+	ConnectionsEnumerator chan uint64
+	Connections           map[uint64]Connection
+	ClosingChannel        chan uint64
 }
 
 func (pool *ConnectionsPool) processConnection(connection Connection) {
@@ -25,7 +25,7 @@ func (pool *ConnectionsPool) processConnection(connection Connection) {
 		} else {
 			//log.Println("Authorization successful: ", authMessage)
 
-			var connectionId = <-pool.ConnectionsEnumerator
+			var connectionId uint64 = <-pool.ConnectionsEnumerator
 
 			connection.SetId(connectionId)
 			connection.SetClosingChannel(pool.ClosingChannel)
@@ -42,10 +42,10 @@ func (pool *ConnectionsPool) processConnection(connection Connection) {
 }
 
 func (pool *ConnectionsPool) InitEnumerator() {
-	pool.ConnectionsEnumerator = make(chan int, 1)
+	pool.ConnectionsEnumerator = make(chan uint64, 1)
 
 	go func() {
-		var connectionId int = 1
+		var connectionId uint64 = 1
 		for {
 			pool.ConnectionsEnumerator <- connectionId
 			connectionId++
@@ -53,7 +53,7 @@ func (pool *ConnectionsPool) InitEnumerator() {
 	}()
 }
 
-func (pool *ConnectionsPool) RemoveConnection(connectionId int) {
+func (pool *ConnectionsPool) RemoveConnection(connectionId uint64) {
 	log.Println("CPool: Removing connection", connectionId)
 
 	delete(pool.Connections, connectionId)
@@ -96,15 +96,15 @@ func (pool *ConnectionsPool) Start() {
 
 	pool.InitEnumerator()
 
-	pool.Connections = make(map[int]Connection)
-	pool.ClosingChannel = make(chan int)
+	pool.Connections = make(map[uint64]Connection)
+	pool.ClosingChannel = make(chan uint64)
 
 	for {
 		select {
 		case connection := <-pool.incomingConnections:
 			log.Println("CPool: connection received", connection)
 			pool.processConnection(connection)
-			log.Println("Processing connection finished")
+			log.Println("CPool connection processed")
 		case message := <-pool.logic.OutgoingMessages:
 			log.Println("CPool: Outgoing message", message)
 			pool.DispathMessage(message)

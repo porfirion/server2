@@ -14,7 +14,7 @@ type ErrorMessage struct {
  * При получении сервером ретранслируется всем адресатам
  */
 type TextMessage struct {
-	Sender int    `json:"sender"`
+	Sender uint64 `json:"sender"`
 	Text   string `json:"text"`
 }
 
@@ -33,14 +33,14 @@ type AuthMessage struct {
  * Посылается клиенту, чтобы сообщить, что он успешно подключился и сказать ему его id
  */
 type WellcomeMessage struct {
-	Id int `json:"id"`
+	Id uint64 `json:"id"`
 }
 
 /**
  * Посылается пулом соединений для извещения о входе
  */
 type LoginMessage struct {
-	Id   int    `json:"id"`
+	Id   uint64 `json:"id"`
 	Name string `json:"name"`
 }
 
@@ -48,7 +48,7 @@ type LoginMessage struct {
  * Посылается пулом сообщений для извещения о выходе
  */
 type LogoutMessage struct {
-	Id int `json:"id"`
+	Id uint64 `json:"id"`
 }
 
 /**
@@ -59,12 +59,12 @@ type UserListMessage struct {
 }
 
 type UserLoggedinMessage struct {
-	Id   int    `json:"id"`
+	Id   uint64 `json:"id"`
 	Name string `json:"name"`
 }
 
 type UserLoggedoutMessage struct {
-	Id int `json:"id"`
+	Id uint64 `json:"id"`
 }
 
 /**
@@ -93,12 +93,12 @@ type ActionMessage struct {
 
 type ServerMessage struct {
 	Data    interface{}
-	Targets []int // send only to
-	Except  []int // do not send to
+	Targets []uint64 // send only to
+	Except  []uint64 // do not send to
 }
 
 type UserMessage struct {
-	Source int
+	Source uint64
 	Data   interface{}
 }
 

@@ -1,6 +1,8 @@
 package main
 
 type User struct {
-	Id   int    `json:"id"`
+	Id   uint64 `json:"id"`
 	Name string `json:"name"`
 }
+
+type UsersList []uint64

@@ -3,7 +3,6 @@ package main
 import (
 	"log"
 	"math/rand"
-	"strconv"
 	"time"
 )
 
@@ -12,14 +11,13 @@ var SimulationTime int
 type Logic struct {
 	IncomingMessages UserMessagesChannel
 	OutgoingMessages ServerMessagesChannel
-	Users            map[int]*User
-	UsersPositions   map[int]Position
-	UsersObjects     map[int]*MapObject
+	Users            map[uint64]*User
 	EventDispatcher  *EventDispatcher
 	Objects          []MapObject
+	WorldMap         *WorldMap
 }
 
-func (logic *Logic) GetUserList(exceptId int) []User {
+func (logic *Logic) GetUserList(exceptId uint64) []User {
 	userlist := []User{}
 	for userId, user := range logic.Users {
 		if userId != exceptId {
@@ -32,23 +30,12 @@ func (logic *Logic) GetUserList(exceptId int) []User {
 	return userlist
 }
 
-func (logic *Logic) GetUsersPositions() map[string]Position {
-	res := make(map[string]Position)
-	for id, pos := range logic.UsersPositions {
-		res[strconv.Itoa(id)] = pos
-	}
-
-	log.Printf("Users positions: %#v\n", res)
-
-	return res
-}
-
 /**
  * отправляет сообщение. Первый массив обозначает список целей кому передавать. Второй массив обозначает кому не передавать.
  * @param  {[type]} logic *Logic) SendMessage(msg Message, targets ...[]int [description]
  * @return {[type]} [description]
  */
-func (logic *Logic) SendMessage(msg interface{}, targets ...[]int) {
+func (logic *Logic) SendMessage(msg interface{}, targets ...UsersList) {
 	serverMessage := ServerMessage{Data: msg}
 
 	// real targets
@@ -64,35 +51,41 @@ func (logic *Logic) SendMessage(msg interface{}, targets ...[]int) {
 	logic.OutgoingMessages <- serverMessage
 }
 
-func (logic *Logic) SendTextMessage(text string, sender int) {
+func (logic *Logic) SendTextMessage(text string, sender uint64) {
 	logic.SendMessage(TextMessage{Text: text, Sender: sender})
 }
 
-func (logic *Logic) SendTextMessageToUser(text string, sender int, userId int) {
-	logic.SendMessage(TextMessage{Text: text, Sender: sender}, []int{userId})
+func (logic *Logic) SendTextMessageToUser(text string, sender uint64, userId uint64) {
+	logic.SendMessage(TextMessage{Text: text, Sender: sender}, UsersList{userId})
 }
 
-func (logic *Logic) AddUser(id int, name string) *User {
+func (logic *Logic) AddUser(id uint64, name string) *User {
 	user := &User{Id: id, Name: name}
-	pos := Position{X: rand.Int63n(1000) - int64(500), Y: rand.Int63n(1000) - int64(500)}
-	obj := &MapObject{Pos: pos, User: user, Speed: 0.0}
 	logic.Users[id] = user
-	logic.UsersPositions[id] = pos
-	logic.UsersObjects[id] = obj
+
+	pos := Position{X: rand.Float64()*1000 - 500, Y: rand.Float64()*1000 - 500}
+	logic.WorldMap.AddUser(user, pos)
 
 	return user
 }
 
-func (logic *Logic) ProcessActionMessage(userId int, msg *ActionMessage) {
+func (logic *Logic) RemoveUser(id uint64) {
+	delete(logic.Users, id)
+	logic.WorldMap.RemoveUser(id)
+}
+
+func (logic *Logic) ProcessActionMessage(userId uint64, msg *ActionMessage) {
+	log.Println("UNIMPLEMENTED!")
+
 	switch msg.ActionType {
 	case "move":
 		user := logic.Users[userId]
-		obj := logic.UsersObjects[userId]
+		obj := logic.WorldMap.UsersObjects[userId]
 
-		x, okX := msg.ActionData["x"].(int64)
-		y, okY := msg.ActionData["y"].(int64)
+		x, okX := msg.ActionData["x"].(float64)
+		y, okY := msg.ActionData["y"].(float64)
+
 		if okX && okY {
-			obj.AdjustPosition()
 			obj.MoveTo(Position{X: x, Y: y}, 1.0)
 		} else {
 			log.Println("can't get x and y")
@@ -102,20 +95,12 @@ func (logic *Logic) ProcessActionMessage(userId int, msg *ActionMessage) {
 	default:
 		log.Println("Unknown action type: ", msg.ActionType)
 	}
-
-	log.Println("UNIMPLEMENTED!")
-}
-
-func (logic *Logic) RemoveUser(id int) {
-	delete(logic.Users, id)
-	delete(logic.UsersPositions, id)
-	delete(logic.UsersObjects, id)
 }
 
 func (logic *Logic) ProcessMessage(message UserMessage) {
 	defer func() {
 		if r := recover(); r != nil {
-			log.Println("Recovered in f", r)
+			log.Printf("Recovered in %#v\n", r)
 		}
 	}()
 
@@ -131,10 +116,10 @@ func (logic *Logic) ProcessMessage(message UserMessage) {
 		user := logic.AddUser(msg.Id, msg.Name)
 		logic.SendTextMessageToUser("Logic: Wellcome, "+user.Name, 0, user.Id)
 
-		logic.SendMessage(UserLoggedinMessage{Id: user.Id, Name: user.Name}, []int{}, []int{user.Id})
+		logic.SendMessage(UserLoggedinMessage{Id: user.Id, Name: user.Name}, UsersList{}, UsersList{user.Id})
 
-		logic.SendMessage(UserListMessage{logic.GetUserList(user.Id)}, []int{user.Id})
-		logic.SendMessage(SyncPositionsMessage{logic.GetUsersPositions()})
+		logic.SendMessage(UserListMessage{logic.GetUserList(user.Id)}, UsersList{user.Id})
+		logic.SendMessage(SyncPositionsMessage{logic.WorldMap.GetObjectsPositions()})
 	case *LogoutMessage:
 		log.Println("Logic: Logout message", msg.Id)
 		logic.RemoveUser(msg.Id)
@@ -151,8 +136,9 @@ func (logic *Logic) Start() {
 	logic.EventDispatcher = &EventDispatcher{}
 	logic.EventDispatcher.Init()
 
-	logic.Users = make(map[int]*User)
-	logic.UsersPositions = make(map[int]Position)
+	logic.Users = make(map[uint64]*User)
+
+	logic.WorldMap = NewWorldMap()
 
 	log.Println("Logic: started")
 	for {

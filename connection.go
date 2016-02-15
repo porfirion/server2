@@ -4,24 +4,24 @@ type Connection interface {
 	StartReading(ch UserMessagesChannel)
 	Close(code int, message string)
 	GetResponseChannel() MessagesChannel
-	SetId(id int)
-	GetId() int
+	SetId(id uint64)
+	GetId() uint64
 	IsClosed() bool
-	SetClosingChannel(chan int)
+	SetClosingChannel(chan uint64)
 	GetAuth() (*AuthMessage, error)
 }
 
 type BasicConnection struct {
-	id              int
+	id              uint64
 	closed          bool
 	responseChannel MessagesChannel
-	closingChannel  chan int
+	closingChannel  chan uint64
 }
 
-func (connection *BasicConnection) SetId(id int) {
+func (connection *BasicConnection) SetId(id uint64) {
 	connection.id = id
 }
-func (connection *BasicConnection) GetId() int {
+func (connection *BasicConnection) GetId() uint64 {
 	return connection.id
 }
 
@@ -37,7 +37,7 @@ func (connection *BasicConnection) GetResponseChannel() MessagesChannel {
 	return connection.responseChannel
 }
 
-func (connection *BasicConnection) SetClosingChannel(closingChannel chan int) {
+func (connection *BasicConnection) SetClosingChannel(closingChannel chan uint64) {
 	connection.closingChannel = closingChannel
 }
 

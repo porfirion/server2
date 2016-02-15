@@ -256,67 +256,71 @@ Map.prototype.drawObjects = function() {
 		var isVisible = objPosReal.x + objRadiusReal >= viewportReal.x - viewportReal.w / 2 && viewportReal.x + viewportReal.w / 2 >= objPosReal.x - objRadiusReal
 				&& objPosReal.y + objRadiusReal >= viewportReal.y - viewportReal.h / 2 && viewportReal.y + viewportReal.h / 2 >= objPosReal.y - objRadiusReal;
 
-		if (isVisible) {
+		if (!isVisible) { continue; }
 
-			var objPosViewport = this.realToViewport(objPosReal); // viewport position of object
-			var objSizeViewport = (obj.size) / this.viewport.scale; // viewport size of object
+		var objPosViewport = this.realToViewport(objPosReal); // viewport position of object
+		var objSizeViewport = (obj.size) / this.viewport.scale; // viewport size of object
+
+		ctx.save();
+		ctx.translate(objPosViewport.x, objPosViewport.y);
+
+		if (obj.type == ObjectType.NPC || obj.type == ObjectType.Player) {
 			
-			if (obj.type == ObjectType.NPC || obj.type == ObjectType.Player) {
-				
-				// рисуем закрашенный кружок
-				ctx.lineWidth = 1;
-				ctx.fillStyle = obj.color;
-				ctx.beginPath();
-				ctx.arc(objPosViewport.x, objPosViewport.y, objSizeViewport / 2, 0, Math.PI * 2);
-				// ctx.rect(objPosViewport.x - objSizeViewport / 2, objPosViewport.y - objSizeViewport / 2, objSizeViewport, objSizeViewport);
-				ctx.fill();
-				ctx.strokeStyle = '#777';
-				ctx.stroke();
+			// рисуем закрашенный кружок
+			ctx.lineWidth = 1;
+			ctx.fillStyle = obj.color;
+			ctx.beginPath();
+			ctx.arc(0, 0, objSizeViewport / 2, 0, Math.PI * 2);
+			// ctx.rect(0 - objSizeViewport / 2, 0 - objSizeViewport / 2, objSizeViewport, objSizeViewport);
+			ctx.fill();
+			ctx.strokeStyle = '#777';
+			ctx.stroke();
 
-				// ctx.strokeStyle = 'yellow';
-				// ctx.beginPath();
-				// ctx.rect(objPosViewport.x - objSizeViewport / 2, objPosViewport.y - objSizeViewport / 2, objSizeViewport, objSizeViewport);
-				// ctx.stroke();
+			// ctx.strokeStyle = 'yellow';
+			// ctx.beginPath();
+			// ctx.rect(0 - objSizeViewport / 2, 0 - objSizeViewport / 2, objSizeViewport, objSizeViewport);
+			// ctx.stroke();
 
-				// рисуем вектор движения
-				ctx.lineWidth = 1;
-				ctx.strokeStyle = 'blue';
-				ctx.beginPath();
-				ctx.moveTo(objPosViewport.x, objPosViewport.y);
-				var len = obj.speed / this.viewport.scale * 10; // length of vector
-				ctx.lineTo(objPosViewport.x + obj.direction.x * len, objPosViewport.y - obj.direction.y * len);
-				ctx.stroke();
+			// рисуем вектор движения
+			ctx.lineWidth = 1;
+			ctx.strokeStyle = 'blue';
+			ctx.beginPath();
+			ctx.moveTo(0, 0);
+			var len = obj.speed / this.viewport.scale * 10; // length of vector
+			ctx.lineTo(obj.direction.x * len, 0 - obj.direction.y * len);
+			ctx.stroke();
 
-				// тип объекта
-				ctx.fillStyle = 'black';
-				this.drawTextCentered(ctx, obj.type, objPosViewport.x, objPosViewport.y - objSizeViewport / 2);
+			// тип объекта
+			ctx.fillStyle = 'black';
+			this.drawTextCentered(ctx, obj.type, 0, 0 - objSizeViewport / 2);
 
-				if (obj.type == ObjectType.Player) {
-					ctx.fillStyle = 'blue';
-					this.drawTextCentered(ctx, obj.player.name, objPosViewport.x, objPosViewport.y - objSizeViewport / 2 + 15);
-				}
-
-				// положение объекта
-				str = Math.round(objPosReal.x, 0) + ':' + Math.round(objPosReal.y, 0);
-				ctx.fillStyle = 'black';
-				this.drawTextCentered(ctx, str, objPosViewport.x, objPosViewport.y - objSizeViewport / 2 + 30);
-
-			} else {
-				ctx.lineWidth = 1;
-				ctx.strokeStyle = obj.color;
-				ctx.beginPath();
-				ctx.rect(objPosViewport.x - objSizeViewport / 2, objPosViewport.y - objSizeViewport / 2, objSizeViewport, objSizeViewport);
-				ctx.stroke();
+			if (obj.type == ObjectType.Player) {
+				ctx.fillStyle = 'blue';
+				this.drawTextCentered(ctx, obj.player.name, 0, 0 - objSizeViewport / 2 + 15);
 			}
-			
-			if (obj.active) {
-				ctx.save();
-				//ctx.globalAlpha = 0.3;
-				ctx.fillStyle = obj.color;
-				ctx.fill();
-				ctx.restore();
-			}
+
+			// положение объекта
+			str = Math.round(objPosReal.x, 0) + ':' + Math.round(objPosReal.y, 0);
+			ctx.fillStyle = 'black';
+			this.drawTextCentered(ctx, str, 0, 0 - objSizeViewport / 2 + 30);
+
+		} else {
+			ctx.lineWidth = 1;
+			ctx.strokeStyle = obj.color;
+			ctx.beginPath();
+			ctx.rect(0 - objSizeViewport / 2, 0 - objSizeViewport / 2, objSizeViewport, objSizeViewport);
+			ctx.stroke();
 		}
+		
+		if (obj.active) {
+			ctx.save();
+			//ctx.globalAlpha = 0.3;
+			ctx.fillStyle = obj.color;
+			ctx.fill();
+			ctx.restore();
+		}
+
+		ctx.restore();
 	}
 	ctx.restore();
 }

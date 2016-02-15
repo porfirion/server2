@@ -95,6 +95,8 @@ function onclose() {
 function updateMembersPositions(positions) {
 	for (var key in positions) {
 		if (key in members) {
+			// TODO здесь нужно обновлять не положения пользователей, а положения объектов!
+			// также нужно добавить в отправляемую информацию тип объекта и, опционально, id пользователя
 			members[key].setPosition(positions[key]);
 		} else {
 			console.log('No members #' + key);
