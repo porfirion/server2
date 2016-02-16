@@ -15,6 +15,7 @@ function Map(elem) {
 	};
 	this.points = [];
 	this.objects = [];
+	this.objectsById = {};
 
 	this.gridSize = 100;
 
@@ -71,14 +72,14 @@ function Map(elem) {
 	this.animations = [];	
 	this.prevAnimationTime = null;
 
-	this.fillObjects();
+	// this.fillObjects();
 }
 
 Map.prototype.fillObjects = function() {
 	// static objects
 	var i;
 	for (i = 0; i < 1000; i++) {
-		this.addObject(ObjectType.Obstacle, {
+		this.addObject(1000000 + i, ObjectType.Obstacle, {
 					x: Math.random() * 10000 - 5000,
 					y: Math.random() * 10000 - 5000
 			}
@@ -96,13 +97,13 @@ Map.prototype.fillObjects = function() {
 	};
 
 	for (i = 0; i < 10; i++) {
-		var obj = this.addObject(ObjectType.NPC);
+		var obj = this.addObject(1100000 + i, ObjectType.NPC);
 		obj.setSize(50);
 		chaos(obj);
 	}
 }
 
-Map.prototype.addObject = function(objectType, coords) {
+Map.prototype.addObject = function(id, objectType, coords) {
 	if (typeof objectType == 'undefined') {
 		objectType = ObjectType.Obstacle;
 	}
@@ -110,9 +111,10 @@ Map.prototype.addObject = function(objectType, coords) {
 	if (typeof coords == 'undefined' || coords == null) {
 		coords = { x: 0, y: 0};		
 	}
-	var obj = new MapObject(objectType, coords);
+	var obj = new MapObject(id, objectType, coords);
 
 	this.objects.push(obj);
+	this.objectsById[obj.id] = obj;
 
 	return obj;
 }
@@ -120,6 +122,15 @@ Map.prototype.removeObject = function(obj) {
 	var index = this.objects.indexOf(obj);
 
 	this.objects.splice(index, 1);
+	delete this.objectsById[obj.id]
+}
+
+Map.prototype.updateObjectPosition = function(obj) {
+	if (obj in this.objectsById) {
+		this.objectsById[obj.id].adjustState(obj.position);
+	} else {
+		this.addObject(obj.id, obj.objectType, obj.position);
+	}
 }
 
 Map.prototype.addPlayer = function(player) {
@@ -302,7 +313,7 @@ Map.prototype.drawObjects = function() {
 			// положение объекта
 			str = Math.round(objPosReal.x, 0) + ':' + Math.round(objPosReal.y, 0);
 			ctx.fillStyle = 'black';
-			this.drawTextCentered(ctx, str, 0, 0 - objSizeViewport / 2 + 30);
+			this.drawTextCentered(ctx, str, 0, 0 - objSizeViewport / 2 - 10 / this.viewport.scale);
 
 		} else {
 			ctx.lineWidth = 1;
@@ -310,6 +321,7 @@ Map.prototype.drawObjects = function() {
 			ctx.beginPath();
 			ctx.rect(0 - objSizeViewport / 2, 0 - objSizeViewport / 2, objSizeViewport, objSizeViewport);
 			ctx.stroke();
+			this.drawTextCentered(ctx, obj.id, 0, 0 - objSizeViewport / 2 - 10 / this.viewport.scale);
 		}
 		
 		if (obj.active) {

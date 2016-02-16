@@ -62,8 +62,8 @@ function onmessage(messageType, data) {
 		case MessageType.USER_LOGGEDOUT:
 			removeMember(data.id);
 			break;
-		case MessageType.SYNC_USERS_POSITIONS:
-			updateMembersPositions(data.positions);
+		case MessageType.SYNC_OBJECTS_POSITIONS:
+			updateObjectsPositions(data.positions);
 		 	break;
 		case MessageType.ERROR:
 			showMessage('Error: ' + data.description);
@@ -92,15 +92,9 @@ function onclose() {
 	showMessage('disconnected');
 }
 
-function updateMembersPositions(positions) {
-	for (var key in positions) {
-		if (key in members) {
-			// TODO здесь нужно обновлять не положения пользователей, а положения объектов!
-			// также нужно добавить в отправляемую информацию тип объекта и, опционально, id пользователя
-			members[key].setPosition(positions[key]);
-		} else {
-			console.log('No members #' + key);
-		}
+function updateObjectsPositions(positions) {
+	for (var objectId in positions) {
+		map.updateObjectPosition(positions[objectId]);
 	}
 }
 
@@ -167,7 +161,7 @@ jQuery(document).ready(function() {
 		syncTimeTimer = setInterval(function() {
 			//client.sendMessage(MessageType.SYNC_TIME, {time: 0});
 			//console.log('sent');
-		}, 1000);
+		}, 10000);
 	});
 	client.on('syncTime', function() {
 		$('.latency .value').html(client.latencies[client.latencies.length - 1]);

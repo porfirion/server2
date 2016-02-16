@@ -119,6 +119,7 @@ func (logic *Logic) ProcessMessage(message UserMessage) {
 		logic.SendMessage(UserLoggedinMessage{Id: user.Id, Name: user.Name}, UsersList{}, UsersList{user.Id})
 
 		logic.SendMessage(UserListMessage{logic.GetUserList(user.Id)}, UsersList{user.Id})
+		log.Println("sent. sync next")
 		logic.SendMessage(SyncPositionsMessage{logic.WorldMap.GetObjectsPositions()})
 	case *LogoutMessage:
 		log.Println("Logic: Logout message", msg.Id)

@@ -1,4 +1,5 @@
-function MapObject(type, pos, size, color) {
+function MapObject(id, type, pos, size, color) {
+	this.id = id;
 	this.type = type;
 
 	this.pos = pos || {x: 0, y: 0};

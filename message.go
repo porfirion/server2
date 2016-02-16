@@ -71,7 +71,7 @@ type UserLoggedoutMessage struct {
  * Отправляет на клиент список объектов с координатами
  */
 type SyncPositionsMessage struct {
-	Positions map[string]Position `json:"positions"`
+	Positions map[string]MapObjectDescription `json:"positions"`
 }
 
 /**

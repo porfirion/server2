@@ -1,9 +1,12 @@
 package main
 
 import (
+	"encoding/json"
 	"testing"
 	"time"
 )
+
+var now time.Time
 
 func CreateAndAdjust(t1, t2 time.Time, t *testing.T) MapObject {
 	obj := MapObject{
@@ -14,32 +17,44 @@ func CreateAndAdjust(t1, t2 time.Time, t *testing.T) MapObject {
 		Speed:           10,
 	}
 
-	t.Log("%+v\n", obj)
+	t.Logf("Position: %v, destination: %v\n", obj.Pos, obj.Destination)
 	obj.AdjustPosition()
-	t.Log("%+v\n", obj)
+	t.Logf("Position: %v, destination: %v\n", obj.Pos, obj.Destination)
 
 	return obj
 }
 
 func TestAdjustPosition(t *testing.T) {
-	now := time.Now()
+	now = time.Now()
 	var obj MapObject
 
-	obj = CreateAndAdjust(now.Add(-7*time.Second), now.Add(3*time.Second), t) // ещё идти 2 секунды
-	if obj.Pos.X != 70 || obj.Pos.Y != 39 {
+	obj = CreateAndAdjust(now.Add(-7*time.Second), now.Add(3*time.Second), t) // ещё идти 3 секунды
+	// с этим тестом иногда случаются проблемы -
+	// почему-то разница между взятием текущего времени и вызовом метода Adjust составляет около 1мс,
+	// тогда и сравнение наше идёт прахом
+	if obj.Pos.Distance(Position{70, 38.5}) > 0.0001 {
+		t.Log(obj.Pos, obj.Pos.Distance(Position{70, 38.5}), time.Now().Sub(now), obj.Pos.Distance(Position{70, 38.5})/float64(time.Now().Sub(now)))
 		t.Error("Wrong adjustion for future time")
+	} else {
+		t.Logf("Computing error: %v\n", obj.Pos.Distance(Position{70.0, 38.5}))
 	}
-	obj = CreateAndAdjust(now.Add(-10*time.Second), now, t) // уже пришли
-	if obj.Pos.X != 100 || obj.Pos.Y != 55 {
+	obj = CreateAndAdjust(now.Add(-10*time.Second), now, t) // только что пришли
+	if obj.Pos.Distance(Position{100.0, 55.0}) > 0.0001 {
+		t.Log(obj.Pos)
 		t.Error("Wrong adjustion for current time")
+	} else {
+		t.Logf("Computing error: %v\n", obj.Pos.Distance(Position{100.0, 55.0}))
 	}
 	obj = CreateAndAdjust(now.Add(-11*time.Second), now.Add(-1*time.Second), t) // пришли ещё секунду назад
-	if obj.Pos.X != 100 || obj.Pos.Y != 55 {
+	if obj.Pos.Distance(Position{100.0, 55.0}) > 0.0001 {
+		t.Log(obj.Pos)
 		t.Error("Wrong adjustion for previous time")
+	} else {
+		t.Logf("Computing error: %v\n", obj.Pos.Distance(Position{100.0, 55.0}))
 	}
 }
 
-func TestRound(t *testing.T) {
+/*func TestRound(t *testing.T) {
 	t.Log("0.2 => ", Round(0.2))
 	t.Log("0.7 => ", Round(0.7))
 	t.Log("0.0 => ", Round(0.0))
@@ -64,5 +79,26 @@ func TestRound(t *testing.T) {
 	}
 	if Round(-1.0) != -1.0 {
 		t.Error("Error rounding -1.0")
+	}
+}*/
+
+func TestMarshaling(t *testing.T) {
+	obj := MapObjectDescription{
+		Id:              1,
+		ObjectType:      MapObjectTypeObstacle,
+		Pos:             Position{10, 20},
+		Destination:     Position{30, 40},
+		DestinationTime: time.Now(),
+		Speed:           1.0,
+		StartTime:       time.Now().Add(time.Minute * -1),
+		UserId:          123,
+	}
+
+	_, err := json.Marshal(obj)
+
+	if err == nil {
+		// нормально сериализовалось
+	} else {
+		t.Error("Error", err)
 	}
 }
