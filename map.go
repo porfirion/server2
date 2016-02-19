@@ -29,23 +29,23 @@ type MapObjectDescription struct {
 	Id                  uint64        `json:"id"`
 	ObjectType          MapObjectType `json:"objectType"`
 	StartPosition       Position      `json:"startPosition"`
-	Position            Position      `json:"position"`
+	StartTime           int64         `json:"startTime"`
 	DestinationPosition Position      `json:"destinationPosition"`
-	DestinationTime     time.Time     `json:"destinationTime"`
+	DestinationTime     int64         `json:"destinationTime"`
 	Speed               float64       `json:"speed"`
-	StartTime           time.Time     `json:"startTime"`
+	Position            Position      `json:"position"`
 	UserId              uint64        `json:"userId"`
 }
 
 type MapObject struct {
-	Id              uint64
-	ObjectType      MapObjectType
-	Pos             Position
-	Destination     Position
-	DestinationTime time.Time
-	Speed           float64
-	StartTime       time.Time
-	User            *User
+	Id                  uint64
+	ObjectType          MapObjectType
+	StartPosition       Position
+	StartTime           time.Time
+	DestinationPosition Position
+	DestinationTime     time.Time
+	Speed               float64
+	User                *User
 }
 
 // Обновление положения объекта
@@ -58,19 +58,19 @@ func (obj *MapObject) AdjustPosition() {
 		coeff := (float64)(deltaTime / assumedTime)
 		if coeff >= 1 {
 			// мы уже пришли на место
-			obj.Pos = obj.Destination
+			obj.StartPosition = obj.DestinationPosition
 			obj.StartTime = obj.DestinationTime
 
-			obj.Destination = Position{}
+			obj.DestinationPosition = Position{}
 			obj.DestinationTime = time.Time{}
 			obj.Speed = 0
 
 		} else {
 			// мы ещё не пришли. Рассчитываем текущее положение и записываем его в качестве стартового
-			dst := obj.Destination
-			src := obj.Pos
+			dst := obj.DestinationPosition
+			src := obj.StartPosition
 
-			obj.Pos = Position{X: src.X + (dst.X-src.X)*coeff, Y: src.Y + (dst.Y-src.Y)*coeff}
+			obj.StartPosition = Position{X: src.X + (dst.X-src.X)*coeff, Y: src.Y + (dst.Y-src.Y)*coeff}
 			obj.StartTime = time.Now()
 		}
 
@@ -87,45 +87,47 @@ func (obj *MapObject) getPosition() Position {
 		coeff := (float64)(deltaTime / assumedTime)
 		if coeff >= 1 {
 			// мы уже пришли на место
-			return obj.Destination
+			return obj.DestinationPosition
 
 		} else {
 			// мы ещё не пришли. Рассчитываем текущее положение и записываем его в качестве стартового
-			dst := obj.Destination
-			src := obj.Pos
+			dst := obj.DestinationPosition
+			src := obj.StartPosition
 
 			return Position{X: src.X + (dst.X-src.X)*coeff, Y: src.Y + (dst.Y-src.Y)*coeff}
 		}
 
 	} else {
-		return obj.Pos
+		return obj.StartPosition
 	}
 }
 
 // Начало движения в указанную точку
 func (obj *MapObject) MoveTo(pos Position, speed float64) {
 	obj.AdjustPosition()
-	obj.Destination = pos
+	obj.DestinationPosition = pos
 	obj.Speed = speed
 
 	// duration is counted in nanoseconds
-	duration := time.Duration((obj.Pos.Distance(pos) / speed) * 1000000000)
+	duration := time.Duration((obj.StartPosition.Distance(pos) / speed) * 1000000000)
 
 	obj.DestinationTime = time.Now().Add(duration)
+
 }
 
 func (obj *MapObject) GetDescription() MapObjectDescription {
 	description := MapObjectDescription{
 		Id:                  obj.Id,
 		ObjectType:          obj.ObjectType,
-		StartPosition:       obj.Pos,
-		Position:            obj.getPosition(),
-		DestinationPosition: obj.Destination,
-		DestinationTime:     obj.DestinationTime,
+		StartPosition:       obj.StartPosition,
+		StartTime:           obj.StartTime.UnixNano() / int64(time.Millisecond),
+		DestinationPosition: obj.DestinationPosition,
+		DestinationTime:     obj.DestinationTime.UnixNano() / int64(time.Millisecond),
 		Speed:               obj.Speed,
-		StartTime:           obj.StartTime,
+		Position:            obj.getPosition(), // server calculated position
 		UserId:              0,
 	}
+
 	if obj.User != nil {
 		description.UserId = obj.User.Id
 	}
@@ -166,7 +168,7 @@ func NewWorldMap() *WorldMap {
 
 func (world *WorldMap) NewObject(pos Position, objectType MapObjectType) *MapObject {
 	world.NextObjectId++
-	return &MapObject{Pos: pos, ObjectType: objectType, Id: world.NextObjectId}
+	return &MapObject{Id: world.NextObjectId, ObjectType: objectType, StartPosition: pos, StartTime: time.Now(), Speed: 0.0}
 }
 
 func (world *WorldMap) AddObject(obj *MapObject) {

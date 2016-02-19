@@ -86,7 +86,7 @@ func (logic *Logic) ProcessActionMessage(userId uint64, msg *ActionMessage) {
 		y, okY := msg.ActionData["y"].(float64)
 
 		if okX && okY {
-			obj.MoveTo(Position{X: x, Y: y}, 1.0)
+			obj.MoveTo(Position{X: x, Y: y}, 10.0)
 		} else {
 			log.Println("can't get x and y")
 		}
@@ -95,6 +95,10 @@ func (logic *Logic) ProcessActionMessage(userId uint64, msg *ActionMessage) {
 	default:
 		log.Println("Unknown action type: ", msg.ActionType)
 	}
+}
+
+func (logic *Logic) ProcessStep() {
+	logic.SendMessage(SyncPositionsMessage{logic.WorldMap.GetObjectsPositions()})
 }
 
 func (logic *Logic) ProcessMessage(message UserMessage) {
@@ -141,13 +145,20 @@ func (logic *Logic) Start() {
 
 	logic.WorldMap = NewWorldMap()
 
+	var timer *time.Timer = time.NewTimer(time.Hour)
+
 	log.Println("Logic: started")
 	for {
+		timer.Reset(time.Second)
+
 		select {
 		case msg := <-logic.IncomingMessages:
 			log.Println("Logic: message received")
 			logic.ProcessMessage(msg)
 			log.Println("Logic: message processed")
+		case _ = <-timer.C:
+			log.Println("Logic: simulation step")
+			logic.ProcessStep()
 		}
 	}
 

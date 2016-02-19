@@ -106,7 +106,7 @@ func (pool *ConnectionsPool) Start() {
 			pool.processConnection(connection)
 			log.Println("CPool connection processed")
 		case message := <-pool.logic.OutgoingMessages:
-			log.Println("CPool: Outgoing message", message)
+			log.Printf("CPool: Outgoing message %T\n", message)
 			pool.DispathMessage(message)
 			log.Println("CPool: Message is sent")
 		case connectionId := <-pool.ClosingChannel:

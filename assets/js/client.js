@@ -71,7 +71,8 @@ function WsClient(wsAddr, name) {
 		console.log('on open');
 		_this.sendMessage(MessageType.AUTH, {name: name});
 
-		setInterval(this.requestTime.bind(this), 1000);
+		this.requestTime();
+		setInterval(this.requestTime.bind(this), 10000);
 
 		_this.trigger('open');
 	};

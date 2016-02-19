@@ -126,25 +126,35 @@ Map.prototype.removeObject = function(obj) {
 }
 
 Map.prototype.updateObjectPosition = function(obj) {
-	if (obj in this.objectsById) {
-		this.objectsById[obj.id].adjustState(obj.position);
+	console.log(obj);
+	var mapObject = null;
+
+	if (obj.id in this.objectsById) {
+		mapObject = this.objectsById[obj.id];
 	} else {
-		this.addObject(obj.id, obj.objectType, obj.position);
+		mapObject = this.addObject(obj.id, obj.objectType);
+		if (obj.userId) {
+			mapObject.setPlayer(this.players[obj.userId]);
+		}
+	}
+
+	if (mapObject) {
+		mapObject.adjustState(obj);
 	}
 }
 
 Map.prototype.addPlayer = function(player) {
-	var obj = this.addObject(ObjectType.Player, player.state.position);
+	// добавление объекта происходит при синхронизации объектов
+	// var obj = this.addObject(ObjectType.Player, player.state.position);
 
-	obj.setPlayer(player);
-	obj.setSize(100);
+	// obj.setPlayer(player);
+	// obj.setSize(100);
 
-	this.players[player.id] = obj;
-	return obj;
+	this.players[player.id] = player;
 }
 
 Map.prototype.removePlayer = function(playerId) {
-	this.removeObject(this.players[playerId]);
+	// this.removeObject(this.players[playerId]);
 
 	delete this.players[playerId];
 }
@@ -239,6 +249,8 @@ Map.prototype.drawTime = function() {
 }
 
 Map.prototype.adjustViewport = function() {
+	// disable viewport adjustement
+	return;
 	if (this.lastCursorPosition == null) 
 		return;
 
@@ -333,6 +345,21 @@ Map.prototype.drawObjects = function() {
 		}
 
 		ctx.restore();
+
+		ctx.save();
+		
+		ctx.beginPath();
+		var serverPos = this.realToViewport(obj.serverPosition);
+		ctx.translate(serverPos.x, serverPos.y);
+		ctx.arc(0, 0, objSizeViewport / 2, 0, Math.PI * 2);
+		ctx.strokeStyle = 'red';
+		ctx.lineWidth = 2;
+		ctx.setLineDash([10, 5]);
+		ctx.closePath();
+		ctx.stroke();
+
+		ctx.restore();
+
 	}
 	ctx.restore();
 }
@@ -383,6 +410,7 @@ Map.prototype.drawGrid = function() {
 	// рисуем курсор
 	if (this.lastCursorPosition) {
 		ctx.save();
+		
 		ctx.strokeStyle = 'magenta';
 		ctx.lineWidth = 2;
 		ctx.setLineDash([10, 5]);
@@ -393,6 +421,7 @@ Map.prototype.drawGrid = function() {
 		// ctx.ellipse(this.lastCursorPosition.x, this.lastCursorPosition.y, 20, 20, 0, 0, Math.PI * 2);
 		ctx.arc(this.lastCursorPosition.x, this.lastCursorPosition.y, 20, 0, Math.PI * 2);
 		ctx.stroke();
+
 		ctx.restore();
 	}
 	

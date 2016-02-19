@@ -79,19 +79,36 @@ MapObject.prototype.setSpeed = function(speed) {
 	this.isMoving = speed != 0;
 }
 
-MapObject.prototype.adjustState = function(pos, direction, speed, posTime) {
-	this.pos = pos;
-	if (typeof direction != 'undefined') 
-		this.direction = direction;
+// MapObject.prototype.adjustState = function(pos, direction, speed, posTime) {
+// 	this.pos = pos;
+// 	if (typeof direction != 'undefined') 
+// 		this.direction = direction;
 
-	if (typeof speed != 'undefined') 
-		this.setSpeed(speed);
+// 	if (typeof speed != 'undefined') 
+// 		this.setSpeed(speed);
 
-	if (typeof posTime != 'undefined') 
-		this.posTime = posTime;
-	else
-		// TODO вот это надо бы убрать. синхронизация всегда происходит по времени и мы не должны получать статус без времени
-		this.posTime = Date.now();
+// 	if (typeof posTime != 'undefined') 
+// 		this.posTime = posTime;
+// 	else
+// 		// TODO вот это надо бы убрать. синхронизация всегда происходит по времени и мы не должны получать статус без времени
+// 		this.posTime = Date.now();
+// }
+
+
+MapObject.prototype.adjustState = function(obj) {
+	this.pos = obj.startPosition;
+	this.posTime = obj.startTime;
+
+	var direction = {x: obj.destinationPosition.x - obj.startPosition.x, y: obj.destinationPosition.y - obj.startPosition.y}
+	var sum = Math.abs(direction.x) + Math.abs(direction.y);
+	direction.x = direction.x / sum;
+	direction.y = direction.y / sum;
+
+	this.direction = direction;
+
+	this.setSpeed(obj.speed);
+
+	this.serverPosition = obj.position;
 }
 
 MapObject.prototype.getViewPos = function(viewport) {
@@ -104,17 +121,17 @@ MapObject.prototype.setPlayer = function(player) {
 		this.setColor('#FE2D77');
 	}
 
-	$(player).on('change.position', (function() {
-		console.log('adjusting player ' + this.player.name + ' position', this);
-		this.adjustState(this.player.state.position);
-		console.log(this);
+	// $(player).on('change.position', (function() {
+	// 	console.log('adjusting player ' + this.player.name + ' position', this);
+	// 	this.adjustState(this.player.state.position);
+	// 	console.log(this);
 
-		// console.log('player changed position - need to update map object');
-	}).bind(this));
+	// 	// console.log('player changed position - need to update map object');
+	// }).bind(this));
 }
 
 var ObjectType = {
-	Obstacle: 'obstacle',
-	NPC: 'npc',
-	Player: 'player',
+	Obstacle: 1,
+	NPC: 10,
+	Player: 100,
 }

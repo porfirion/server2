@@ -100,6 +100,7 @@ function updateObjectsPositions(positions) {
 
 function newMember(id, name) {
 	if (!(id in members)) {
+		console.log('adding player #' + id + ' ('+ name+ ')');
 		var member = new Player(id, name);
 		member.anchor = $('<div class="member" aria-hidden="true" data-id="' + id + '">'+name+'</div>');
 		$('.chat_members').append(member.anchor);
@@ -110,6 +111,7 @@ function newMember(id, name) {
 			member.isMe = false;
 		}
 		members[id] = member;
+
 		map.addPlayer(member);
 
 		return member;
