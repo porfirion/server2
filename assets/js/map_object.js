@@ -17,8 +17,12 @@ function MapObject(id, type, pos, size, color) {
 	}
 
 	this.speed = 0;
-	this.direction = {x: 0, y: 1};
 	this.posTime = Date.now();
+
+	this.direction = {x: 0, y: 1};
+
+	this.destination = {x: 0, y: 0};
+	this.destinationTime = Date.now();
 
 	this.isAnimating = false;
 
@@ -99,12 +103,10 @@ MapObject.prototype.adjustState = function(obj) {
 	this.pos = obj.startPosition;
 	this.posTime = obj.startTime;
 
-	var direction = {x: obj.destinationPosition.x - obj.startPosition.x, y: obj.destinationPosition.y - obj.startPosition.y}
-	var sum = Math.abs(direction.x) + Math.abs(direction.y);
-	direction.x = direction.x / sum;
-	direction.y = direction.y / sum;
+	this.destination = obj.destinationPosition;
+	this.destinationTime = obj.destinationTime;
 
-	this.direction = direction;
+	this.direction = obj.direction;
 
 	this.setSpeed(obj.speed);
 

@@ -68,6 +68,12 @@ function Map(elem) {
 		return false;
 	}.bind(this));
 
+	$(elem).on('contextmenu', function(event) {
+		this.viewportAdjustPoint = this.viewportToReal({x: event.offsetX, y: event.offsetY});
+
+		return false;
+	}.bind(this));
+
 	this.isAnimating = false;
 	this.animations = [];	
 	this.prevAnimationTime = null;
@@ -250,12 +256,22 @@ Map.prototype.drawTime = function() {
 
 Map.prototype.adjustViewport = function() {
 	// disable viewport adjustement
-	return;
-	if (this.lastCursorPosition == null) 
+	// return;
+	if (this.viewportAdjustPoint == null) 
 		return;
 
-	this.viewport.x += (this.lastCursorPosition.x - this.elem.width / 2) * this.viewport.scale * 0.02;
-	this.viewport.y -= (this.lastCursorPosition.y - this.elem.height / 2) * this.viewport.scale * 0.02;
+	var dx = (this.viewportAdjustPoint.x - this.viewport.x)/* * this.viewport.scale*/ * 0.02;
+	var dy = (this.viewportAdjustPoint.y - this.viewport.y)/* * this.viewport.scale*/ * 0.02;
+
+	if (Math.abs(dx) + Math.abs(dy) < 0.01 * this.viewport.scale) {
+		this.viewport.x = this.viewportAdjustPoint.x;
+		this.viewport.y = this.viewportAdjustPoint.y;
+		this.viewportAdjustPoint = null;
+		return;
+	}
+
+	this.viewport.x += dx;
+	this.viewport.y += dy;
 
 	this.viewport.x = Math.min(5000, Math.max(-5000, this.viewport.x));
 	this.viewport.y = Math.min(5000, Math.max(-5000, this.viewport.y));
@@ -348,17 +364,34 @@ Map.prototype.drawObjects = function() {
 
 		ctx.save();
 		
+		ctx.lineWidth = 1;
+		ctx.setLineDash([10, 5]);
+		
+		// рисуем текущее положение объекта по серверу
 		ctx.beginPath();
 		var serverPos = this.realToViewport(obj.serverPosition);
 		ctx.translate(serverPos.x, serverPos.y);
 		ctx.arc(0, 0, objSizeViewport / 2, 0, Math.PI * 2);
-		ctx.strokeStyle = 'red';
-		ctx.lineWidth = 2;
-		ctx.setLineDash([10, 5]);
+		ctx.strokeStyle = '#ffaaaa';
 		ctx.closePath();
 		ctx.stroke();
 
 		ctx.restore();
+
+		if (obj.speed > 0) {
+			ctx.save();
+
+			// рисуем конечную точку движения объекта
+			ctx.beginPath();
+			var destinationPos = this.realToViewport(obj.destination);
+			ctx.translate(destinationPos.x, destinationPos.y);
+			ctx.arc(0, 0, objSizeViewport / 2, 0, Math.PI * 2);
+			ctx.strokeStyle = 'blue';
+			ctx.closePath();
+			ctx.stroke();
+
+			ctx.restore();
+		}
 
 	}
 	ctx.restore();

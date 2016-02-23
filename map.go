@@ -13,6 +13,20 @@ type Position struct {
 	Y float64 `json:"y"`
 }
 
+type Vector2D struct {
+	X float64 `json:"x"`
+	Y float64 `json:"y"`
+}
+
+func (v Vector2D) Length() float64 {
+	return math.Sqrt(v.X*v.X + v.Y*v.Y)
+}
+
+func (v Vector2D) Unit() Vector2D {
+	modulo := v.Length()
+	return Vector2D{X: v.X / modulo, Y: v.Y / modulo}
+}
+
 func (pos Position) Distance(dest Position) float64 {
 	return math.Sqrt(math.Pow(dest.X-pos.X, 2) + math.Pow(dest.Y-pos.Y, 2))
 }
@@ -35,6 +49,7 @@ type MapObjectDescription struct {
 	Speed               float64       `json:"speed"`
 	Position            Position      `json:"position"`
 	UserId              uint64        `json:"userId"`
+	Direction           Vector2D      `json:"direction"`
 }
 
 type MapObject struct {
@@ -78,7 +93,7 @@ func (obj *MapObject) AdjustPosition() {
 }
 
 // Получение текущего положения объекта
-func (obj *MapObject) getPosition() Position {
+func (obj *MapObject) getPosition() (Position, float64) {
 	if obj.Speed > 0 {
 
 		deltaTime := time.Now().Sub(obj.StartTime).Seconds()            // сколько прошло времени с начала движения
@@ -87,18 +102,18 @@ func (obj *MapObject) getPosition() Position {
 		coeff := (float64)(deltaTime / assumedTime)
 		if coeff >= 1 {
 			// мы уже пришли на место
-			return obj.DestinationPosition
+			return obj.DestinationPosition, 0.0
 
 		} else {
 			// мы ещё не пришли. Рассчитываем текущее положение и записываем его в качестве стартового
 			dst := obj.DestinationPosition
 			src := obj.StartPosition
 
-			return Position{X: src.X + (dst.X-src.X)*coeff, Y: src.Y + (dst.Y-src.Y)*coeff}
+			return Position{X: src.X + (dst.X-src.X)*coeff, Y: src.Y + (dst.Y-src.Y)*coeff}, obj.Speed
 		}
 
 	} else {
-		return obj.StartPosition
+		return obj.StartPosition, 0.0
 	}
 }
 
@@ -116,6 +131,9 @@ func (obj *MapObject) MoveTo(pos Position, speed float64) {
 }
 
 func (obj *MapObject) GetDescription() MapObjectDescription {
+	direction := Vector2D{X: obj.DestinationPosition.X - obj.StartPosition.X, Y: obj.DestinationPosition.Y - obj.StartPosition.Y}
+	position, speed := obj.getPosition() // server calculated position
+
 	description := MapObjectDescription{
 		Id:                  obj.Id,
 		ObjectType:          obj.ObjectType,
@@ -123,9 +141,10 @@ func (obj *MapObject) GetDescription() MapObjectDescription {
 		StartTime:           obj.StartTime.UnixNano() / int64(time.Millisecond),
 		DestinationPosition: obj.DestinationPosition,
 		DestinationTime:     obj.DestinationTime.UnixNano() / int64(time.Millisecond),
-		Speed:               obj.Speed,
-		Position:            obj.getPosition(), // server calculated position
+		Speed:               speed,
+		Position:            position,
 		UserId:              0,
+		Direction:           direction.Unit(),
 	}
 
 	if obj.User != nil {
