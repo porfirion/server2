@@ -60,13 +60,13 @@ type TcpGate struct {
 	incomingConnections ConnectionsChannel
 }
 
-func (gate *TcpGate) Start() {
+func (gate *TcpGate) Start() error {
 
 	listener, err := net.ListenTCP("tcp4", gate.addr)
 
 	if err != nil {
 		log.Println("Error opening listener: ", err)
-		return
+		return err
 	}
 
 	log.Println("Listening tcp:", gate.addr)
@@ -87,4 +87,6 @@ func (gate *TcpGate) Start() {
 		gate.incomingConnections <- connection
 	}
 	log.Println("finished")
+
+	return nil
 }

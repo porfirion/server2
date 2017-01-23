@@ -18,7 +18,7 @@ var upgrader = websocket.Upgrader{
 	WriteBufferSize: 1024,
 }
 
-func (gate *WebSocketGate) Start() {
+func (gate *WebSocketGate) Start() error {
 	http.HandleFunc("/", gate.indexHandler)
 	http.HandleFunc("/assets/", gate.assetsHandler)
 	http.HandleFunc("/ws", gate.wsHandler)
@@ -27,12 +27,13 @@ func (gate *WebSocketGate) Start() {
 	listener, err := net.ListenTCP("tcp4", gate.addr)
 
 	if err != nil {
-		log.Fatal("error creating listener")
+		log.Printf("Error creating listener %v", err)
+		return err;
+	} else {
+		log.Println("Listening http:", gate.addr)
+		server.Serve(listener)
+		return nil;
 	}
-
-	log.Println("Listening http:", gate.addr)
-
-	server.Serve(listener)
 }
 
 /**
