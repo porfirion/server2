@@ -5,7 +5,10 @@ import (
 	"net"
 )
 
-var ControlChannel chan int = make(chan int, 10)
+var (
+	ControlChannel chan int = make(chan int, 10)
+	logic          LogicInterface
+)
 
 const format = "%T(%v)\n"
 
@@ -19,7 +22,9 @@ func main() {
 	var outgoingMessages ServerMessagesChannel = make(ServerMessagesChannel)
 
 	// стартуем логику. она готова, чтобы принимать и обрабатывать соощения
-	logic := &Logic{IncomingMessages: incomingMessages, OutgoingMessages: outgoingMessages}
+	logic = &Logic{}
+	logic.setIncomingMessagesChannel(incomingMessages)
+	logic.setOutgoingMessagesChannel(outgoingMessages)
 	go logic.Start()
 
 	pool := &ConnectionsPool{logic: logic, incomingConnections: incomingConnections}

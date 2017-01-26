@@ -8,6 +8,10 @@ import (
 	"time"
 )
 
+const (
+	SimulationStepTime time.Duration = 1 * time.Second
+)
+
 type Position struct {
 	X float64 `json:"x"`
 	Y float64 `json:"y"`
@@ -31,12 +35,15 @@ func (pos Position) Distance(dest Position) float64 {
 	return math.Sqrt(math.Pow(dest.X-pos.X, 2) + math.Pow(dest.Y-pos.Y, 2))
 }
 
-type MapObjectType int
+type MapObjectType struct {
+	IsMovable     bool
+	BelongsToUser bool
+}
 
-const (
-	MapObjectTypeObstacle MapObjectType = 1
-	MapObjectTypeNPC                    = 10
-	MapObjectTypeUser                   = 100
+var (
+	MapObjectTypeObstacle MapObjectType = MapObjectType{IsMovable: false}                      // неподвижный объект, который не может изменять своё положение
+	MapObjectTypeMovable                = MapObjectType{IsMovable: true, BelongsToUser: false} // объект, который может изменять своё положение, но не управляется пользователем
+	MapObjectTypeUser                   = MapObjectType{}                                      // объект, принадлежащий какому-либо пользователю
 )
 
 type MapObjectDescription struct {
@@ -53,14 +60,17 @@ type MapObjectDescription struct {
 }
 
 type MapObject struct {
-	Id                  uint64
-	ObjectType          MapObjectType
+	Id              uint64        // id объекта
+	ObjectType      MapObjectType // тип обхекта. Задаётся константами типа MapObjectType
+	User            *User         // ссылка на обхект пользователя, если это пользовательский обхект
+	Speed           float64       // speed pixels/second
+	Acceration      Vector2D      // текущее ускорение, которое действует на объект
+	CurrentPosition Position      // текущее положение обхекта
+
 	StartPosition       Position
 	StartTime           time.Time
 	DestinationPosition Position
 	DestinationTime     time.Time
-	Speed               float64
-	User                *User
 }
 
 // Обновление положения объекта
@@ -161,6 +171,17 @@ type WorldMap struct {
 	Height       float64
 
 	NextObjectId uint64
+
+	// max uint64 - 18446744073709500000
+	// если предположить, что шаг симуляции - наносекунда, то
+	//1,84467E+19	наносекунд влезает в uint64
+	//18446744074	секунд
+	//5124095,576	часов
+	//213503,9823	дней
+	//584,9424174	лет
+	SimulationStep uint64    // номер последнего рассчитанного шага симуляции
+	StartTime      time.Time // время начала симуляции (отсчитывается от первого вызова simulationStep)
+	NextStepTime   time.Time
 }
 
 func NewWorldMap() *WorldMap {
@@ -169,7 +190,7 @@ func NewWorldMap() *WorldMap {
 	world.Height = 10000
 	world.Objects = make(map[uint64]*MapObject)
 	world.UsersObjects = make(map[uint64]*MapObject)
-
+	world.SimulationStep = 0
 	for i := 0; i < 10; i++ {
 		obj := world.NewObject(
 			Position{
@@ -221,4 +242,33 @@ func (world *WorldMap) GetObjectsPositions() map[string]MapObjectDescription {
 	// log.Printf("Map: users positions %#v\n", res)
 
 	return res
+}
+
+func (world *WorldMap) TimeToNextStep() time.Duration {
+	if world.NextStepTime.After(time.Now()) {
+		return world.NextStepTime.Sub(time.Now())
+	} else {
+		return 0
+	}
+}
+
+func (world *WorldMap) ProcessSimulationStep() bool {
+	if world.SimulationStep == 0 {
+		world.StartTime = time.Now()
+		world.NextStepTime = time.Now()
+	} else {
+		if time.Now().Before(world.NextStepTime) {
+			// время ещё не пришло
+			return false
+		}
+	}
+	world.SimulationStep++
+	log.Println("Simulation step ", world.SimulationStep)
+	world.NextStepTime = world.NextStepTime.Add(SimulationStepTime)
+
+	for id, obj := range world.Objects {
+		log.Println("id, obj", id, obj)
+	}
+
+	return true
 }

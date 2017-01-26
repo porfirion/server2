@@ -8,13 +8,32 @@ import (
 
 var SimulationTime int
 
+type LogicInterface interface {
+	getIncomingMessagesChannel() UserMessagesChannel
+	setIncomingMessagesChannel(channel UserMessagesChannel)
+	getOutgoingMessagesChannel() ServerMessagesChannel
+	setOutgoingMessagesChannel(channel ServerMessagesChannel)
+	Start()
+}
+
 type Logic struct {
 	IncomingMessages UserMessagesChannel
 	OutgoingMessages ServerMessagesChannel
 	Users            map[uint64]*User
-	EventDispatcher  *EventDispatcher
-	Objects          []MapObject
-	WorldMap         *WorldMap
+	mWorldMap        *WorldMap
+}
+
+func (logic *Logic) getIncomingMessagesChannel() UserMessagesChannel {
+	return logic.IncomingMessages
+}
+func (logic *Logic) setIncomingMessagesChannel(channel UserMessagesChannel) {
+	logic.IncomingMessages = channel
+}
+func (logic *Logic) getOutgoingMessagesChannel() ServerMessagesChannel {
+	return logic.OutgoingMessages
+}
+func (logic *Logic) setOutgoingMessagesChannel(channel ServerMessagesChannel) {
+	logic.OutgoingMessages = channel
 }
 
 func (logic *Logic) GetUserList(exceptId uint64) []User {
@@ -64,14 +83,14 @@ func (logic *Logic) AddUser(id uint64, name string) *User {
 	logic.Users[id] = user
 
 	pos := Position{X: rand.Float64()*1000 - 500, Y: rand.Float64()*1000 - 500}
-	logic.WorldMap.AddUser(user, pos)
+	logic.mWorldMap.AddUser(user, pos)
 
 	return user
 }
 
 func (logic *Logic) RemoveUser(id uint64) {
 	delete(logic.Users, id)
-	logic.WorldMap.RemoveUser(id)
+	logic.mWorldMap.RemoveUser(id)
 }
 
 func (logic *Logic) ProcessActionMessage(userId uint64, msg *ActionMessage) {
@@ -80,7 +99,7 @@ func (logic *Logic) ProcessActionMessage(userId uint64, msg *ActionMessage) {
 	switch msg.ActionType {
 	case "move":
 		user := logic.Users[userId]
-		obj := logic.WorldMap.UsersObjects[userId]
+		obj := logic.mWorldMap.UsersObjects[userId]
 
 		x, okX := msg.ActionData["x"].(float64)
 		y, okY := msg.ActionData["y"].(float64)
@@ -95,10 +114,6 @@ func (logic *Logic) ProcessActionMessage(userId uint64, msg *ActionMessage) {
 	default:
 		log.Println("Unknown action type: ", msg.ActionType)
 	}
-}
-
-func (logic *Logic) ProcessStep() {
-	logic.SendMessage(SyncPositionsMessage{logic.WorldMap.GetObjectsPositions()})
 }
 
 func (logic *Logic) ProcessMessage(message UserMessage) {
@@ -124,7 +139,7 @@ func (logic *Logic) ProcessMessage(message UserMessage) {
 
 		logic.SendMessage(UserListMessage{logic.GetUserList(user.Id)}, UsersList{user.Id})
 		log.Println("sent. sync next")
-		logic.SendMessage(SyncPositionsMessage{logic.WorldMap.GetObjectsPositions()})
+		logic.SendMessage(SyncPositionsMessage{logic.mWorldMap.GetObjectsPositions()})
 	case *LogoutMessage:
 		log.Println("Logic: Logout message", msg.Id)
 		logic.RemoveUser(msg.Id)
@@ -138,27 +153,31 @@ func (logic *Logic) ProcessMessage(message UserMessage) {
 
 func (logic *Logic) Start() {
 	rand.Seed(int64(time.Now().Nanosecond()))
-	logic.EventDispatcher = &EventDispatcher{}
-	logic.EventDispatcher.Init()
 
 	logic.Users = make(map[uint64]*User)
 
-	logic.WorldMap = NewWorldMap()
+	logic.mWorldMap = NewWorldMap()
 
-	var timer *time.Timer = time.NewTimer(time.Hour)
+	// стартуем симуляцию
+	logic.mWorldMap.ProcessSimulationStep()
+	var timer *time.Timer = time.NewTimer(logic.mWorldMap.TimeToNextStep())
 
 	log.Println("Logic: started")
 	for {
-		timer.Reset(time.Second)
-
+		// right way of using timer in go
 		select {
+		case _ = <-timer.C:
+			log.Println("Logic: simulation step")
+
+			// пока есть что симулировать - симулируем
+			for logic.mWorldMap.ProcessSimulationStep() {
+			}
+			logic.SendMessage(SyncPositionsMessage{logic.mWorldMap.GetObjectsPositions()})
+			timer.Reset(logic.mWorldMap.TimeToNextStep())
 		case msg := <-logic.IncomingMessages:
 			log.Println("Logic: message received")
 			logic.ProcessMessage(msg)
 			log.Println("Logic: message processed")
-		case _ = <-timer.C:
-			log.Println("Logic: simulation step")
-			logic.ProcessStep()
 		}
 	}
 

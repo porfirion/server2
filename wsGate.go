@@ -28,11 +28,11 @@ func (gate *WebSocketGate) Start() error {
 
 	if err != nil {
 		log.Printf("Error creating listener %v", err)
-		return err;
+		return err
 	} else {
 		log.Println("Listening http:", gate.addr)
 		server.Serve(listener)
-		return nil;
+		return nil
 	}
 }
 
