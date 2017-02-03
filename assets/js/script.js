@@ -1,11 +1,12 @@
+"use strict";
+
 function generateUUID(){
 	var d = new Date().getTime();
-	var uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+	return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
 		var r = (d + Math.random()*16)%16 | 0;
 		d = Math.floor(d/16);
 		return (c=='x' ? r : (r&0x7|0x8)).toString(16);
 	});
-	return uuid;
 }
 
 function getName() {
@@ -48,7 +49,7 @@ function onmessage(messageType, data) {
 			break;
 		case MessageType.WELLCOME:
 			myId = data.id;
-			newMember(myId, myName)
+			newMember(myId, myName);
 			break;
 		case MessageType.USER_LIST:
 			for (var i = 0, user; user = data.users[i]; i++) {
@@ -70,10 +71,12 @@ function onmessage(messageType, data) {
 			break;
 		default:
 			for (var key in MessageType) {
-				if (MessageType[key] == messageType) {
-					showMessage('Not implemented ' + key.toUpperCase());
-					return;
-				}
+                if (MessageType.hasOwnProperty(key)) {
+                    if (MessageType[key] == messageType) {
+                        showMessage('Not implemented ' + key.toUpperCase());
+                        return;
+                    }
+                }
 			}
 			showMessage("Unknown message type: " + messageType + data, "text-danger");
 			break;
@@ -94,7 +97,9 @@ function onclose() {
 
 function updateObjectsPositions(positions) {
 	for (var objectId in positions) {
-		map.updateObjectPosition(positions[objectId]);
+        if (positions.hasOwnProperty(objectId)) {
+            map.updateObjectPosition(positions[objectId]);
+        }
 	}
 }
 
@@ -145,13 +150,13 @@ var Player = function(id, name) {
 	this.state = {
 		position: {x: 0, y: 0}
 	};
-}
+};
 
 Player.prototype.setPosition = function(position) {
 	this.state.position = position;
 
 	$(this).trigger('change.position');
-}
+};
 
 jQuery(document).ready(function() {
 	myName = getName();
@@ -165,7 +170,7 @@ jQuery(document).ready(function() {
 			//console.log('sent');
 		}, 10000);
 	});
-	client.on('syncTime', function() {
+	client.on('timeSynced', function() {
 		$('.latency .value').html(client.latencies[client.latencies.length - 1]);
 		$('.timeCorrection .value').html(client.timeCorrections.reduce(function(sum, a) { return sum + a }, 0)/(client.timeCorrections.length||1))
 	});
@@ -173,7 +178,8 @@ jQuery(document).ready(function() {
 	$('#chat_form').submit(function(event) {
 		event.preventDefault();
 
-		var text = $('.chat_input').val();
+		var inp = $('.chat_input');
+		var text = inp.val();
 		try {
 			client.sendMessage(MessageType.TEXT, {Text: text});
 		} catch (err) {
@@ -181,10 +187,10 @@ jQuery(document).ready(function() {
 			console.error(err);
 		}
 
-		$('.chat_input').val('');
+		inp.val('');
 
 		return false;
-	})
+	});
 
 	var elem = document.getElementById("map");
 	var wrapper = document.getElementById('map-wrapper');
@@ -194,16 +200,22 @@ jQuery(document).ready(function() {
 
 	map = new Map(elem);
 
+	// запуск анимации, если она ещё не была начата
 	$(document.body).on('click', '.drawButton', function() {
-		map._draw();
-		return false;
-	});
-	$(document.body).on('click', '.centrateButton', function() {
-		map.viewport.x = 0;
-		map.viewport.y = 0;
+		map.draw();
 		return false;
 	});
 
+	// центрирование вьюпорта (0:0)
+	$(document.body).on('click', '.centrateButton', function() {
+		map.viewport.x = 0;
+		map.viewport.y = 0;
+		map.viewportAdjustPoint = null;
+
+		return false;
+	});
+
+	// перемещение вьюпорта при помощи кнопок навигации
 	$(document).on('click', '.floatingButton', function() {
 		var x = $(this).data('x');
 		var y = $(this).data('y');
@@ -220,6 +232,16 @@ jQuery(document).ready(function() {
 			actionData: data,
 		});
 	});
+
+	setInterval(function() {
+		console.log('send last pos ', map.lastCursorPosition, map.lastCursorPositionReal);
+		// if (map.lastCursorPositionReal != null) {
+		// 	client.sendMessage(MessageType.ACTION_MESSAGE, {
+		// 		actionType: 'move',
+		// 		actionData: map.lastCursorPositionReal,
+		// 	});
+		// }
+	}, 1000);
 	
 	map.draw();
 });

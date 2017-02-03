@@ -158,7 +158,7 @@ function WsClient(wsAddr, name) {
 			this.timeCorrections.shift();
 		}
 
-		this.trigger('syncTime');
+		this.trigger('timeSynced');
 	}
 
 	connect();

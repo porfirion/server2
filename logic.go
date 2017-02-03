@@ -6,7 +6,9 @@ import (
 	"time"
 )
 
-var SimulationTime int
+const (
+	SendObjectsTimeout time.Duration = time.Second * 1
+)
 
 type LogicInterface interface {
 	getIncomingMessagesChannel() UserMessagesChannel
@@ -99,13 +101,14 @@ func (logic *Logic) ProcessActionMessage(userId uint64, msg *ActionMessage) {
 	switch msg.ActionType {
 	case "move":
 		user := logic.Users[userId]
-		obj := logic.mWorldMap.UsersObjects[userId]
+		userObject := logic.mWorldMap.UsersObjects[userId]
 
 		x, okX := msg.ActionData["x"].(float64)
 		y, okY := msg.ActionData["y"].(float64)
 
 		if okX && okY {
-			obj.MoveTo(Position{X: x, Y: y}, 10.0)
+			userObject.MoveTo(Position{X: x, Y: y})
+			log.Printf("user #%d try to move it's object #%d to (%f:%f)\n", userId, userObject.Id, x, y)
 		} else {
 			log.Println("can't get x and y")
 		}
@@ -160,20 +163,24 @@ func (logic *Logic) Start() {
 
 	// стартуем симуляцию
 	logic.mWorldMap.ProcessSimulationStep()
-	var timer *time.Timer = time.NewTimer(logic.mWorldMap.TimeToNextStep())
+	var simulationTimer *time.Timer = time.NewTimer(logic.mWorldMap.TimeToNextStep())
+	var sendTimer *time.Timer = time.NewTimer(time.Second * 0)
 
 	log.Println("Logic: started")
 	for {
-		// right way of using timer in go
 		select {
-		case _ = <-timer.C:
+		case _ = <-simulationTimer.C:
 			log.Println("Logic: simulation step")
 
 			// пока есть что симулировать - симулируем
 			for logic.mWorldMap.ProcessSimulationStep() {
 			}
+
+			simulationTimer.Reset(logic.mWorldMap.TimeToNextStep())
+		case _ = <-sendTimer.C:
+			log.Println("")
 			logic.SendMessage(SyncPositionsMessage{logic.mWorldMap.GetObjectsPositions()})
-			timer.Reset(logic.mWorldMap.TimeToNextStep())
+			sendTimer.Reset(SendObjectsTimeout)
 		case msg := <-logic.IncomingMessages:
 			log.Println("Logic: message received")
 			logic.ProcessMessage(msg)
