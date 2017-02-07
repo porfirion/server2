@@ -25,6 +25,8 @@ function Map(elem) {
 
     this.players = {};
 
+    this.timeCorrection = 0; // сколько нужно прибавить к текущему времени, чтобы получить серверное
+
     $(elem).on('click', function (event) {
         this.points.push({x: event.offsetX, y: event.offsetY, color: randomColor()});
         var real = this.viewportToReal({x: event.offsetX, y: event.offsetY});
@@ -247,13 +249,15 @@ Map.prototype.drawTime = function () {
 
     ctx.fillStyle = 'black';
 
-    ctx.fillText('fps: ' + Math.round(1000 / average, 0), this.elem.width - ctx.measureText('fps: ' + Math.round(1000 / average, 0)).width - 10, 15);
+    ctx.fillText('FPS: ' + Math.round(1000 / average, 0), this.elem.width - ctx.measureText('FPS: ' + Math.round(1000 / average, 0)).width - 10, 15);
     ctx.fillText('min: ' + min, this.elem.width - ctx.measureText('min: ' + min).width - 10, 30);
     ctx.fillText('average: ' + Math.round(average, 2), this.elem.width - ctx.measureText('average: ' + Math.round(average, 2)).width - 10, 45);
     ctx.fillText('max: ' + max, this.elem.width - ctx.measureText('max: ' + max).width - 10, 60);
 
     ctx.fillText('viewport: (x: ' + Math.round(this.viewport.x * 100) / 100 + '; y: ' + Math.round(this.viewport.y * 100) / 100 + ')', this.elem.width - 285, 15);
     ctx.fillText('scale: ' + Math.round(this.viewport.scale * 100) / 100, this.elem.width - 285, 30);
+
+    ctx.fillText('time correction: ' + this.timeCorrection.toFixed(1) + ' ms', this.elem.width - 285, 60)
 
     ctx.restore();
 };
@@ -472,7 +476,11 @@ Map.prototype.drawGrid = function () {
     ctx.strokeStyle = 'lime';
     ctx.beginPath();
     // ctx.ellipse(viewportW / 2, viewportH / 2, 10, 10, 0, 0, Math.PI * 2);
-    ctx.arc(viewportW / 2, viewportH / 2, 10, 0, Math.PI * 2);
+	ctx.moveTo(viewportW / 2 - 15, viewportH / 2);
+	ctx.lineTo(viewportW / 2 + 15, viewportH / 2);
+	ctx.moveTo(viewportW / 2, viewportH / 2 - 15);
+	ctx.lineTo(viewportW / 2, viewportH / 2 + 15);
+    // ctx.arc(viewportW / 2, viewportH / 2, 10, 0, Math.PI * 2);
     ctx.stroke();
 
     // рисуем границы области
@@ -500,6 +508,9 @@ Map.prototype.drawGrid = function () {
     ctx.restore();
 };
 
+/**
+ * Бесполезная штука, которая рисует линии для отладки
+ */
 Map.prototype.drawAnchors = function () {
     var ctx = this.ctx;
     var elem = this.elem;

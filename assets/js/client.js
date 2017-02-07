@@ -74,7 +74,7 @@ function WsClient(wsAddr, name) {
 		this.requestTime();
 		setInterval(this.requestTime.bind(this), 10000);
 
-		_this.trigger('open');
+		_this.trigger(WsClient.NotificationOpen);
 	};
 
 	var oncloseHandler = function() {
@@ -82,13 +82,13 @@ function WsClient(wsAddr, name) {
 		_this.websocket = null;
 		_this.id = null;
 		// window.setTimeout(connect, reconnectTimeout * 1000);
-		_this.trigger('close');
+		_this.trigger(WsClient.NotificationClose);
 	};
 
 	var onerrorHandler = function() {
 		console.warn('WebSocket error:', arguments);
 		//_this.websocket = null;
-		_this.trigger('error');
+		_this.trigger(WsClient.NotificationError);
 
 		// console.log('Reconnecting...');
 		// connect()
@@ -114,7 +114,7 @@ function WsClient(wsAddr, name) {
 
 		console.log('%c' + wrapper.type + ' (' + getMessageType(wrapper.type) + ')', 'color: green; font-weight: bold;', data);
 
-		_this.trigger('message', wrapper.type, data);
+		_this.trigger(WsClient.NotificationMessage, wrapper.type, data);
 		// onmessage.call(this, wrapper.MessageType, data);
 	};
 
@@ -135,17 +135,25 @@ function WsClient(wsAddr, name) {
 
 	this.syncTime = function(data) {
 		var now = Date.now();
+
+		// время туда-обратно
 		var latency = now - this.lastSyncTimeRequest;
-		var assumingNow = (data.time + latency / 3);
-		var correction = Math.round(assumingNow - now);
-		/*console.log('sync time!\n sent        : %d\n received    : %d\n latency     : %d\n server time : %d\n correction  : %d\n assuming now: %f', 
+
+		// предполагаемое текущее серверное время
+		// делим на 3, потому что пакет должен был 1) дойти 2) обработаться 3) вернуться
+		var assumingServerTime = (data.time + latency / 3);
+
+		// задержка между временем на клиенте и временем на сервере
+		var correction = Math.round(assumingServerTime - now);
+
+		console.log('sync time!\n sent        : %d\n received    : %d\n latency     : %d\n server time : %d\n correction  : %d\n assuming server time: %f',
 			this.lastSyncTimeRequest,
 			now,
 			latency,
 			data.time,
 			correction,
-			assumingNow
-		);*/
+			assumingServerTime
+		);
 		// console.log('time correction : ' + correction);
 		 
 		this.latencies.push(latency);
@@ -158,11 +166,17 @@ function WsClient(wsAddr, name) {
 			this.timeCorrections.shift();
 		}
 
-		this.trigger('timeSynced');
+		this.trigger(WsClient.NotificationTimeSynced);
 	}
 
 	connect();
 }
+
+WsClient.NotificationOpen = 'open',
+WsClient.NotificationClose = 'close',
+WsClient.NotificationError = 'error',
+WsClient.NotificationMessage = 'message',
+WsClient.NotificationTimeSynced = 'timeSynced';
 
 var MessageType = {
 	AUTH:           1,

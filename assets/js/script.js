@@ -170,9 +170,14 @@ jQuery(document).ready(function() {
 			//console.log('sent');
 		}, 10000);
 	});
-	client.on('timeSynced', function() {
+	client.on(WsClient.NotificationTimeSynced, function() {
 		$('.latency .value').html(client.latencies[client.latencies.length - 1]);
-		$('.timeCorrection .value').html(client.timeCorrections.reduce(function(sum, a) { return sum + a }, 0)/(client.timeCorrections.length||1))
+
+		// Коррекцию выбираем как среднее из последних полученных
+		var currentCorrection = client.timeCorrections.reduce(function(sum, a) { return sum + a }, 0)/(client.timeCorrections.length||1);
+		$('.timeCorrection .value').html(currentCorrection)
+		map.timeCorrection = currentCorrection;
+
 	});
 
 	$('#chat_form').submit(function(event) {
@@ -233,15 +238,15 @@ jQuery(document).ready(function() {
 		});
 	});
 
-	setInterval(function() {
-		console.log('send last pos ', map.lastCursorPosition, map.lastCursorPositionReal);
-		// if (map.lastCursorPositionReal != null) {
-		// 	client.sendMessage(MessageType.ACTION_MESSAGE, {
-		// 		actionType: 'move',
-		// 		actionData: map.lastCursorPositionReal,
-		// 	});
-		// }
-	}, 1000);
+	// setInterval(function() {
+	// 	console.log('send last pos ', map.lastCursorPosition, map.lastCursorPositionReal);
+	// 	if (map.lastCursorPositionReal != null) {
+	// 		client.sendMessage(MessageType.ACTION_MESSAGE, {
+	// 			actionType: 'accelerate',
+	// 			actionData: map.lastCursorPositionReal,
+	// 		});
+	// 	}
+	// }, 1000);
 	
 	map.draw();
 });

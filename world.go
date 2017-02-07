@@ -197,6 +197,10 @@ func (world *WorldMap) TimeToNextStep() time.Duration {
 	}
 }
 
+func (world *WorldMap) GetStepTime(step int) time.Time {
+	return world.StartTime.Add(SimulationStepTime * time.Duration(step));
+}
+
 func (world *WorldMap) ProcessSimulationStep() bool {
 	if world.SimulationStep == 0 {
 		// это наш первый шаг симуляции, запоминаем когда стартовали
