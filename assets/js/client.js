@@ -26,7 +26,7 @@ function WsClient(wsAddr, name) {
 			type: type,
 			// data: JSON.stringify(data),
 			// Data: btoa(JSON.stringify(data)),
-		}
+		};
 
 		if (typeof data != 'undefined' && data != null) {
 			msg.data = JSON.stringify(data);
@@ -46,7 +46,7 @@ function WsClient(wsAddr, name) {
 		_this.handlers[eventType].push(handler);
 
 		return _this;
-	}
+	};
 
 	this.off = function(eventType, handler) {
 		if (eventType in _this.handlers) {
@@ -54,7 +54,7 @@ function WsClient(wsAddr, name) {
 				_this.handlers[eventType].splice(_this.handlers[eventType].indexOf(handler), 1);
 			}
 		}
-	}
+	};
 	this.trigger = function(eventType) {
 		if (eventType in _this.handlers) {
 			for (var i = 0; i < _this.handlers[eventType].length; i++) {
@@ -65,14 +65,14 @@ function WsClient(wsAddr, name) {
 				}
 			}
 		}
-	}
+	};
 
 	var onopenHandler = function() {
 		console.log('on open');
 		_this.sendMessage(MessageType.AUTH, {name: name});
 
-		this.requestTime();
-		setInterval(this.requestTime.bind(this), 10000);
+		_this.requestTime();
+		setInterval(_this.requestTime.bind(this), 10000);
 
 		_this.trigger(WsClient.NotificationOpen);
 	};
@@ -92,7 +92,7 @@ function WsClient(wsAddr, name) {
 
 		// console.log('Reconnecting...');
 		// connect()
-	}
+	};
 
 	var onmessageHandler = function (event) {
 		// console.log('on message');
@@ -105,10 +105,10 @@ function WsClient(wsAddr, name) {
 		}
 
 		if (wrapper.type == MessageType.WELLCOME) {
-			this.id = data.id;
+			_this.id = data.id;
 		}
 		if (wrapper.type == MessageType.SYNC_TIME) {
-			this.syncTime(data);
+			_this.syncTime(data);
 			return;
 		}
 
@@ -129,9 +129,9 @@ function WsClient(wsAddr, name) {
 	};
 
 	this.requestTime = function() {
-		this.sendMessage(MessageType.SYNC_TIME, {})
-		this.lastSyncTimeRequest = Date.now()
-	}
+		this.sendMessage(MessageType.SYNC_TIME, {});
+		this.lastSyncTimeRequest = Date.now();
+	};
 
 	this.syncTime = function(data) {
 		var now = Date.now();
@@ -166,8 +166,8 @@ function WsClient(wsAddr, name) {
 			this.timeCorrections.shift();
 		}
 
-		this.trigger(WsClient.NotificationTimeSynced);
-	}
+		this.trigger(WsClient.NotificationTimeSynced, latency, correction);
+	};
 
 	connect();
 }

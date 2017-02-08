@@ -11,7 +11,7 @@ function MapObject(id, type, pos, size, color) {
 	if (type == ObjectType.Obstacle) {
 		this.color = 'lightblue';
 	} else if (type == ObjectType.Player) {
-		this.color = 'lime';
+		this.color = 'lightblue';
 	} else if (type == ObjectType.NPC) { 
 		this.color = '#cccccc';
 		// this.color = 'red';
@@ -19,14 +19,7 @@ function MapObject(id, type, pos, size, color) {
 		this.color = color || randomColor();
 	}
 
-	this.speed = 0;
-	this.posTime = Date.now();
-
-	this.direction = {x: 0, y: 1};
-
-	this.destination = {x: 0, y: 0};
-	this.destinationTime = Date.now();
-
+	this.speed = {x: 0, y: 0};
 	this.isAnimating = false;
 
 	this.player = null;
@@ -46,68 +39,24 @@ MapObject.prototype.setColor = function(color) {
 	return this;
 };
 
-MapObject.prototype.getPos = function() {
+MapObject.prototype.getApproximatedPosition = function(time) {
 	return this.pos;
-	// раньше здесь была аппроксимация
-	// if (!this.isMoving) {
-	// 	return this.pos;
-	// } else {
-	// 	var now = Date.now();
-	// 	var passed = this.speed * (now - this.posTime) / 1000;
-	// 	return {
-	// 		x: this.pos.x + this.direction.x * passed,
-	// 		y: this.pos.y + this.direction.y * passed,
-	// 	};
-	// }
 };
 
-MapObject.prototype.setDirection = function(newDirection) {
-	var _this = this;
-
-	this.pos = this.getPos();
-	this.posTime = Date.now();
-
-	var sum = Math.abs(newDirection.x) + Math.abs(newDirection.y);
-
-	this.direction = {
-		x: newDirection.x / sum,
-		y: newDirection.y / sum,
-	};
-};
-
-MapObject.prototype.stop = function() {
-	this.pos = this.getPos();
-	this.posTime = Date.now();
-
-	this.speed = 0;
-	this.isMoving = false;
-};
+MapObject.prototype.getLastServerPosition = function() {
+	return this.serverPosition;
+}
 
 MapObject.prototype.setSpeed = function(speed) {
 	this.speed = speed;
-	this.isMoving = speed !== 0;
+	this.isMoving = speed.x !== 0 || speed.y !== 0 ? true : false;
 };
 
-// MapObject.prototype.adjustState = function(pos, direction, speed, posTime) {
-// 	this.pos = pos;
-// 	if (typeof direction != 'undefined') 
-// 		this.direction = direction;
-
-// 	if (typeof speed != 'undefined') 
-// 		this.setSpeed(speed);
-
-// 	if (typeof posTime != 'undefined') 
-// 		this.posTime = posTime;
-// 	else
-// 		// TODO вот это надо бы убрать. синхронизация всегда происходит по времени и мы не должны получать статус без времени
-// 		this.posTime = Date.now();
-// }
-
-
-MapObject.prototype.adjustState = function(obj) {
+MapObject.prototype.adjustState = function(obj, time) {
 	this.pos = obj.position;
-	this.setSpeed(obj.speed);
 	this.serverPosition = obj.position;
+	this.setSpeed(obj.speed);
+	this.adjustServerTime = time;
 
 	// this.posTime = obj.startTime;
 	// this.destination = obj.destinationPosition;
@@ -115,24 +64,72 @@ MapObject.prototype.adjustState = function(obj) {
 	// this.direction = obj.direction;
 };
 
-MapObject.prototype.getViewPos = function(viewport) {
-
-};
-
 MapObject.prototype.setPlayer = function(player) {
 	this.player = player;
 	if (player.isMe) {
 		this.setColor('#FE2D77');
 	}
-
-	// $(player).on('change.position', (function() {
-	// 	console.log('adjusting player ' + this.player.name + ' position', this);
-	// 	this.adjustState(this.player.state.position);
-	// 	console.log(this);
-
-	// 	// console.log('player changed position - need to update map object');
-	// }).bind(this));
 };
+
+
+MapObject.prototype.draw = function(ctx) {
+	var drawTextCentered = function (ctx, text, x, y) {
+		var measure = ctx.measureText(text);
+		ctx.fillText(text, x - measure.width / 2, y);
+	};
+
+	if (this.type === ObjectType.NPC || this.type === ObjectType.Player) {
+		// рисуем закрашенный кружок
+		ctx.lineWidth = 1;
+		ctx.font = '8px serif';
+		ctx.fillStyle = this.color;
+		ctx.beginPath();
+		ctx.arc(0, 0, this.size / 2, 0, Math.PI * 2);
+		ctx.fill();
+		ctx.strokeStyle = '#777';
+		ctx.stroke();
+
+		// рисуем вектор движения
+		ctx.lineWidth = 1;
+		ctx.strokeStyle = 'blue';
+		ctx.beginPath();
+		ctx.moveTo(0, 0);
+		ctx.lineTo(this.speed.x, 0 - this.speed.y);
+		ctx.stroke();
+
+		if (this.type === ObjectType.Player) {
+			ctx.fillStyle = 'blue';
+			drawTextCentered(ctx, this.player.name, 0, this.size);
+		} else {
+			ctx.fillStyle = 'grey';
+			drawTextCentered(ctx, "NPC" + this.id, 0, this.size);
+		}
+	} else {
+		// рисуем просто квадрат
+		ctx.lineWidth = 1;
+		ctx.strokeStyle = this.color;
+		ctx.beginPath();
+		ctx.arc(0, 0, this.size / 2, 0, Math.PI * 2);
+		// ctx.rect(0 - this.size / 2, 0 - this.size / 2, this.size, this.size);
+		ctx.stroke();
+	}
+
+	ctx.font = '6px serif';
+	drawTextCentered(ctx, this.id, 0, 2);
+
+	// координаты объекта
+	var str = Math.round(this.pos.x, 0) + ':' + Math.round(this.pos.y, 0);
+	ctx.fillStyle = 'black';
+	drawTextCentered(ctx, str, 0, 0 - this.size / 1.5);
+
+	// if (this.active) {
+	// 	ctx.save();
+	// 	//ctx.globalAlpha = 0.3;
+	// 	ctx.fillStyle = this.color;
+	// 	ctx.fill();
+	// 	ctx.restore();
+	// }
+}
 
 var ObjectType = {
 	Obstacle: 1,

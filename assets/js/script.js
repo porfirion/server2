@@ -170,14 +170,13 @@ jQuery(document).ready(function() {
 			//console.log('sent');
 		}, 10000);
 	});
-	client.on(WsClient.NotificationTimeSynced, function() {
+	client.on(WsClient.NotificationTimeSynced, function(latency, timeCorrection) {
 		$('.latency .value').html(client.latencies[client.latencies.length - 1]);
-
 		// Коррекцию выбираем как среднее из последних полученных
 		var currentCorrection = client.timeCorrections.reduce(function(sum, a) { return sum + a }, 0)/(client.timeCorrections.length||1);
 		$('.timeCorrection .value').html(currentCorrection)
+		map.latency = latency;
 		map.timeCorrection = currentCorrection;
-
 	});
 
 	$('#chat_form').submit(function(event) {

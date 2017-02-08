@@ -9,9 +9,8 @@ import (
 )
 
 const (
-	SimulationStepTime time.Duration = 1 * time.Second
-	ObjectSpeed        float64       = 10.0
-	MinDistance                      = 1.0
+	SimulationStepTime time.Duration = 100 * time.Millisecond
+	ObjectSpeed        float64       = 1.0
 )
 
 type Position struct {
@@ -68,31 +67,24 @@ type MapObjectDescription struct {
 }
 
 type MapObject struct {
-	Id              uint64        // id объекта
-	ObjectType      MapObjectType // тип обхекта. Задаётся константами типа MapObjectType
-	User            *User         // ссылка на обхект пользователя, если это пользовательский обхект
-	Speed           Vector2D      // speed pixels/second
-	CurrentPosition Position      // текущее положение обхекта
-
-	// unused properties
-	//Acceration          Vector2D
-	//StartPosition       Position
-	//StartTime           time.Time
-	DestinationPosition Position
-	//DestinationTime     time.Time
+	Id                  uint64        // id объекта
+	ObjectType          MapObjectType // тип обхекта. Задаётся константами типа MapObjectType
+	User                *User         // ссылка на обхект пользователя, если это пользовательский обхект
+	Speed               Vector2D      // speed pixels/second
+	CurrentPosition     Position      // текущее положение обхекта
+	DestinationPosition Position      // точка, к которой движется объект
 }
 
 func (obj *MapObject) GetDescription() MapObjectDescription {
-
 	description := MapObjectDescription{
 		Id:         obj.Id,
 		ObjectType: obj.ObjectType,
 		Position:   obj.CurrentPosition,
+		Speed:      obj.Speed,
 		//StartPosition:       obj.StartPosition,
 		//StartTime:           obj.StartTime.UnixNano() / int64(time.Millisecond),
 		//DestinationPosition: obj.DestinationPosition,
 		//DestinationTime:     obj.DestinationTime.UnixNano() / int64(time.Millisecond),
-		//Speed:               obj.Speed,
 		//Direction:           direction.Modulus(),
 	}
 
