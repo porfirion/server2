@@ -40,7 +40,11 @@ MapObject.prototype.setColor = function(color) {
 };
 
 MapObject.prototype.getApproximatedPosition = function(time) {
-	return this.pos;
+	var passedTime = (time - this.adjustServerTime) / 1000;
+	var newPos = {x: this.pos.x, y: this.pos.y};
+	newPos.x += this.speed.x * passedTime;
+	newPos.y += this.speed.y * passedTime;
+	return newPos;
 };
 
 MapObject.prototype.getLastServerPosition = function() {

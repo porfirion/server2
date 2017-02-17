@@ -64,7 +64,7 @@ function onmessage(messageType, data) {
 			removeMember(data.id);
 			break;
 		case MessageType.SYNC_OBJECTS_POSITIONS:
-			updateObjectsPositions(data.positions);
+			updateObjectsPositions(data.positions, data.time);
 		 	break;
 		case MessageType.ERROR:
 			showMessage('Error: ' + data.description);
@@ -95,10 +95,10 @@ function onclose() {
 	showMessage('disconnected');
 }
 
-function updateObjectsPositions(positions) {
+function updateObjectsPositions(positions, time) {
 	for (var objectId in positions) {
         if (positions.hasOwnProperty(objectId)) {
-            map.updateObjectPosition(positions[objectId]);
+            map.updateObjectPosition(positions[objectId], time);
         }
 	}
 }

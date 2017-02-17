@@ -130,8 +130,7 @@ Map.prototype.removeObject = function (obj) {
 	delete this.objectsById[obj.id];
 };
 
-Map.prototype.updateObjectPosition = function (obj) {
-	// console.log(obj);
+Map.prototype.updateObjectPosition = function (obj, time) {
 	var mapObject = null;
 
 	if (this.objectsById.hasOwnProperty(obj.id)) {
@@ -144,7 +143,7 @@ Map.prototype.updateObjectPosition = function (obj) {
 	}
 
 	if (mapObject) {
-		mapObject.adjustState(obj);
+		mapObject.adjustState(obj, time);
 	}
 };
 
@@ -162,6 +161,13 @@ Map.prototype.removePlayer = function (playerId) {
 	// this.removeObject(this.players[playerId]);
 
 	delete this.players[playerId];
+	for (var i = 0; i < this.objects.length; i++) {
+		console.log(this.objects[i]);
+		if (this.objects[i].hasOwnProperty('player') && this.objects[i].player != null && this.objects[i].player.id == playerId) {
+			this.objects.splice(i, 1);
+			break;
+		}
+	}
 };
 
 Map.prototype.draw = function () {
@@ -281,6 +287,10 @@ Map.prototype.adjustViewport = function () {
 	this.viewport.y = Math.min(5000, Math.max(-5000, this.viewport.y));
 };
 
+Map.prototype.rectContainsPoint = function(rect, point, radius) {
+	return rect.left <= (point.x + radius) && point.x - radius <= rect.right &&
+		rect.top <= (point.y + radius) && (point.y - radius) <= rect.bottom;
+}
 
 Map.prototype.drawObjects = function () {
 	var ctx = this.ctx;
@@ -298,8 +308,10 @@ Map.prototype.drawObjects = function () {
 		var objPosReal = obj.getApproximatedPosition(serverTime);
 		var objHalfSizeReal = obj.size / 2; // half of object size
 
-		var isVisible = viewportReal.left <= objPosReal.x + objHalfSizeReal && objPosReal.x - objHalfSizeReal <= viewportReal.right &&
-			viewportReal.top <= (objPosReal.y + objHalfSizeReal) && (objPosReal.y - objHalfSizeReal) <= viewportReal.bottom;
+		var isVisible = this.rectContainsPoint(viewportReal, objPosReal, objHalfSizeReal)
+			|| this.rectContainsPoint(viewportReal, obj.getLastServerPosition(), objHalfSizeReal);
+		// var isVisible = viewportReal.left <= objPosReal.x + objHalfSizeReal && objPosReal.x - objHalfSizeReal <= viewportReal.right &&
+		// 	viewportReal.top <= (objPosReal.y + objHalfSizeReal) && (objPosReal.y - objHalfSizeReal) <= viewportReal.bottom;
 
 		if (!isVisible) {
 			continue;

@@ -6,8 +6,8 @@ import (
 )
 
 type ErrorMessage struct {
-	Code        int    `json: "code"`
-	Description string `json: "description"`
+	Code        int    `json:"code"`
+	Description string `json:"description"`
 }
 
 /**
@@ -72,6 +72,7 @@ type UserLoggedoutMessage struct {
  */
 type SyncPositionsMessage struct {
 	Positions map[string]MapObjectDescription `json:"positions"`
+	Time      int64 `json:"time"`
 }
 
 /**
@@ -85,8 +86,8 @@ type SyncTimeMessage struct {
  * Действие пользователя (двигаться, остановиться, ...)
  */
 type ActionMessage struct {
-	ActionType string                 `json: "actionType"`
-	ActionData map[string]interface{} `json: "actionData"`
+	ActionType string                 `json:"actionType"`
+	ActionData map[string]interface{} `json:"actionData"`
 }
 
 /* SPECIAL STRUCTURES */

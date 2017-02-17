@@ -10,7 +10,7 @@ import (
 
 const (
 	SimulationStepTime time.Duration = 100 * time.Millisecond
-	ObjectSpeed        float64       = 1.0
+	ObjectSpeed        float64       = 50.0
 )
 
 type Position struct {
@@ -29,6 +29,10 @@ func (pos Position) DistanceTo(dest Position) float64 {
 	return math.Sqrt(math.Pow(dest.X-pos.X, 2) + math.Pow(dest.Y-pos.Y, 2))
 }
 
+func (pos Position) VectorTo(dest Position) Vector2D {
+	return Vector2D{dest.X - pos.X, dest.Y - pos.Y}
+}
+
 type Vector2D struct {
 	X float64 `json:"x"`
 	Y float64 `json:"y"`
@@ -39,10 +43,25 @@ func (v Vector2D) Length() float64 {
 	return math.Sqrt(v.X*v.X + v.Y*v.Y)
 }
 
-// нормированный вектор
-func (v Vector2D) Modulus() Vector2D {
-	modulo := v.Length()
-	return Vector2D{X: v.X / modulo, Y: v.Y / modulo}
+// приведение длины вектора
+func (v Vector2D) Modulus(base float64) Vector2D {
+	modulo := v.Length() / base
+	return Vector2D{v.X / modulo, v.Y / modulo}
+}
+
+func (v Vector2D) Plus(v2 Vector2D) Vector2D {
+	return Vector2D{v.X + v2.X, v.Y + v2.Y}
+}
+
+func (v Vector2D) Minus(v2 Vector2D) Vector2D {
+	return Vector2D{v.X - v2.X, v.Y - v2.Y};
+}
+
+func (v Vector2D) Devide(devider float64) Vector2D {
+	return Vector2D{v.X / devider, v.Y / devider}
+}
+func (v Vector2D) Mult(multiplier float64) Vector2D {
+	return Vector2D{v.X * multiplier, v.Y * multiplier}
 }
 
 type MapObjectType int
@@ -97,8 +116,10 @@ func (obj *MapObject) GetDescription() MapObjectDescription {
 	return description
 }
 
-func (obj *MapObject) MoveTo(pos Position) {
-	obj.DestinationPosition = pos;
+func (obj *MapObject) MoveTo(dest Position) {
+	obj.Speed = obj.CurrentPosition.VectorTo(dest).Modulus(ObjectSpeed)
+	obj.DestinationPosition = dest;
+	log.Printf("pos %#v dest %#v speed %#v", obj.CurrentPosition, dest, obj.Speed)
 }
 
 type WorldMap struct {
@@ -176,7 +197,7 @@ func (world *WorldMap) GetObjectsPositions() map[string]MapObjectDescription {
 	for id, obj := range world.Objects {
 		res[strconv.FormatUint(id, 10)] = obj.GetDescription()
 	}
-	// log.Printf("Map: users positions %#v\n", res)
+	log.Printf("Map: users positions %#v\n", res)
 
 	return res
 }
@@ -208,19 +229,27 @@ func (world *WorldMap) ProcessSimulationStep() bool {
 	world.SimulationTime = world.StartTime.Add((time.Duration)(world.SimulationStep) * SimulationStepTime);
 	log.Println("Simulation step ", world.SimulationStep)
 	world.NextStepTime = world.NextStepTime.Add(SimulationStepTime)
+	var passedTime float64 = float64(SimulationStepTime) / float64(time.Second)
 
 	for id, obj := range world.Objects {
 		if obj.DestinationPosition != NilPosition {
 			log.Println("moving ", id)
 			distance := obj.CurrentPosition.DistanceTo(obj.DestinationPosition);
-			if distance <= ObjectSpeed {
+			if distance <= ObjectSpeed * passedTime {
 				obj.CurrentPosition = obj.DestinationPosition;
 				obj.DestinationPosition = NilPosition
+				obj.Speed = Vector2D{}
 			} else {
-				dx := obj.DestinationPosition.X - obj.CurrentPosition.X;
-				dy := obj.DestinationPosition.Y - obj.CurrentPosition.Y;
-				obj.CurrentPosition.X += dx / distance * ObjectSpeed;
-				obj.CurrentPosition.Y += dy / distance * ObjectSpeed;
+				//dx := obj.DestinationPosition.X - obj.CurrentPosition.X
+				//dy := obj.DestinationPosition.Y - obj.CurrentPosition.Y
+				//obj.CurrentPosition.X += dx / distance * ObjectSpeed
+				//obj.CurrentPosition.Y += dy / distance * ObjectSpeed
+				log.Printf("Position: %#v Speed %#v passedTime %f", obj.CurrentPosition, obj.Speed, passedTime)
+
+				obj.CurrentPosition.X += obj.Speed.X * passedTime
+				obj.CurrentPosition.Y += obj.Speed.Y * passedTime
+
+				log.Printf("Position: %#v Speed %#v", obj.CurrentPosition, obj.Speed)
 			}
 		}
 		//log.Println("id, obj", id, obj)

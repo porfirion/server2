@@ -142,7 +142,8 @@ func (logic *Logic) ProcessMessage(message UserMessage) {
 
 		logic.SendMessage(UserListMessage{logic.GetUserList(user.Id)}, UsersList{user.Id})
 		log.Println("sent. sync next")
-		logic.SendMessage(SyncPositionsMessage{logic.mWorldMap.GetObjectsPositions()})
+		var currentTime int64 = logic.mWorldMap.SimulationTime.UnixNano() / int64(time.Millisecond) / int64(time.Nanosecond);
+		logic.SendMessage(SyncPositionsMessage{logic.mWorldMap.GetObjectsPositions(), currentTime})
 	case *LogoutMessage:
 		log.Println("Logic: Logout message", msg.Id)
 		logic.RemoveUser(msg.Id)
@@ -179,7 +180,8 @@ func (logic *Logic) Start() {
 			simulationTimer.Reset(logic.mWorldMap.TimeToNextStep())
 		case _ = <-sendTimer.C:
 			log.Println("")
-			logic.SendMessage(SyncPositionsMessage{logic.mWorldMap.GetObjectsPositions()})
+			var currentTime int64 = logic.mWorldMap.SimulationTime.UnixNano() / int64(time.Millisecond) / int64(time.Nanosecond);
+			logic.SendMessage(SyncPositionsMessage{logic.mWorldMap.GetObjectsPositions(), currentTime})
 			sendTimer.Reset(SendObjectsTimeout)
 		case msg := <-logic.IncomingMessages:
 			log.Println("Logic: message received")
