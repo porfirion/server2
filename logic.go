@@ -95,9 +95,15 @@ func (logic *Logic) RemoveUser(id uint64) {
 	logic.mWorldMap.RemoveUser(id)
 }
 
-func (logic *Logic) ProcessActionMessage(userId uint64, msg *ActionMessage) {
-	log.Println("UNIMPLEMENTED!")
+func (logic *Logic) sendSyncMessage() {
+	var currentTime int64 = logic.mWorldMap.SimulationTime.UnixNano() / int64(time.Millisecond) / int64(time.Nanosecond);
+	logic.SendMessage(SyncPositionsMessage{logic.mWorldMap.GetObjectsPositions(), currentTime})
+}
 
+// Возвращает true, если нужно синхронизировать положение объектов заново
+func (logic *Logic) ProcessActionMessage(userId uint64, msg *ActionMessage) (needSync bool) {
+	log.Println("UNIMPLEMENTED!")
+	needSync = false
 	switch msg.ActionType {
 	case "move":
 		user := logic.Users[userId]
@@ -114,17 +120,22 @@ func (logic *Logic) ProcessActionMessage(userId uint64, msg *ActionMessage) {
 		}
 
 		log.Println(user.Name+" is moving to", msg.ActionData)
+		needSync = true
 	default:
 		log.Println("Unknown action type: ", msg.ActionType)
 	}
+
+	return
 }
 
-func (logic *Logic) ProcessMessage(message UserMessage) {
+func (logic *Logic) ProcessMessage(message UserMessage) (needSync bool) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Printf("Recovered in %#v\n", r)
 		}
 	}()
+
+	needSync = false
 
 	switch msg := message.Data.(type) {
 	case *DataMessage:
@@ -149,10 +160,12 @@ func (logic *Logic) ProcessMessage(message UserMessage) {
 		logic.RemoveUser(msg.Id)
 		logic.SendMessage(UserLoggedoutMessage{Id: msg.Id})
 	case *ActionMessage:
-		logic.ProcessActionMessage(message.Source, msg)
+		needSync = logic.ProcessActionMessage(message.Source, msg)
 	default:
 		log.Printf("Logic: Unknown message type %#v from %d\n", message.Data, message.Source)
 	}
+
+	return
 }
 
 func (logic *Logic) Start() {
@@ -171,21 +184,34 @@ func (logic *Logic) Start() {
 	for {
 		select {
 		case _ = <-simulationTimer.C:
-			log.Println("Logic: simulation step")
+			//log.Println("Logic: simulation step")
 
 			// пока есть что симулировать - симулируем
-			for logic.mWorldMap.ProcessSimulationStep() {
+			simulated := true
+			var changed, globallyChanged bool = false, false;
+			for simulated {
+				// пока нам говорят, что симуляция прошла успешно - делаем очередной шаг
+				simulated, changed = logic.mWorldMap.ProcessSimulationStep()
+				// при это запоминаем, не поменялось ли чего
+				globallyChanged = globallyChanged || changed
+			}
+
+			if (globallyChanged) {
+				// если что-то изменилось, надо об этом всем рассказать
+				logic.sendSyncMessage()
 			}
 
 			simulationTimer.Reset(logic.mWorldMap.TimeToNextStep())
 		case _ = <-sendTimer.C:
-			log.Println("")
-			var currentTime int64 = logic.mWorldMap.SimulationTime.UnixNano() / int64(time.Millisecond) / int64(time.Nanosecond);
-			logic.SendMessage(SyncPositionsMessage{logic.mWorldMap.GetObjectsPositions(), currentTime})
+			// дополнительно рассылаем всем уведомления по таймеру
+			// по идее потом это можно будет убрать
+			logic.sendSyncMessage()
 			sendTimer.Reset(SendObjectsTimeout)
 		case msg := <-logic.IncomingMessages:
 			log.Println("Logic: message received")
-			logic.ProcessMessage(msg)
+			if needSync := logic.ProcessMessage(msg); needSync {
+				logic.sendSyncMessage()
+			}
 			log.Println("Logic: message processed")
 		}
 	}

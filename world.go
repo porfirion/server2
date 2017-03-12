@@ -214,7 +214,10 @@ func (world *WorldMap) GetStepTime(step int) time.Time {
 	return world.StartTime.Add(SimulationStepTime * time.Duration(step));
 }
 
-func (world *WorldMap) ProcessSimulationStep() bool {
+// Выполнение симуляции.
+// Первый возвращаемый результат - была ли выполнены симуляция
+// Второй возвращаемый результат - произошли ли какие-то существенные изменения
+func (world *WorldMap) ProcessSimulationStep() (simulationPassed bool, somethingChanged bool) {
 	if world.SimulationStep == 0 {
 		// это наш первый шаг симуляции, запоминаем когда стартовали
 		world.StartTime = time.Now()
@@ -222,12 +225,17 @@ func (world *WorldMap) ProcessSimulationStep() bool {
 	} else {
 		if time.Now().Before(world.NextStepTime) {
 			// время ещё не пришло
-			return false
+			return false, false
 		}
+		// ага, время уже настало. Симулируем
 	}
+
+	simulationPassed = true
+	somethingChanged = false
+
 	world.SimulationStep++
 	world.SimulationTime = world.StartTime.Add((time.Duration)(world.SimulationStep) * SimulationStepTime);
-	log.Println("Simulation step ", world.SimulationStep)
+	//log.Println("Simulation step ", world.SimulationStep)
 	world.NextStepTime = world.NextStepTime.Add(SimulationStepTime)
 	var passedTime float64 = float64(SimulationStepTime) / float64(time.Second)
 
@@ -239,6 +247,7 @@ func (world *WorldMap) ProcessSimulationStep() bool {
 				obj.CurrentPosition = obj.DestinationPosition;
 				obj.DestinationPosition = NilPosition
 				obj.Speed = Vector2D{}
+				somethingChanged = true
 			} else {
 				//dx := obj.DestinationPosition.X - obj.CurrentPosition.X
 				//dy := obj.DestinationPosition.Y - obj.CurrentPosition.Y
@@ -255,5 +264,5 @@ func (world *WorldMap) ProcessSimulationStep() bool {
 		//log.Println("id, obj", id, obj)
 	}
 
-	return true
+	return
 }

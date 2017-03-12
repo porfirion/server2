@@ -14,6 +14,7 @@ function Map(elem) {
 	};
 	this.points = [];
 	this.objects = [];
+	this.myObject = null; // объект текущего игрока
 	this.objectsById = {};
 	this.gridSize = 100;
 	this.prevOffset = 0;
@@ -138,7 +139,12 @@ Map.prototype.updateObjectPosition = function (obj, time) {
 	} else {
 		mapObject = this.addObject(obj.id, obj.objectType);
 		if (obj.userId) {
-			mapObject.setPlayer(this.players[obj.userId]);
+			var player = this.players[obj.userId];
+			mapObject.setPlayer(player);
+
+			if (player.isMe) {
+				this.myObject = mapObject;
+			}
 		}
 	}
 
@@ -221,7 +227,7 @@ Map.prototype.drawTime = function () {
 	ctx.clearRect(0, 0, this.timeCanvas.width, this.timeCanvas.height);
 
 	ctx.fillStyle = 'white';
-	ctx.fillRect(0, 0, this.timeCanvas.width, this.timeCanvas.height)
+	ctx.fillRect(0, 0, this.timeCanvas.width, this.timeCanvas.height);
 
 	var min = Infinity;
 	var max = -Infinity;
@@ -254,8 +260,8 @@ Map.prototype.drawTime = function () {
 
 	ctx.fillText('viewport: (x: ' + Math.round(this.viewport.x * 100) / 100 + '; y: ' + Math.round(this.viewport.y * 100) / 100 + ')', 15, 15);
 	ctx.fillText('scale: ' + Math.round(this.viewport.scale * 100) / 100, 15, 30);
-	ctx.fillText('latency: ' + this.latency.toFixed(0) + ' ms', 15, 45)
-	ctx.fillText('time correction: ' + this.timeCorrection.toFixed(1) + ' ms', 15, 60)
+	ctx.fillText('latency: ' + this.latency.toFixed(0) + ' ms', 15, 45);
+	ctx.fillText('time correction: ' + this.timeCorrection.toFixed(1) + ' ms', 15, 60);
 
 	this.ctx.save();
 	this.ctx.globalAlpha = 0.7;
@@ -266,6 +272,27 @@ Map.prototype.drawTime = function () {
 Map.prototype.adjustViewport = function () {
 	// disable viewport adjustement
 	// return;
+
+	if (this.myObject != null) {
+
+		var viewportW = this.elem.width * 0.3 / this.viewport.scale;
+		var viewportH = this.elem.height * 0.3 / this.viewport.scale;
+
+		var serverTime = Date.now() + this.timeCorrection;
+		var objPosReal = this.myObject.getApproximatedPosition(serverTime);
+
+		if (objPosReal.x < this.viewport.x - viewportW / 2) { this.viewport.x = objPosReal.x + viewportW / 2; }
+		if (objPosReal.x > this.viewport.x + viewportW / 2) { this.viewport.x = objPosReal.x - viewportW / 2; }
+		if (objPosReal.y < this.viewport.y - viewportH / 2) { this.viewport.y = objPosReal.y + viewportH / 2; }
+		if (objPosReal.y > this.viewport.y + viewportH / 2) { this.viewport.y = objPosReal.y - viewportH / 2; }
+
+		// пока что жёстко отключим перемещение вьюпорта.
+		// в дальнейшем надо бы его переделать.
+		// иногда случается, что пользователь начал движение в другую сторону и вьюпорт дёргается немного при развороте
+		// сильнее всего чувствуется на мобильнике
+		return;
+	}
+
 	if (this.viewportAdjustPoint == null) {
 		return;
 	}
@@ -287,10 +314,10 @@ Map.prototype.adjustViewport = function () {
 	this.viewport.y = Math.min(5000, Math.max(-5000, this.viewport.y));
 };
 
-Map.prototype.rectContainsPoint = function(rect, point, radius) {
+Map.prototype.rectContainsPoint = function (rect, point, radius) {
 	return rect.left <= (point.x + radius) && point.x - radius <= rect.right &&
 		rect.top <= (point.y + radius) && (point.y - radius) <= rect.bottom;
-}
+};
 
 Map.prototype.drawObjects = function () {
 	var ctx = this.ctx;
@@ -443,7 +470,7 @@ Map.prototype.drawGrid = function () {
 /**
  * Бесполезная штука, которая рисует линии для отладки
  */
-Map.prototype.drawAnchors = function () {
+Map.prototype.drawAnchors = function() {
 	var ctx = this.ctx;
 	var elem = this.elem;
 
@@ -585,7 +612,7 @@ Map.prototype.viewportToReal = function (pos) {
 
 	return {
 		x: this.viewport.x + (pos.x / this.viewport.scale - viewportW / 2),
-		y: this.viewport.y - (pos.y/ this.viewport.scale - viewportH / 2)
+		y: this.viewport.y - (pos.y / this.viewport.scale - viewportH / 2)
 	};
 };
 
