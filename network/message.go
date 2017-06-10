@@ -1,8 +1,9 @@
-package main
+package network
 
 import (
 	"fmt"
 	"reflect"
+	"github.com/porfirion/server2/world"
 )
 
 type ErrorMessage struct {
@@ -71,7 +72,7 @@ type UserLoggedoutMessage struct {
  * Отправляет на клиент список объектов с координатами
  */
 type SyncPositionsMessage struct {
-	Positions map[string]MapObjectDescription `json:"positions"`
+	Positions map[string]world.MapObjectDescription `json:"positions"`
 	Time      int64 `json:"time"`
 }
 

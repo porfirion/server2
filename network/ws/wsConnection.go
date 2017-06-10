@@ -1,4 +1,4 @@
-package main
+package ws
 
 import (
 	"encoding/json"
@@ -9,6 +9,7 @@ import (
 	"log"
 	// "reflect"
 	"time"
+	"github.com/porfirion/server2/network"
 )
 
 type WebsocketMessageWrapper struct {
@@ -17,7 +18,7 @@ type WebsocketMessageWrapper struct {
 }
 
 func (wrapper *WebsocketMessageWrapper) GetMessage() (msg interface{}, err error) {
-	res := GetValueByTypeId(wrapper.MessageType)
+	res := network.GetValueByTypeId(wrapper.MessageType)
 
 	// fmt.Printf("Unmarshalling into %#v, (type %v)\n", res, reflect.TypeOf(res))
 	// fmt.Printf("Message body: %#v\n", wrapper.Data)
@@ -30,7 +31,7 @@ func (wrapper *WebsocketMessageWrapper) GetMessage() (msg interface{}, err error
 }
 
 type WebsocketConnection struct {
-	*BasicConnection
+	*network.BasicConnection
 	ws *websocket.Conn
 }
 
@@ -70,7 +71,7 @@ func (connection *WebsocketConnection) ReadMessage() (interface{}, error) {
 	}
 }
 
-func (connection *WebsocketConnection) StartReading(ch UserMessagesChannel) {
+func (connection *WebsocketConnection) StartReading(ch network.UserMessagesChannel) {
 	go func() {
 		defer connection.Close(0, "unimplemented")
 
@@ -82,16 +83,16 @@ func (connection *WebsocketConnection) StartReading(ch UserMessagesChannel) {
 			}
 			if msg != nil {
 				switch msg.(type) {
-				case *SyncTimeMessage:
+				case *network.SyncTimeMessage:
 					// log.Println("Sync time message", time.Now().UnixNano()/int64(time.Millisecond), int64(time.Now().UnixNano()/int64(time.Millisecond)))
-					connection.responseChannel <- SyncTimeMessage{Time: int64(time.Now().UnixNano() / int64(time.Millisecond))}
+					connection.ResponseChannel <- network.SyncTimeMessage{Time: int64(time.Now().UnixNano() / int64(time.Millisecond))}
 				default:
-					ch <- UserMessage{connection.id, msg}
+					ch <- network.UserMessage{connection.Id, msg}
 				}
 			}
 		}
 
-		log.Println("Reading finished for", connection.id)
+		log.Println("Reading finished for", connection.Id)
 	}()
 }
 func (connection *WebsocketConnection) StartWriting() {
@@ -99,17 +100,17 @@ func (connection *WebsocketConnection) StartWriting() {
 		//log.Println("Writing started ", connection.id)
 
 		for message := range connection.GetResponseChannel() {
-			log.Println(fmt.Sprintf("WsCon. Sending message %T for %d", message, connection.id))
+			//log.Println(fmt.Sprintf("WsCon. Sending message %T for %d", message, connection.id))
 			bytes, err := json.Marshal(message)
 			if err == nil {
-				connection.ws.WriteJSON(WebsocketMessageWrapper{GetMessageTypeId(message), string(bytes)})
+				connection.ws.WriteJSON(WebsocketMessageWrapper{network.GetMessageTypeId(message), string(bytes)})
 			} else {
 				log.Println("Error serializing message", message, err)
 			}
 
 		}
 
-		log.Println("Writing finished for", connection.id)
+		log.Println("Writing finished for", connection.Id)
 	}()
 }
 
@@ -119,15 +120,15 @@ func (connection *WebsocketConnection) Close(code int, message string) {
 	//		connection.responseChannel <-
 	//	}
 
-	close(connection.responseChannel)
+	close(connection.ResponseChannel)
 	connection.ws.Close()
-	connection.closingChannel <- connection.id
+	connection.ClosingChannel <- connection.Id
 }
 
-func (connection *WebsocketConnection) GetAuth() (*AuthMessage, error) {
+func (connection *WebsocketConnection) GetAuth() (*network.AuthMessage, error) {
 	msg, err := connection.ReadMessage()
 	if err == nil {
-		if auth, ok := msg.(*AuthMessage); ok {
+		if auth, ok := msg.(*network.AuthMessage); ok {
 			return auth, nil
 		} else {
 			fmt.Printf("Converted message %#v\n", msg)
@@ -138,8 +139,8 @@ func (connection *WebsocketConnection) GetAuth() (*AuthMessage, error) {
 	}
 }
 
-func NewWebsocketConnection(ws *websocket.Conn) Connection {
-	connection := &WebsocketConnection{ws: ws, BasicConnection: &BasicConnection{}}
+func NewWebsocketConnection(ws *websocket.Conn) network.Connection {
+	connection := &WebsocketConnection{ws: ws, BasicConnection: &network.BasicConnection{}}
 	connection.StartWriting()
 	log.Println("Created new ws connection", connection)
 	return connection

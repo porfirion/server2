@@ -3,11 +3,14 @@ package main
 import (
 	"log"
 	"net"
+	"github.com/porfirion/server2/network"
+	"github.com/porfirion/server2/network/ws"
+	"github.com/porfirion/server2/network/tcp"
 )
 
 var (
 	ControlChannel chan int = make(chan int, 10)
-	logic          LogicInterface
+	logic          *Logic
 )
 
 const format = "%T(%v)\n"
@@ -16,24 +19,24 @@ func main() {
 	// log.SetFlags(log.Ltime | log.Lshortfile) - may be very useful to know where print was called
 	log.SetFlags(log.Lmicroseconds)
 
-	var incomingConnections ConnectionsChannel = make(ConnectionsChannel)
+	var incomingConnections network.ConnectionsChannel = make(network.ConnectionsChannel)
 
-	var incomingMessages UserMessagesChannel = make(UserMessagesChannel)
-	var outgoingMessages ServerMessagesChannel = make(ServerMessagesChannel)
+	var incomingMessages network.UserMessagesChannel = make(network.UserMessagesChannel)
+	var outgoingMessages network.ServerMessagesChannel = make(network.ServerMessagesChannel)
 
 	// стартуем логику. она готова, чтобы принимать и обрабатывать соощения
 	logic = &Logic{}
-	logic.setIncomingMessagesChannel(incomingMessages)
-	logic.setOutgoingMessagesChannel(outgoingMessages)
+	logic.SetIncomingMessagesChannel(incomingMessages)
+	logic.SetOutgoingMessagesChannel(outgoingMessages)
 	go logic.Start()
 
-	pool := &ConnectionsPool{logic: logic, incomingConnections: incomingConnections}
+	pool := &network.ConnectionsPool{Logic: logic, IncomingConnections: incomingConnections}
 	go pool.Start()
 
-	wsGate := &WebSocketGate{&net.TCPAddr{IP: net.IPv4(0, 0, 0, 0), Port: 8080}, incomingConnections}
+	wsGate := &ws.WebSocketGate{Addr: &net.TCPAddr{IP: net.IPv4(0, 0, 0, 0), Port: 8080}, IncomingConnections: incomingConnections}
 	go wsGate.Start()
 
-	tcpGate := &TcpGate{&net.TCPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 25001}, incomingConnections}
+	tcpGate := &tcp.TcpGate{Addr:&net.TCPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 25001}, IncomingConnections: incomingConnections}
 	go tcpGate.Start()
 
 	log.Println("Running")

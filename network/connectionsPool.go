@@ -1,12 +1,12 @@
-package main
+package network
 
 import (
 	"log"
 )
 
 type ConnectionsPool struct {
-	logic                 LogicInterface
-	incomingConnections   ConnectionsChannel // входящие соединения
+	Logic                 LogicInterface
+	IncomingConnections   ConnectionsChannel // входящие соединения
 	ConnectionsEnumerator chan uint64
 	Connections           map[uint64]Connection
 	ClosingChannel        chan uint64
@@ -34,9 +34,9 @@ func (pool *ConnectionsPool) processConnection(connection Connection) {
 			connection.GetResponseChannel() <- WellcomeMessage{Id: connectionId}
 
 			pool.Connections[connectionId] = connection
-			pool.logic.getIncomingMessagesChannel() <- UserMessage{Data: &LoginMessage{Id: connectionId, Name: authMessage.Name}, Source: connectionId}
+			pool.Logic.GetIncomingMessagesChannel() <- UserMessage{Data: &LoginMessage{Id: connectionId, Name: authMessage.Name}, Source: connectionId}
 
-			connection.StartReading(pool.logic.getIncomingMessagesChannel())
+			connection.StartReading(pool.Logic.GetIncomingMessagesChannel())
 		}
 	}()
 }
@@ -59,7 +59,7 @@ func (pool *ConnectionsPool) RemoveConnection(connectionId uint64) {
 	delete(pool.Connections, connectionId)
 
 	log.Println("CPool: sending message to logic")
-	pool.logic.getIncomingMessagesChannel() <- UserMessage{Data: &LogoutMessage{connectionId}, Source: connectionId}
+	pool.Logic.GetIncomingMessagesChannel() <- UserMessage{Data: &LogoutMessage{connectionId}, Source: connectionId}
 	log.Println("CPool: message in sent to logic")
 }
 
@@ -101,14 +101,14 @@ func (pool *ConnectionsPool) Start() {
 
 	for {
 		select {
-		case connection := <-pool.incomingConnections:
+		case connection := <-pool.IncomingConnections:
 			log.Println("CPool: connection received", connection)
 			pool.processConnection(connection)
 			log.Println("CPool connection processed")
-		case message := <-pool.logic.getOutgoingMessagesChannel():
-			log.Printf("CPool: Outgoing message %T\n", message)
+		case message := <-pool.Logic.GetOutgoingMessagesChannel():
+			//log.Printf("CPool: Outgoing message %T\n", message)
 			pool.DispathMessage(message)
-			log.Println("CPool: Message is sent")
+			//log.Println("CPool: Message is sent")
 		case connectionId := <-pool.ClosingChannel:
 			log.Println("CPool: Closing connection", connectionId)
 			pool.RemoveConnection(connectionId)

@@ -1,4 +1,4 @@
-package main
+package network
 
 type Connection interface {
 	StartReading(ch UserMessagesChannel)
@@ -12,33 +12,33 @@ type Connection interface {
 }
 
 type BasicConnection struct {
-	id              uint64
-	closed          bool
-	responseChannel MessagesChannel
-	closingChannel  chan uint64
+	Id              uint64
+	Closed          bool
+	ResponseChannel MessagesChannel
+	ClosingChannel  chan uint64
 }
 
 func (connection *BasicConnection) SetId(id uint64) {
-	connection.id = id
+	connection.Id = id
 }
 func (connection *BasicConnection) GetId() uint64 {
-	return connection.id
+	return connection.Id
 }
 
 func (connection *BasicConnection) IsClosed() bool {
-	return connection.closed
+	return connection.Closed
 }
 
 func (connection *BasicConnection) GetResponseChannel() MessagesChannel {
-	if connection.responseChannel == nil {
-		connection.responseChannel = make(MessagesChannel)
+	if connection.ResponseChannel == nil {
+		connection.ResponseChannel = make(MessagesChannel)
 	}
 
-	return connection.responseChannel
+	return connection.ResponseChannel
 }
 
 func (connection *BasicConnection) SetClosingChannel(closingChannel chan uint64) {
-	connection.closingChannel = closingChannel
+	connection.ClosingChannel = closingChannel
 }
 
 type ConnectionsChannel chan Connection

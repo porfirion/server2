@@ -1,4 +1,4 @@
-package main
+package tcp
 
 import (
 	"errors"
@@ -6,14 +6,15 @@ import (
 	"io"
 	"log"
 	"net"
+	"github.com/porfirion/server2/network"
 )
 
 type TcpConnection struct {
-	*BasicConnection
+	*network.BasicConnection
 	socket net.Conn
 }
 
-func (connection *TcpConnection) StartReading(ch UserMessagesChannel) {
+func (connection *TcpConnection) StartReading(ch network.UserMessagesChannel) {
 	go func() {
 		log.Println("starting reading")
 		defer connection.Close(0, "Unimplemented")
@@ -30,7 +31,7 @@ func (connection *TcpConnection) StartReading(ch UserMessagesChannel) {
 				log.Println("read bytes: ", n)
 			}
 
-			ch <- UserMessage{connection.id, DataMessage{buffer}}
+			ch <- network.UserMessage{connection.Id, network.DataMessage{buffer}}
 		}
 
 		log.Println("Reading finished")
@@ -44,32 +45,32 @@ func (connection *TcpConnection) Close(code int, message string) {
 	connection.socket.Close()
 }
 
-func (connection *TcpConnection) GetAuth() (*AuthMessage, error) {
+func (connection *TcpConnection) GetAuth() (*network.AuthMessage, error) {
 	log.Println("TcpConnection.GetAuth is not implemented")
 	return nil, errors.New("Not implemented")
 }
 
-func NewTcpConnection(socket net.Conn) Connection {
+func NewTcpConnection(socket net.Conn) network.Connection {
 	connection := &TcpConnection{socket: socket}
 	connection.StartWriting()
 	return connection
 }
 
 type TcpGate struct {
-	addr                *net.TCPAddr
-	incomingConnections ConnectionsChannel
+	Addr                *net.TCPAddr
+	IncomingConnections network.ConnectionsChannel
 }
 
 func (gate *TcpGate) Start() error {
 
-	listener, err := net.ListenTCP("tcp4", gate.addr)
+	listener, err := net.ListenTCP("tcp4", gate.Addr)
 
 	if err != nil {
 		log.Println("Error opening listener: ", err)
 		return err
 	}
 
-	log.Println("Listening tcp:", gate.addr)
+	log.Println("Listening tcp:", gate.Addr)
 
 	// main loop
 	defer listener.Close()
@@ -84,7 +85,7 @@ func (gate *TcpGate) Start() error {
 
 		log.Println("Connected tcp from ", socket.RemoteAddr())
 
-		gate.incomingConnections <- connection
+		gate.IncomingConnections <- connection
 	}
 	log.Println("finished")
 

@@ -1,4 +1,4 @@
-package main
+package ws
 
 import (
 	"github.com/gorilla/websocket"
@@ -6,11 +6,12 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"github.com/porfirion/server2/network"
 )
 
 type WebSocketGate struct {
-	addr                *net.TCPAddr
-	incomingConnections ConnectionsChannel
+	Addr                *net.TCPAddr
+	IncomingConnections network.ConnectionsChannel
 }
 
 var upgrader = websocket.Upgrader{
@@ -24,13 +25,13 @@ func (gate *WebSocketGate) Start() error {
 	http.HandleFunc("/ws", gate.wsHandler)
 
 	server := &http.Server{}
-	listener, err := net.ListenTCP("tcp4", gate.addr)
+	listener, err := net.ListenTCP("tcp4", gate.Addr)
 
 	if err != nil {
 		log.Printf("Error creating listener %v", err)
 		return err
 	} else {
-		log.Println("Listening http:", gate.addr)
+		log.Println("Listening http:", gate.Addr)
 		server.Serve(listener)
 		return nil
 	}
@@ -56,7 +57,7 @@ func (gate *WebSocketGate) wsHandler(rw http.ResponseWriter, request *http.Reque
 	conn := NewWebsocketConnection(webSocket)
 	log.Println("WSGate: new websocket connection", conn)
 
-	gate.incomingConnections <- conn
+	gate.IncomingConnections <- conn
 }
 
 /**

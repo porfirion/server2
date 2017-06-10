@@ -1,4 +1,4 @@
-package main
+package network
 
 type User struct {
 	Id   uint64 `json:"id"`

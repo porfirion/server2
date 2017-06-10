@@ -1,8 +1,7 @@
-package main
+package world
 
 import (
 	"log"
-	"math"
 	"math/rand"
 	"strconv"
 	"time"
@@ -12,115 +11,6 @@ const (
 	SimulationStepTime time.Duration = 100 * time.Millisecond
 	ObjectSpeed        float64       = 50.0
 )
-
-type Position struct {
-	X float64 `json:"x"`
-	Y float64 `json:"y"`
-}
-
-var (
-	NilPosition Position = Position{X: math.MaxFloat64, Y: math.MaxFloat64}
-)
-
-/**
- * Расстояние между точками
- */
-func (pos Position) DistanceTo(dest Position) float64 {
-	return math.Sqrt(math.Pow(dest.X-pos.X, 2) + math.Pow(dest.Y-pos.Y, 2))
-}
-
-func (pos Position) VectorTo(dest Position) Vector2D {
-	return Vector2D{dest.X - pos.X, dest.Y - pos.Y}
-}
-
-type Vector2D struct {
-	X float64 `json:"x"`
-	Y float64 `json:"y"`
-}
-
-// длина вектора
-func (v Vector2D) Length() float64 {
-	return math.Sqrt(v.X*v.X + v.Y*v.Y)
-}
-
-// приведение длины вектора
-func (v Vector2D) Modulus(base float64) Vector2D {
-	modulo := v.Length() / base
-	return Vector2D{v.X / modulo, v.Y / modulo}
-}
-
-func (v Vector2D) Plus(v2 Vector2D) Vector2D {
-	return Vector2D{v.X + v2.X, v.Y + v2.Y}
-}
-
-func (v Vector2D) Minus(v2 Vector2D) Vector2D {
-	return Vector2D{v.X - v2.X, v.Y - v2.Y};
-}
-
-func (v Vector2D) Devide(devider float64) Vector2D {
-	return Vector2D{v.X / devider, v.Y / devider}
-}
-func (v Vector2D) Mult(multiplier float64) Vector2D {
-	return Vector2D{v.X * multiplier, v.Y * multiplier}
-}
-
-type MapObjectType int
-
-const (
-	MapObjectTypeObstacle MapObjectType = 1   // неподвижный объект, который не может изменять своё положение
-	MapObjectTypeMovable                = 10  // объект, который может изменять своё положение, но не управляется пользователем
-	MapObjectTypeUser                   = 100 // объект, который может изменять своё положение и принадлежащий какому-либо пользователю
-)
-
-type MapObjectDescription struct {
-	Id         uint64        `json:"id"`
-	ObjectType MapObjectType `json:"objectType"`
-	Speed      Vector2D      `json:"speed"`
-	Position   Position      `json:"position"`
-	UserId     uint64        `json:"userId"`
-	//Direction           Vector2D      `json:"direction"`
-	//StartPosition       Position      `json:"startPosition"`
-	//StartTime           int64         `json:"startTime"`
-	//DestinationPosition Position      `json:"destinationPosition"`
-	//DestinationTime     int64         `json:"destinationTime"`
-}
-
-type MapObject struct {
-	Id                  uint64        // id объекта
-	ObjectType          MapObjectType // тип обхекта. Задаётся константами типа MapObjectType
-	User                *User         // ссылка на обхект пользователя, если это пользовательский обхект
-	Speed               Vector2D      // speed pixels/second
-	CurrentPosition     Position      // текущее положение обхекта
-	DestinationPosition Position      // точка, к которой движется объект
-}
-
-func (obj *MapObject) GetDescription() MapObjectDescription {
-	description := MapObjectDescription{
-		Id:         obj.Id,
-		ObjectType: obj.ObjectType,
-		Position:   obj.CurrentPosition,
-		Speed:      obj.Speed,
-		//StartPosition:       obj.StartPosition,
-		//StartTime:           obj.StartTime.UnixNano() / int64(time.Millisecond),
-		//DestinationPosition: obj.DestinationPosition,
-		//DestinationTime:     obj.DestinationTime.UnixNano() / int64(time.Millisecond),
-		//Direction:           direction.Modulus(),
-	}
-
-	if obj.User != nil {
-		description.UserId = obj.User.Id
-	} else {
-		description.UserId = 0;
-	}
-
-	return description
-}
-
-func (obj *MapObject) MoveTo(dest Position) {
-	obj.Speed = obj.CurrentPosition.VectorTo(dest).Modulus(ObjectSpeed)
-	obj.DestinationPosition = dest;
-	log.Printf("pos %#v dest %#v speed %#v", obj.CurrentPosition, dest, obj.Speed)
-}
 
 type WorldMap struct {
 	Objects      map[uint64]*MapObject
@@ -152,7 +42,7 @@ func NewWorldMap() *WorldMap {
 	world.SimulationStep = 0
 	for i := 0; i < 10; i++ {
 		obj := world.NewObject(
-			Position{
+			Point2D{
 				X: rand.Float64()*300 - 150,
 				Y: rand.Float64()*300 - 150,
 			},
@@ -165,7 +55,7 @@ func NewWorldMap() *WorldMap {
 	return world
 }
 
-func (world *WorldMap) NewObject(pos Position, objectType MapObjectType) *MapObject {
+func (world *WorldMap) NewObject(pos Point2D, objectType MapObjectType) *MapObject {
 	world.NextObjectId++
 	return &MapObject{Id: world.NextObjectId, ObjectType: objectType, CurrentPosition: pos, DestinationPosition: NilPosition}
 }
@@ -174,12 +64,12 @@ func (world *WorldMap) AddObject(obj *MapObject) {
 	world.Objects[obj.Id] = obj
 }
 
-func (world *WorldMap) AddUser(user *User, pos Position) {
+func (world *WorldMap) AddUser(userId uint64, pos Point2D) {
 	obj := world.NewObject(pos, MapObjectTypeUser)
 	world.AddObject(obj)
-	obj.User = user
+	obj.UserId = userId
 
-	world.UsersObjects[user.Id] = obj
+	world.UsersObjects[userId] = obj
 }
 
 func (world *WorldMap) RemoveObject(obj *MapObject) {
@@ -197,7 +87,7 @@ func (world *WorldMap) GetObjectsPositions() map[string]MapObjectDescription {
 	for id, obj := range world.Objects {
 		res[strconv.FormatUint(id, 10)] = obj.GetDescription()
 	}
-	log.Printf("Map: users positions %#v\n", res)
+	//log.Printf("Map: users positions %#v\n", res)
 
 	return res
 }
@@ -243,7 +133,7 @@ func (world *WorldMap) ProcessSimulationStep() (simulationPassed bool, something
 		if obj.DestinationPosition != NilPosition {
 			log.Println("moving ", id)
 			distance := obj.CurrentPosition.DistanceTo(obj.DestinationPosition);
-			if distance <= ObjectSpeed * passedTime {
+			if distance <= ObjectSpeed*passedTime {
 				obj.CurrentPosition = obj.DestinationPosition;
 				obj.DestinationPosition = NilPosition
 				obj.Speed = Vector2D{}
@@ -253,16 +143,50 @@ func (world *WorldMap) ProcessSimulationStep() (simulationPassed bool, something
 				//dy := obj.DestinationPosition.Y - obj.CurrentPosition.Y
 				//obj.CurrentPosition.X += dx / distance * ObjectSpeed
 				//obj.CurrentPosition.Y += dy / distance * ObjectSpeed
-				log.Printf("Position: %#v Speed %#v passedTime %f", obj.CurrentPosition, obj.Speed, passedTime)
+				//log.Printf("Position: %#v Speed %#v passedTime %f", obj.CurrentPosition, obj.Speed, passedTime)
 
 				obj.CurrentPosition.X += obj.Speed.X * passedTime
 				obj.CurrentPosition.Y += obj.Speed.Y * passedTime
 
-				log.Printf("Position: %#v Speed %#v", obj.CurrentPosition, obj.Speed)
+				//log.Printf("Position: %#v Speed %#v", obj.CurrentPosition, obj.Speed)
 			}
 		}
 		//log.Println("id, obj", id, obj)
 	}
 
+	collisions := world.detectCollisions()
+
+	world.resolveCollisions(collisions)
+
 	return
+}
+
+/*
+ * collision says if there is any collision.
+ * obj1Vector - new obj1 vector after collision
+ * obj2Vector - new obj2 vector after collision
+ */
+func collide(obj1 *MapObject, obj2 *MapObject) bool {
+	if (obj1.CurrentPosition.DistanceTo(obj2.CurrentPosition) < float64(obj1.Size+obj2.Size)) {
+		// столкнулись!
+		return true;
+	} else {
+		return false;
+	}
+}
+
+func (world *WorldMap) detectCollisions() []MapObjectCollision {
+	collisions := make([]MapObjectCollision, 0)
+	for id1, obj1 := range world.Objects {
+		for id2, obj2 := range world.Objects {
+			if (id1 != id2 && collide(obj1, obj2)) {
+				collisions = append(collisions, MapObjectCollision{obj1, obj2})
+			}
+		}
+	}
+	return collisions
+}
+
+func (world *WorldMap) resolveCollisions(collisions []MapObjectCollision) {
+	// TODO introduce collisions resolver
 }
