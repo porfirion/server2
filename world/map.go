@@ -57,7 +57,7 @@ func NewWorldMap() *WorldMap {
 
 func (world *WorldMap) NewObject(pos Point2D, objectType MapObjectType) *MapObject {
 	world.NextObjectId++
-	return &MapObject{Id: world.NextObjectId, ObjectType: objectType, CurrentPosition: pos, DestinationPosition: NilPosition}
+	return &MapObject{Id: world.NextObjectId, ObjectType: objectType, CurrentPosition: pos, DestinationPosition: NilPosition, Mass: 10, Size: 10}
 }
 
 func (world *WorldMap) AddObject(obj *MapObject) {
@@ -101,7 +101,7 @@ func (world *WorldMap) TimeToNextStep() time.Duration {
 }
 
 func (world *WorldMap) GetStepTime(step int) time.Time {
-	return world.StartTime.Add(SimulationStepTime * time.Duration(step));
+	return world.StartTime.Add(SimulationStepTime * time.Duration(step))
 }
 
 // Выполнение симуляции.
@@ -124,7 +124,7 @@ func (world *WorldMap) ProcessSimulationStep() (simulationPassed bool, something
 	somethingChanged = false
 
 	world.SimulationStep++
-	world.SimulationTime = world.StartTime.Add((time.Duration)(world.SimulationStep) * SimulationStepTime);
+	world.SimulationTime = world.StartTime.Add((time.Duration)(world.SimulationStep) * SimulationStepTime)
 	//log.Println("Simulation step ", world.SimulationStep)
 	world.NextStepTime = world.NextStepTime.Add(SimulationStepTime)
 	var passedTime float64 = float64(SimulationStepTime) / float64(time.Second)
@@ -132,9 +132,9 @@ func (world *WorldMap) ProcessSimulationStep() (simulationPassed bool, something
 	for id, obj := range world.Objects {
 		if obj.DestinationPosition != NilPosition {
 			log.Println("moving ", id)
-			distance := obj.CurrentPosition.DistanceTo(obj.DestinationPosition);
+			distance := obj.CurrentPosition.DistanceTo(obj.DestinationPosition)
 			if distance <= ObjectSpeed*passedTime {
-				obj.CurrentPosition = obj.DestinationPosition;
+				obj.CurrentPosition = obj.DestinationPosition
 				obj.DestinationPosition = NilPosition
 				obj.Speed = Vector2D{}
 				somethingChanged = true
@@ -161,26 +161,18 @@ func (world *WorldMap) ProcessSimulationStep() (simulationPassed bool, something
 	return
 }
 
-/*
- * collision says if there is any collision.
- * obj1Vector - new obj1 vector after collision
- * obj2Vector - new obj2 vector after collision
- */
-func collide(obj1 *MapObject, obj2 *MapObject) bool {
-	if (obj1.CurrentPosition.DistanceTo(obj2.CurrentPosition) < float64(obj1.Size+obj2.Size)) {
-		// столкнулись!
-		return true;
-	} else {
-		return false;
-	}
-}
-
 func (world *WorldMap) detectCollisions() []MapObjectCollision {
 	collisions := make([]MapObjectCollision, 0)
 	for id1, obj1 := range world.Objects {
 		for id2, obj2 := range world.Objects {
-			if (id1 != id2 && collide(obj1, obj2)) {
-				collisions = append(collisions, MapObjectCollision{obj1, obj2})
+			if id1 != id2 {
+				if obj1.ObjectType == MapObjectTypeUser || obj2.ObjectType == MapObjectTypeUser {
+					log.Printf("%d -- %d dist %f > %f + %f", id1, id2, obj1.CurrentPosition.DistanceTo(obj2.CurrentPosition), obj1.Size, obj2.Size)
+				}
+				if obj1.CurrentPosition.DistanceTo(obj2.CurrentPosition) < float64(obj1.Size+obj2.Size) {
+					log.Printf("collide %d VS %d \n", id1, id2);
+					collisions = append(collisions, MapObjectCollision{obj1, obj2})
+				}
 			}
 		}
 	}
@@ -188,5 +180,10 @@ func (world *WorldMap) detectCollisions() []MapObjectCollision {
 }
 
 func (world *WorldMap) resolveCollisions(collisions []MapObjectCollision) {
+	log.Printf("Resolving %d collisions", len(collisions))
+	for _, collision := range collisions {
+		resolver := GetResolver(collision.obj1, collision.obj2)
+		resolver.resolve(collision.obj1, collision.obj2)
+	}
 	// TODO introduce collisions resolver
 }

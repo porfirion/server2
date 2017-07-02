@@ -109,7 +109,7 @@ func (logic *Logic) ProcessActionMessage(userId uint64, msg *network.ActionMessa
 		y, okY := msg.ActionData["y"].(float64)
 
 		if okX && okY {
-			userObject.MoveTo(world.Point2D{X: x, Y: y})
+			userObject.StartMoveTo(world.Point2D{X: x, Y: y})
 			log.Printf("user #%d try to move it's object #%d to (%f:%f)\n", userId, userObject.Id, x, y)
 		} else {
 			log.Println("can't get x and y")

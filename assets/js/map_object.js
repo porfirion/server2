@@ -60,6 +60,7 @@ MapObject.prototype.adjustState = function(obj, time) {
 	this.pos = obj.position;
 	this.serverPosition = obj.position;
 	this.setSpeed(obj.speed);
+	this.setSize(obj.size);
 	this.adjustServerTime = time;
 
 	// this.posTime = obj.startTime;

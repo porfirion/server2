@@ -1,6 +1,8 @@
 package world
 
-import "log"
+import (
+	"log"
+)
 
 type MapObjectType int
 
@@ -16,21 +18,17 @@ type MapObjectDescription struct {
 	Speed      Vector2D      `json:"speed"`
 	Position   Point2D       `json:"position"`
 	UserId     uint64        `json:"userId"`
-	//Direction           Vector2D      `json:"direction"`
-	//StartPosition       Point2D      `json:"startPosition"`
-	//StartTime           int64         `json:"startTime"`
-	//DestinationPosition Point2D      `json:"destinationPosition"`
-	//DestinationTime     int64         `json:"destinationTime"`
+	Size       uint64        `json:"size"`
 }
 
 type MapObject struct {
 	Id                  uint64        // id объекта
 	ObjectType          MapObjectType // тип обхекта. Задаётся константами типа MapObjectType
-	UserId              uint64         // ссылка на обхект пользователя, если это пользовательский объект
+	UserId              uint64        // ссылка на обхект пользователя, если это пользовательский объект
 	Speed               Vector2D      // speed pixels/second
 	CurrentPosition     Point2D       // текущее положение обхекта
 	DestinationPosition Point2D       // точка, к которой движется объект
-	Size                uint16        // размер объекта в пикселях (пока оперируем только с кругами)
+	Size                float64       // размер объекта в пикселях (пока оперируем только с кругами)
 	Mass                uint16        // Масса объекта
 }
 
@@ -61,7 +59,7 @@ func (obj *MapObject) GetDescription() MapObjectDescription {
 	return description
 }
 
-func (obj *MapObject) MoveTo(dest Point2D) {
+func (obj *MapObject) StartMoveTo(dest Point2D) {
 	obj.Speed = obj.CurrentPosition.VectorTo(dest).Modulus(ObjectSpeed)
 	obj.DestinationPosition = dest;
 	log.Printf("pos %#v dest %#v speed %#v", obj.CurrentPosition, dest, obj.Speed)
