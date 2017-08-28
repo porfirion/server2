@@ -1,24 +1,28 @@
 package main
 
 import (
+	"github.com/porfirion/server2/network"
+	"github.com/porfirion/server2/world"
 	"log"
 	"math/rand"
 	"time"
-	"github.com/porfirion/server2/world"
-	"github.com/porfirion/server2/network"
 )
 
 const (
-	SendObjectsTimeout time.Duration = time.Second * 1
+	SendObjectsTimeout       time.Duration = time.Second * 1
+	SimulationStepRealTime   time.Duration = 100 * time.Millisecond // сколько реального времени проходит за один шаг симуляции
+	MaxSimulationStepsAtOnce               = 10
 )
-
-
 
 type Logic struct {
 	IncomingMessages network.UserMessagesChannel
 	OutgoingMessages network.ServerMessagesChannel
 	Users            map[uint64]*network.User
-	mWorldMap        *world.WorldMap
+
+	mWorldMap *world.WorldMap
+
+	StartTime    time.Time // время начала симуляции (отсчитывается от первого вызова simulationStep)
+	NextStepTime time.Time // время, в которое должен произойти следующий шаг симуляции
 }
 
 func (logic Logic) GetIncomingMessagesChannel() network.UserMessagesChannel {
@@ -92,7 +96,7 @@ func (logic *Logic) RemoveUser(id uint64) {
 }
 
 func (logic *Logic) sendSyncMessage() {
-	var currentTime int64 = logic.mWorldMap.SimulationTime.UnixNano() / int64(time.Millisecond) / int64(time.Nanosecond);
+	var currentTime int64 = logic.mWorldMap.SimulationTime.UnixNano() / int64(time.Millisecond) / int64(time.Nanosecond)
 	logic.SendMessage(network.SyncPositionsMessage{logic.mWorldMap.GetObjectsPositions(), currentTime})
 }
 
@@ -149,7 +153,7 @@ func (logic *Logic) ProcessMessage(message network.UserMessage) (needSync bool) 
 
 		logic.SendMessage(network.UserListMessage{logic.GetUserList(user.Id)}, network.UsersList{user.Id})
 		log.Println("sent. sync next")
-		var currentTime int64 = logic.mWorldMap.SimulationTime.UnixNano() / int64(time.Millisecond) / int64(time.Nanosecond);
+		var currentTime int64 = logic.mWorldMap.SimulationTime.UnixNano() / int64(time.Millisecond) / int64(time.Nanosecond)
 		logic.SendMessage(network.SyncPositionsMessage{logic.mWorldMap.GetObjectsPositions(), currentTime})
 	case *network.LogoutMessage:
 		log.Println("Logic: Logout message", msg.Id)
@@ -164,6 +168,18 @@ func (logic *Logic) ProcessMessage(message network.UserMessage) (needSync bool) 
 	return
 }
 
+func (logic *Logic) TimeToNextStep() time.Duration {
+	if logic.NextSimulationStepTime().After(time.Now()) {
+		return logic.NextSimulationStepTime().Sub(time.Now())
+	} else {
+		return 0
+	}
+}
+
+func (logic *Logic) NextSimulationStepTime() time.Time {
+	return logic.StartTime.Add(time.Duration(logic.mWorldMap.SimulationStep+1) * SimulationStepRealTime)
+}
+
 func (logic *Logic) Start() {
 	rand.Seed(int64(time.Now().Nanosecond()))
 
@@ -171,9 +187,7 @@ func (logic *Logic) Start() {
 
 	logic.mWorldMap = world.NewWorldMap()
 
-	// стартуем симуляцию
-	logic.mWorldMap.ProcessSimulationStep()
-	var simulationTimer *time.Timer = time.NewTimer(logic.mWorldMap.TimeToNextStep())
+	var simulationTimer *time.Timer = time.NewTimer(logic.TimeToNextStep())
 	var sendTimer *time.Timer = time.NewTimer(time.Second * 0)
 
 	log.Println("Logic: started")
@@ -182,22 +196,27 @@ func (logic *Logic) Start() {
 		case _ = <-simulationTimer.C:
 			//log.Println("Logic: simulation step")
 
-			// пока есть что симулировать - симулируем
-			simulated := true
-			var changed, globallyChanged bool = false, false;
-			for simulated {
-				// пока нам говорят, что симуляция прошла успешно - делаем очередной шаг
-				simulated, changed = logic.mWorldMap.ProcessSimulationStep()
-				// при это запоминаем, не поменялось ли чего
-				globallyChanged = globallyChanged || changed
+			// ага, уже пора производить симуляцию
+
+			stepsCount := 0
+			globallyCahnged := false
+
+			// если уже пора симулировать, то симулируем, н оне больше 10 шагов
+			for logic.NextStepTime.Before(time.Now()) && stepsCount < MaxSimulationStepsAtOnce {
+				// если что-то изменилось - нужно разослать всем уведомления
+				changed := logic.mWorldMap.ProcessSimulationStep()
+				globallyCahnged = globallyCahnged || changed
+
+				//logic.NextStepTime = logic.StartTime.Add(time.Duration(logic.mWorldMap.SimulationStep+1) * SimulationStepRealTime)
+				logic.NextStepTime.Add(SimulationStepRealTime)
+				stepsCount++
 			}
 
-			if (globallyChanged) {
-				// если что-то изменилось, надо об этом всем рассказать
+			if globallyCahnged {
 				logic.sendSyncMessage()
 			}
 
-			simulationTimer.Reset(logic.mWorldMap.TimeToNextStep())
+			simulationTimer.Reset(logic.TimeToNextStep())
 		case _ = <-sendTimer.C:
 			// дополнительно рассылаем всем уведомления по таймеру
 			// по идее потом это можно будет убрать

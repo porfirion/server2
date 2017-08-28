@@ -3,20 +3,22 @@ package world
 import (
 	"log"
 	"math/rand"
+	"sort"
 	"strconv"
 	"time"
 )
 
 const (
-	SimulationStepTime time.Duration = 100 * time.Millisecond
-	ObjectSpeed        float64       = 50.0
+	SimulationStepTime time.Duration = 100 * time.Millisecond // сколько виртуального времени проходит за один шаг симуляции
+	ObjectSpeed        float64       = 50.0                   // скорость объекта по умолчанию
 )
 
 type WorldMap struct {
-	Objects      map[uint64]*MapObject
-	UsersObjects map[uint64]*MapObject
-	Width        float64
-	Height       float64
+	ObjectsById  map[uint64]*MapObject // список объектов по id
+	Objects      []*MapObject          // список объектов, отсоритрованный по левой границе
+	UsersObjects map[uint64]*MapObject // список пользовательских объектов
+	Width        float64               // ширина карты
+	Height       float64               // высота карты
 
 	NextObjectId uint64
 
@@ -27,17 +29,16 @@ type WorldMap struct {
 	//5124095,576	часов
 	//213503,9823	дней
 	//584,9424174	лет
-	SimulationStep uint64    // номер последнего рассчитанного шага симуляции
-	SimulationTime time.Time // время, в которое, по идее, произошёл текущий шаг симуляции
-	StartTime      time.Time // время начала симуляции (отсчитывается от первого вызова simulationStep)
-	NextStepTime   time.Time // время, в которое должен произойти следующий шаг симуляции
+	SimulationStep      uint64    // номер последнего рассчитанного шага симуляции
+	SimulationTime      time.Time // текущее игровое время
+	SimulationStartTime time.Time // время начала симуляции (по идее оно чисто условное и может начинаться с любого времени)
 }
 
 func NewWorldMap() *WorldMap {
 	var world *WorldMap = new(WorldMap)
 	world.Width = 10000
 	world.Height = 10000
-	world.Objects = make(map[uint64]*MapObject)
+	world.ObjectsById = make(map[uint64]*MapObject)
 	world.UsersObjects = make(map[uint64]*MapObject)
 	world.SimulationStep = 0
 	for i := 0; i < 10; i++ {
@@ -51,6 +52,9 @@ func NewWorldMap() *WorldMap {
 		world.AddObject(obj)
 	}
 
+	// TODO FORTEST
+	world.SimulationStartTime = time.Unix(0, 0)
+
 	log.Println("world created")
 	return world
 }
@@ -61,7 +65,9 @@ func (world *WorldMap) NewObject(pos Point2D, objectType MapObjectType) *MapObje
 }
 
 func (world *WorldMap) AddObject(obj *MapObject) {
-	world.Objects[obj.Id] = obj
+	world.ObjectsById[obj.Id] = obj
+	world.Objects = append(world.Objects, obj)
+	sort.Sort(ByLeft(world.Objects))
 }
 
 func (world *WorldMap) AddUser(userId uint64, pos Point2D) {
@@ -73,7 +79,7 @@ func (world *WorldMap) AddUser(userId uint64, pos Point2D) {
 }
 
 func (world *WorldMap) RemoveObject(obj *MapObject) {
-	delete(world.Objects, obj.Id)
+	delete(world.ObjectsById, obj.Id)
 }
 
 func (world *WorldMap) RemoveUser(userId uint64) {
@@ -84,7 +90,7 @@ func (world *WorldMap) RemoveUser(userId uint64) {
 
 func (world *WorldMap) GetObjectsPositions() map[string]MapObjectDescription {
 	res := make(map[string]MapObjectDescription)
-	for id, obj := range world.Objects {
+	for id, obj := range world.ObjectsById {
 		res[strconv.FormatUint(id, 10)] = obj.GetDescription()
 	}
 	//log.Printf("Map: users positions %#v\n", res)
@@ -92,44 +98,25 @@ func (world *WorldMap) GetObjectsPositions() map[string]MapObjectDescription {
 	return res
 }
 
-func (world *WorldMap) TimeToNextStep() time.Duration {
-	if world.NextStepTime.After(time.Now()) {
-		return world.NextStepTime.Sub(time.Now())
-	} else {
-		return 0
-	}
-}
-
+/**
+ * Возвращает игровое время для указанного шага симуляции
+ */
 func (world *WorldMap) GetStepTime(step int) time.Time {
-	return world.StartTime.Add(SimulationStepTime * time.Duration(step))
+	return world.SimulationStartTime.Add(SimulationStepTime * time.Duration(step))
 }
 
 // Выполнение симуляции.
 // Первый возвращаемый результат - была ли выполнены симуляция
 // Второй возвращаемый результат - произошли ли какие-то существенные изменения
-func (world *WorldMap) ProcessSimulationStep() (simulationPassed bool, somethingChanged bool) {
-	if world.SimulationStep == 0 {
-		// это наш первый шаг симуляции, запоминаем когда стартовали
-		world.StartTime = time.Now()
-		world.NextStepTime = time.Now()
-	} else {
-		if time.Now().Before(world.NextStepTime) {
-			// время ещё не пришло
-			return false, false
-		}
-		// ага, время уже настало. Симулируем
-	}
-
-	simulationPassed = true
+func (world *WorldMap) ProcessSimulationStep() (somethingChanged bool) {
 	somethingChanged = false
 
 	world.SimulationStep++
-	world.SimulationTime = world.StartTime.Add((time.Duration)(world.SimulationStep) * SimulationStepTime)
-	//log.Println("Simulation step ", world.SimulationStep)
-	world.NextStepTime = world.NextStepTime.Add(SimulationStepTime)
+	world.SimulationTime = world.SimulationStartTime.Add(time.Duration(world.SimulationStep) * SimulationStepTime)
+
 	var passedTime float64 = float64(SimulationStepTime) / float64(time.Second)
 
-	for id, obj := range world.Objects {
+	for id, obj := range world.ObjectsById {
 		if obj.DestinationPosition != NilPosition {
 			log.Println("moving ", id)
 			distance := obj.CurrentPosition.DistanceTo(obj.DestinationPosition)
@@ -163,14 +150,14 @@ func (world *WorldMap) ProcessSimulationStep() (simulationPassed bool, something
 
 func (world *WorldMap) detectCollisions() []MapObjectCollision {
 	collisions := make([]MapObjectCollision, 0)
-	for id1, obj1 := range world.Objects {
-		for id2, obj2 := range world.Objects {
+	for id1, obj1 := range world.ObjectsById {
+		for id2, obj2 := range world.ObjectsById {
 			if id1 != id2 {
 				if obj1.ObjectType == MapObjectTypeUser || obj2.ObjectType == MapObjectTypeUser {
 					log.Printf("%d -- %d dist %f > %f + %f", id1, id2, obj1.CurrentPosition.DistanceTo(obj2.CurrentPosition), obj1.Size, obj2.Size)
 				}
 				if obj1.CurrentPosition.DistanceTo(obj2.CurrentPosition) < float64(obj1.Size+obj2.Size) {
-					log.Printf("collide %d VS %d \n", id1, id2);
+					log.Printf("collide %d VS %d \n", id1, id2)
 					collisions = append(collisions, MapObjectCollision{obj1, obj2})
 				}
 			}

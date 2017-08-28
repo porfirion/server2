@@ -4,6 +4,20 @@ import (
 	"log"
 )
 
+type SearchableArray []uint64
+
+func (arr SearchableArray) indexOf(value uint64) (bool, int) {
+	if len(arr) == 0 {
+		return false, -1
+	}
+	for ind, val := range arr {
+		if val == value {
+			return true, ind
+		}
+	}
+	return false, -1
+}
+
 type ConnectionsPool struct {
 	Logic                 LogicInterface
 	IncomingConnections   ConnectionsChannel // входящие соединения
@@ -64,29 +78,18 @@ func (pool *ConnectionsPool) RemoveConnection(connectionId uint64) {
 }
 
 func (pool *ConnectionsPool) DispathMessage(msg ServerMessage) {
+	except := SearchableArray(msg.Except)
 	if len(msg.Targets) == 0 {
-	AllConnectionsLoop:
 		for _, conn := range pool.Connections {
-			if len(msg.Except) > 0 {
-				for _, id := range msg.Except {
-					if conn.GetId() == id {
-						continue AllConnectionsLoop
-					}
-				}
+			if exists, _ := except.indexOf(conn.GetId()); !exists {
+				conn.GetResponseChannel() <- msg.Data
 			}
-			conn.GetResponseChannel() <- msg.Data
 		}
 	} else {
-	TargetConnectionsLoop:
 		for _, connectionId := range msg.Targets {
-			if len(msg.Except) > 0 {
-				for _, id := range msg.Except {
-					if connectionId == id {
-						continue TargetConnectionsLoop
-					}
-				}
+			if exists, _ := except.indexOf(connectionId); !exists {
+				pool.Connections[connectionId].GetResponseChannel() <- msg.Data
 			}
-			pool.Connections[connectionId].GetResponseChannel() <- msg.Data
 		}
 	}
 }
