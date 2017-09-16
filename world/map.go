@@ -116,9 +116,9 @@ func (world *WorldMap) ProcessSimulationStep() (somethingChanged bool) {
 
 	var passedTime float64 = float64(SimulationStepTime) / float64(time.Second)
 
-	for id, obj := range world.ObjectsById {
+	for _, obj := range world.ObjectsById {
 		if obj.DestinationPosition != NilPosition {
-			log.Println("moving ", id)
+			//log.Println("moving ", id)
 			distance := obj.CurrentPosition.DistanceTo(obj.DestinationPosition)
 			if distance <= ObjectSpeed*passedTime {
 				obj.CurrentPosition = obj.DestinationPosition
@@ -141,21 +141,32 @@ func (world *WorldMap) ProcessSimulationStep() (somethingChanged bool) {
 		//log.Println("id, obj", id, obj)
 	}
 
-	collisions := world.detectCollisions()
-
-	world.resolveCollisions(collisions)
+	if collisions := world.detectCollisions(); len(collisions) > 0 {
+		world.resolveCollisions(collisions)
+	}
 
 	return
 }
 
 func (world *WorldMap) detectCollisions() []MapObjectCollision {
 	collisions := make([]MapObjectCollision, 0)
-	for id1, obj1 := range world.ObjectsById {
-		for id2, obj2 := range world.ObjectsById {
-			if id1 != id2 {
-				if obj1.ObjectType == MapObjectTypeUser || obj2.ObjectType == MapObjectTypeUser {
-					log.Printf("%d -- %d dist %f > %f + %f", id1, id2, obj1.CurrentPosition.DistanceTo(obj2.CurrentPosition), obj1.Size, obj2.Size)
+	for i := 0; i < len(world.Objects); i++ {
+		obj1 := world.Objects[i]
+		if (i < len(world.Objects) - 1) {
+			// это не послдений объект в списке
+			for j := i + 1; j < len(world.Objects); j++ {
+				obj2 := world.Objects[j]
+
+				if (obj1.Id == obj2.Id) {
+					log.Println("WARNING! the same objects!");
+					continue
 				}
+
+				id1, id2 := obj1.Id, obj2.Id
+
+				//if obj1.ObjectType == MapObjectTypeUser || obj2.ObjectType == MapObjectTypeUser {
+				//	log.Printf("%d -- %d dist %f > %f + %f", id1, id2, obj1.CurrentPosition.DistanceTo(obj2.CurrentPosition), obj1.Size, obj2.Size)
+				//}
 				if obj1.CurrentPosition.DistanceTo(obj2.CurrentPosition) < float64(obj1.Size+obj2.Size) {
 					log.Printf("collide %d VS %d \n", id1, id2)
 					collisions = append(collisions, MapObjectCollision{obj1, obj2})
@@ -163,6 +174,7 @@ func (world *WorldMap) detectCollisions() []MapObjectCollision {
 			}
 		}
 	}
+
 	return collisions
 }
 

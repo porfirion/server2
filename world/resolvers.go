@@ -9,6 +9,10 @@ type CollisionResolver interface {
 	resolve(obj1 *MapObject, obj2 *MapObject);
 }
 
+var (
+	simpleResolver *SimpleResolver = &SimpleResolver{}
+)
+
 type SimpleResolver struct {
 }
 
@@ -45,5 +49,6 @@ func (r SimpleResolver) resolve(obj1 *MapObject, obj2 *MapObject) {
 }
 
 func GetResolver(obj1 *MapObject, obj2 *MapObject) CollisionResolver {
-	return SimpleResolver{};
+	// temporary hack - always returning simple resolver
+	return simpleResolver;
 }
