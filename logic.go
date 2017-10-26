@@ -8,13 +8,15 @@ import (
 	"time"
 )
 
-const (
-	SendObjectsTimeout       time.Duration = time.Second * 1
-	SimulationStepRealTime   time.Duration = 100 * time.Millisecond // сколько реального времени проходит за один шаг симуляции
-	MaxSimulationStepsAtOnce               = 10
-)
+type LogicParams struct {
+	SimulateByStep           bool // если выставить этот флаг, то симуляция запускается не по таймеру, а по приходу события Simulate
+	SendObjectsTimeout       time.Duration
+	SimulationStepRealTime   time.Duration // сколько реального времени проходит за один шаг симуляции
+	MaxSimulationStepsAtOnce int
+}
 
 type Logic struct {
+	params           LogicParams
 	IncomingMessages network.UserMessagesChannel
 	OutgoingMessages network.ServerMessagesChannel
 	Users            map[uint64]*network.User
@@ -23,6 +25,10 @@ type Logic struct {
 
 	StartTime    time.Time // время начала симуляции (отсчитывается от первого вызова simulationStep)
 	NextStepTime time.Time // время, в которое должен произойти следующий шаг симуляции
+}
+
+func (logic *Logic) SetParams(params LogicParams) {
+	logic.params = params;
 }
 
 func (logic Logic) GetIncomingMessagesChannel() network.UserMessagesChannel {
@@ -161,6 +167,12 @@ func (logic *Logic) ProcessMessage(message network.UserMessage) (needSync bool) 
 		logic.SendMessage(network.UserLoggedoutMessage{Id: msg.Id})
 	case *network.ActionMessage:
 		needSync = logic.ProcessActionMessage(message.Source, msg)
+	case *network.SimulateMessage:
+		log.Println("Simulating!");
+		if logic.params.SimulateByStep {
+			logic.mWorldMap.ProcessSimulationStep()
+			logic.sendSyncMessage()
+		}
 	default:
 		log.Printf("Logic: Unknown message type %#v from %d\n", message.Data, message.Source)
 	}
@@ -177,7 +189,7 @@ func (logic *Logic) TimeToNextStep() time.Duration {
 }
 
 func (logic *Logic) NextSimulationStepTime() time.Time {
-	return logic.StartTime.Add(time.Duration(logic.mWorldMap.SimulationStep+1) * SimulationStepRealTime)
+	return logic.StartTime.Add(time.Duration(logic.mWorldMap.SimulationStep+1) * logic.params.SimulationStepRealTime)
 }
 
 func (logic *Logic) Start() {
@@ -189,6 +201,10 @@ func (logic *Logic) Start() {
 
 	var simulationTimer *time.Timer = time.NewTimer(logic.TimeToNextStep())
 	var sendTimer *time.Timer = time.NewTimer(time.Second * 0)
+
+	if (logic.params.SimulateByStep) {
+		simulationTimer.Stop();
+	}
 
 	log.Println("Logic: started")
 	for {
@@ -202,13 +218,13 @@ func (logic *Logic) Start() {
 			globallyCahnged := false
 
 			// если уже пора симулировать, то симулируем, н оне больше 10 шагов
-			for logic.NextStepTime.Before(time.Now()) && stepsCount < MaxSimulationStepsAtOnce {
+			for logic.NextStepTime.Before(time.Now()) && stepsCount < logic.params.MaxSimulationStepsAtOnce {
 				// если что-то изменилось - нужно разослать всем уведомления
 				changed := logic.mWorldMap.ProcessSimulationStep()
 				globallyCahnged = globallyCahnged || changed
 
 				//logic.NextStepTime = logic.StartTime.Add(time.Duration(logic.mWorldMap.SimulationStep+1) * SimulationStepRealTime)
-				logic.NextStepTime.Add(SimulationStepRealTime)
+				logic.NextStepTime.Add(logic.params.SimulationStepRealTime)
 				stepsCount++
 			}
 
@@ -221,7 +237,7 @@ func (logic *Logic) Start() {
 			// дополнительно рассылаем всем уведомления по таймеру
 			// по идее потом это можно будет убрать
 			logic.sendSyncMessage()
-			sendTimer.Reset(SendObjectsTimeout)
+			sendTimer.Reset(logic.params.SendObjectsTimeout)
 		case msg := <-logic.IncomingMessages:
 			log.Println("Logic: message received")
 			if needSync := logic.ProcessMessage(msg); needSync {

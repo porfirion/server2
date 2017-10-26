@@ -219,6 +219,10 @@ jQuery(document).ready(function() {
 		return false;
 	});
 
+	$(document.body).on('click', '.simulateButton', function() {
+		client.sendMessage(MessageType.SIMULATE_MESSAGE, {steps: 1});
+	});
+
 	// перемещение вьюпорта при помощи кнопок навигации
 	$(document).on('click', '.floatingButton', function() {
 		var x = $(this).data('x');

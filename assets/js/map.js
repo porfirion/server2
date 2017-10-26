@@ -2,6 +2,10 @@
 
 var canvas;
 
+var DRAW_MODE_ONLY_SERVER = 1,
+    DRAW_MODE_ONLY_REAL = 2,
+    DRAW_MODE_BOTH = 3;
+
 function Map(elem) {
 	canvas = elem;
 	this.elem = elem;
@@ -25,6 +29,9 @@ function Map(elem) {
 	this.timeCanvas = document.createElement("canvas");
 	this.timeCanvas.width = 300;
 	this.timeCanvas.height = 100;
+
+	this.drawMode = DRAW_MODE_ONLY_SERVER;
+
 
 	$(elem).on('click', function (event) {
 		this.points.push({x: event.offsetX, y: event.offsetY, color: randomColor()});
@@ -169,7 +176,7 @@ Map.prototype.removePlayer = function (playerId) {
 	delete this.players[playerId];
 	for (var i = 0; i < this.objects.length; i++) {
 		console.log(this.objects[i]);
-		if (this.objects[i].hasOwnProperty('player') && this.objects[i].player != null && this.objects[i].player.id == playerId) {
+		if (this.objects[i].hasOwnProperty('player') && this.objects[i].player != null && this.objects[i].player.id === playerId) {
 			this.objects.splice(i, 1);
 			break;
 		}
@@ -331,37 +338,38 @@ Map.prototype.drawObjects = function () {
 
 	for (var i = 0; i < this.objects.length; i++) {
 		var obj = this.objects[i];
+        var objHalfSizeReal = obj.size / 2; // half of object size
 
-		var objPosReal = obj.getApproximatedPosition(serverTime);
-		var objHalfSizeReal = obj.size / 2; // half of object size
-
-		var isVisible = this.rectContainsPoint(viewportReal, objPosReal, objHalfSizeReal)
-			|| this.rectContainsPoint(viewportReal, obj.getLastServerPosition(), objHalfSizeReal);
-		// var isVisible = viewportReal.left <= objPosReal.x + objHalfSizeReal && objPosReal.x - objHalfSizeReal <= viewportReal.right &&
-		// 	viewportReal.top <= (objPosReal.y + objHalfSizeReal) && (objPosReal.y - objHalfSizeReal) <= viewportReal.bottom;
-
-		if (!isVisible) {
-			continue;
+		if (this.drawMode === DRAW_MODE_ONLY_SERVER || this.drawMode === DRAW_MODE_BOTH) {
+            var objPosServer = obj.getLastServerPosition();
+            if (this.rectContainsPoint(viewportReal, objPosServer, objHalfSizeReal)) {
+                // рисуем текущее положение объекта по серверу
+                ctx.save();
+                var serverPos = this.realToViewport(objPosServer);
+                ctx.translate(serverPos.x, serverPos.y);
+                ctx.lineWidth = 1;
+                ctx.setLineDash([4, 2]);
+                ctx.beginPath();
+                ctx.arc(0, 0, objHalfSizeReal, 0, Math.PI * 2);
+                ctx.strokeStyle = '#aaaaaa';
+                ctx.closePath();
+                ctx.stroke();
+                ctx.restore();
+            }
+		}
+		if (this.drawMode === DRAW_MODE_ONLY_REAL || this.drawMode === DRAW_MODE_BOTH) {
+            var objPosReal = obj.getApproximatedPosition(serverTime);
+            if (this.rectContainsPoint(viewportReal, objPosReal, objHalfSizeReal)) {
+                ctx.save();
+                var objPosViewport = this.realToViewport(objPosReal); // viewport position of object
+                ctx.translate(objPosViewport.x, objPosViewport.y);
+                obj.draw(ctx);
+                ctx.restore();
+            }
 		}
 
-		var objPosViewport = this.realToViewport(objPosReal); // viewport position of object
-		ctx.save();
-		ctx.translate(objPosViewport.x, objPosViewport.y);
-		obj.draw(ctx);
-		ctx.restore();
-
-		// рисуем текущее положение объекта по серверу
-		ctx.save();
-		var serverPos = this.realToViewport(obj.getLastServerPosition());
-		ctx.translate(serverPos.x, serverPos.y);
-		ctx.lineWidth = 1;
-		ctx.setLineDash([4, 2]);
-		ctx.beginPath();
-		ctx.arc(0, 0, objHalfSizeReal, 0, Math.PI * 2);
-		ctx.strokeStyle = '#aaaaaa';
-		ctx.closePath();
-		ctx.stroke();
-		ctx.restore();
+		// var isVisible = viewportReal.left <= objPosReal.x + objHalfSizeReal && objPosReal.x - objHalfSizeReal <= viewportReal.right &&
+		// 	viewportReal.top <= (objPosReal.y + objHalfSizeReal) && (objPosReal.y - objHalfSizeReal) <= viewportReal.bottom;
 	}
 	ctx.restore();
 };

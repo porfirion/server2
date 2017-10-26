@@ -91,6 +91,13 @@ type ActionMessage struct {
 	ActionData map[string]interface{} `json:"actionData"`
 }
 
+/**
+ * Выполнить симуляцию определённого количества шагов (для режима отладки)
+ */
+type SimulateMessage struct {
+	Steps int `json:"steps"`
+}
+
 /* SPECIAL STRUCTURES */
 
 type ServerMessage struct {
@@ -124,6 +131,7 @@ var dict map[reflect.Type]int = map[reflect.Type]int{
 	reflect.TypeOf(SyncTimeMessage{}):      10004,
 
 	reflect.TypeOf(ActionMessage{}): 1000000,
+	reflect.TypeOf(SimulateMessage{}): 1000001,
 }
 
 func GetMessageTypeId(value interface{}) int {

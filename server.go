@@ -6,6 +6,7 @@ import (
 	"github.com/porfirion/server2/network"
 	"github.com/porfirion/server2/network/ws"
 	"github.com/porfirion/server2/network/tcp"
+	"time"
 )
 
 var (
@@ -26,6 +27,12 @@ func main() {
 
 	// стартуем логику. она готова, чтобы принимать и обрабатывать соощения
 	logic = &Logic{}
+	logic.SetParams(LogicParams{
+		SimulateByStep:     true, // если выставить этот флаг, то симуляция запускается не по таймеру, а по приходу события Simulate
+		SendObjectsTimeout: time.Second * 1,
+		SimulationStepRealTime: 100 * time.Millisecond, // сколько реального времени проходит за один шаг симуляции
+		MaxSimulationStepsAtOnce: 10,
+	})
 	logic.SetIncomingMessagesChannel(incomingMessages)
 	logic.SetOutgoingMessagesChannel(outgoingMessages)
 	go logic.Start()
@@ -48,3 +55,4 @@ func main() {
 
 	log.Println("exit")
 }
+

@@ -193,6 +193,7 @@ var MessageType = {
 	SYNC_TIME: 10004,
 
 	ACTION_MESSAGE: 1000000,
+	SIMULATE_MESSAGE: 1000001
 }
 
 function getMessageType(messageTypeId) {
