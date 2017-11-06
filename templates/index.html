@@ -15,16 +15,17 @@
 			<div class="playerName"></div>
 			<div class="latency">Latency: <span class="value"></span></div>
 			<div class="timeCorrection">Time correction: <span class="value"></span></div>
-			<a href="#" class="btn btn-default btn-xs drawButton btn-disabled">Start drawing</a>
-			<a href="#" class="btn btn-default btn-xs centrateButton">Centrate viewport</a>
-			<a href="#" class="btn btn-default btn-xs simulateButton">Simulate!</a>
+			<a href="#" class="btn btn-default btn-xs drawButton btn-disabled">Draw</a>
+            <a href="#" class="btn btn-default btn-xs autoDrawButton btn-disabled">Auto draw</a>
+			<br/>
+			<a href="#" class="btn btn-default btn-xs simulateButton">Simulate! (Space)</a>
 			<div>
 				<a href="#" class="btn btn-default btn-sm floatingButton" data-x="-1" data-y="+1">&#8598;</a>
 				<a href="#" class="btn btn-default btn-sm floatingButton" data-x="+0" data-y="+1">&#8593;</a>
 				<a href="#" class="btn btn-default btn-sm floatingButton" data-x="+1" data-y="+1">&#8599;</a>
-				<a href="#" class="btn btn-default btn-sm floatingButton" data-x="-1" data-y="" style="clear: left;">&#8592;</a>
-				<a href="#" class="btn btn-default btn-sm floatingButton" data-x="+0" data-y="">C</a>
-				<a href="#" class="btn btn-default btn-sm floatingButton" data-x="+1" data-y="">&#8594;</a>
+				<a href="#" class="btn btn-default btn-sm floatingButton" data-x="-1" data-y="+0" style="clear: left;">&#8592;</a>
+				<a href="#" class="btn btn-default btn-sm floatingButton centerButton" data-x="+0" data-y="+0">C</a>
+				<a href="#" class="btn btn-default btn-sm floatingButton" data-x="+1" data-y="+0">&#8594;</a>
 				<a href="#" class="btn btn-default btn-sm floatingButton" data-x="-1" data-y="-1" style="clear: left;">&#8601;</a>
 				<a href="#" class="btn btn-default btn-sm floatingButton" data-x="+0" data-y="-1">&#8595;</a>
 				<a href="#" class="btn btn-default btn-sm floatingButton" data-x="+1" data-y="-1">&#8600;</a>
@@ -33,10 +34,11 @@
 		<div class="panel panel-default">
 			<div class="panel-body main-wrapper">
 				<div id="map-wrapper">
-					<canvas id="map" width="1000" height="1000"></canvas>
+					<canvas id="map" width="600" height="500"></canvas>
 				</div>
-				<div class="widthSeparator"></div>
-				<div id="chat">
+                <button class="chatToggler">Show/hide chat</button>
+                <div class="widthSeparator"></div>
+				<div id="chat" style="display: none;">
 					<div class="chat_window"></div>
 					<div class="chat_members"></div>
 					

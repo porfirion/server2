@@ -18,7 +18,7 @@ type MapObjectDescription struct {
 	Speed      Vector2D      `json:"speed"`
 	Position   Point2D       `json:"position"`
 	UserId     uint64        `json:"userId"`
-	Size       uint64        `json:"size"`
+	Size       float64        `json:"size"`
 }
 
 type MapObject struct {
@@ -49,6 +49,7 @@ func (obj *MapObject) GetDescription() MapObjectDescription {
 		ObjectType: obj.ObjectType,
 		Position:   obj.CurrentPosition,
 		Speed:      obj.Speed,
+		Size:       obj.Size,
 		//StartPosition:       obj.StartPosition,
 		//StartTime:           obj.StartTime.UnixNano() / int64(time.Millisecond),
 		//DestinationPosition: obj.DestinationPosition,

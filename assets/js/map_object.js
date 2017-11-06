@@ -1,18 +1,29 @@
 "use strict";
 
+/**
+ * Base class for all map objects
+ * @param {Number} id
+ * @param {ObjectType} type
+ * @param {{x: Number, y: Number}} pos
+ * @param {Number} size
+ * @param {String} color
+ * @returns {MapObject}
+ * @constructor
+ */
 function MapObject(id, type, pos, size, color) {
 	this.id = id;
+    /**
+     * @type {ObjectType}
+     */
 	this.type = type;
 
-	// реальные координаты объекта. Именно по ним происходит отрисовка
-	this.pos = pos || {x: 0, y: 0};
 	this.size = 10;
 
-	if (type == ObjectType.Obstacle) {
+	if (type === ObjectType.Obstacle) {
 		this.color = 'lightblue';
-	} else if (type == ObjectType.Player) {
+	} else if (type === ObjectType.Player) {
 		this.color = 'lightblue';
-	} else if (type == ObjectType.NPC) { 
+	} else if (type === ObjectType.NPC) {
 		this.color = '#cccccc';
 		// this.color = 'red';
 	} else {
@@ -22,7 +33,22 @@ function MapObject(id, type, pos, size, color) {
 	this.speed = {x: 0, y: 0};
 	this.isAnimating = false;
 
+    /**
+	 * Player associated with this object
+     * @type {null}
+     */
 	this.player = null;
+
+    /**
+	 * Last actual server position
+     * @type {{x: Number, y: Number}}
+     */
+    this.serverPosition = null;
+    /**
+	 * Time (server) when object position was actual
+     * @type {int}
+     */
+    this.adjustServerTime = null;
 
 	return this;
 }
@@ -39,9 +65,9 @@ MapObject.prototype.setColor = function(color) {
 	return this;
 };
 
-MapObject.prototype.getApproximatedPosition = function(time) {
-	var passedTime = (time - this.adjustServerTime) / 1000;
-	var newPos = {x: this.pos.x, y: this.pos.y};
+MapObject.prototype.getApproximatedPosition = function(currentTime) {
+	var passedTime = (currentTime - this.adjustServerTime) / 1000;
+	var newPos = {x: this.serverPosition.x, y: this.serverPosition.y};
 	newPos.x += this.speed.x * passedTime;
 	newPos.y += this.speed.y * passedTime;
 	return newPos;
@@ -57,11 +83,10 @@ MapObject.prototype.setSpeed = function(speed) {
 };
 
 MapObject.prototype.adjustState = function(obj, time) {
-	this.pos = obj.position;
+    this.adjustServerTime = time;
 	this.serverPosition = obj.position;
 	this.setSpeed(obj.speed);
 	this.setSize(obj.size);
-	this.adjustServerTime = time;
 
 	// this.posTime = obj.startTime;
 	// this.destination = obj.destinationPosition;
@@ -76,7 +101,10 @@ MapObject.prototype.setPlayer = function(player) {
 	}
 };
 
-
+/**
+ *
+ * @param {CanvasRenderingContext2D} ctx
+ */
 MapObject.prototype.draw = function(ctx) {
 	var drawTextCentered = function (ctx, text, x, y) {
 		var measure = ctx.measureText(text);
@@ -119,11 +147,12 @@ MapObject.prototype.draw = function(ctx) {
 		ctx.stroke();
 	}
 
-	ctx.font = '6px serif';
+	ctx.font = '10px serif';
+    ctx.fillStyle = 'blue';
 	drawTextCentered(ctx, this.id, 0, 2);
 
 	// координаты объекта
-	var str = Math.round(this.pos.x, 0) + ':' + Math.round(this.pos.y, 0);
+	var str = Math.round(this.serverPosition.x, 0) + ':' + Math.round(this.serverPosition.y, 0);
 	ctx.fillStyle = 'black';
 	drawTextCentered(ctx, str, 0, 0 - this.size / 1.5);
 
@@ -136,7 +165,7 @@ MapObject.prototype.draw = function(ctx) {
 	// }
 }
 
-var ObjectType = {
+const ObjectType = {
 	Obstacle: 1,
 	NPC: 10,
 	Player: 100,

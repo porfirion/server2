@@ -88,6 +88,10 @@ func (world *WorldMap) RemoveUser(userId uint64) {
 	world.RemoveObject(obj)
 }
 
+func (world *WorldMap) GetUserObject(userId uint64) *MapObject {
+	return world.UsersObjects[userId]
+}
+
 func (world *WorldMap) GetObjectsPositions() map[string]MapObjectDescription {
 	res := make(map[string]MapObjectDescription)
 	for id, obj := range world.ObjectsById {

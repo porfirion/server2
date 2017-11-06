@@ -5,7 +5,7 @@ function generateUUID(){
 	return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
 		var r = (d + Math.random()*16)%16 | 0;
 		d = Math.floor(d/16);
-		return (c=='x' ? r : (r&0x7|0x8)).toString(16);
+		return (c==='x' ? r : (r&0x7|0x8)).toString(16);
 	});
 }
 
@@ -32,6 +32,7 @@ var myId = null;
 var client = null;
 var syncTimeTimer = null;
 var map = null;
+var gameTime = 0;
 
 function onmessage(messageType, data) {
 	switch (messageType) {
@@ -135,27 +136,36 @@ function removeMember(id) {
 }
 
 function showMessage(text, messageType) {
-	if (typeof messageType == 'undefined' || messageType == null) {
+	if (typeof messageType === 'undefined' || messageType == null) {
 		messageType = "";
 	}
 
 	$('.chat_window').append('<div class="message ' + messageType + '">' + text + '</div>');
 }
 
-
+/**
+ *
+ * @param id
+ * @param name
+ * @constructor
+ */
 var Player = function(id, name) {
-	this. id = id;
+	this.id = id;
 	this.name = name;
+    /**
+     *
+     * @type {boolean}
+     */
+	this.isMe = false;
+    /**
+     *
+     * @type {HTMLElement}
+     */
+	this.anchor = null;
 
 	this.state = {
 		position: {x: 0, y: 0}
 	};
-};
-
-Player.prototype.setPosition = function(position) {
-	this.state.position = position;
-
-	$(this).trigger('change.position');
 };
 
 jQuery(document).ready(function() {
@@ -206,12 +216,18 @@ jQuery(document).ready(function() {
 
 	// запуск анимации, если она ещё не была начата
 	$(document.body).on('click', '.drawButton', function() {
-		map.draw();
+		map.draw_();
 		return false;
 	});
 
+    // запуск анимации, если она ещё не была начата
+    $(document.body).on('click', '.autoDrawButton', function() {
+        map.toggleAutoDrawing();
+        return false;
+    });
+
 	// центрирование вьюпорта (0:0)
-	$(document.body).on('click', '.centrateButton', function() {
+	$(document.body).on('click', '.centerButton', function() {
 		map.viewport.x = 0;
 		map.viewport.y = 0;
 		map.viewportAdjustPoint = null;
@@ -241,6 +257,10 @@ jQuery(document).ready(function() {
 		});
 	});
 
+	$(document).on('click', '.chatToggler', function() {
+	   $('#chat').toggle();
+    });
+
 	// setInterval(function() {
 	// 	console.log('send last pos ', map.lastCursorPosition, map.lastCursorPositionReal);
 	// 	if (map.lastCursorPositionReal != null) {
@@ -250,6 +270,18 @@ jQuery(document).ready(function() {
 	// 		});
 	// 	}
 	// }, 1000);
-	
-	map.draw();
+
+    $(document).on('keydown', function(e) {
+        switch (e.keyCode) {
+            case 32:
+                // space
+                client.sendMessage(MessageType.SIMULATE_MESSAGE, {steps: 1});
+                break;
+            default:
+                console.log('Key pressed', e.keyCode);
+                break;
+        }
+    });
+
+    map.toggleAutoDrawing();
 });

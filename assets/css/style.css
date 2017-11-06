@@ -29,7 +29,7 @@ div, span, textarea, input {
 	/* this was removed to show the ability to scale */
 	/*width: 910px;*/
 	/*width: 48%;*/
-	height: 700px;
+	height: 600px;
 	position: relative;
 	border: 1px solid #ddd;
 	margin-bottom: 10px;
@@ -117,7 +117,7 @@ div, span, textarea, input {
 	right: 20px;
 	border: 1px solid #ccc;
 	padding: 10px;
-	width: 300px;
+	width: 200px;
 	box-shadow: 0px 0px 10px #ccc;
 	z-index: 10;
 }
@@ -139,4 +139,10 @@ div, span, textarea, input {
 
 .widthSeparator {
 	width: 1%;
+}
+.panel {
+	margin-bottom: 0px;
+}
+.panel-body {
+	padding: 0px;
 }

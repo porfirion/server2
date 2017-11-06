@@ -146,14 +146,14 @@ function WsClient(wsAddr, name) {
 		// задержка между временем на клиенте и временем на сервере
 		var correction = Math.round(assumingServerTime - now);
 
-		console.log('sync time!\n sent        : %d\n received    : %d\n latency     : %d\n server time : %d\n correction  : %d\n assuming server time: %f',
-			this.lastSyncTimeRequest,
-			now,
-			latency,
-			data.time,
-			correction,
-			assumingServerTime
-		);
+		// console.log('sync time!\n sent        : %d\n received    : %d\n latency     : %d\n server time : %d\n correction  : %d\n assuming server time: %f',
+		// 	this.lastSyncTimeRequest,
+		// 	now,
+		// 	latency,
+		// 	data.time,
+		// 	correction,
+		// 	assumingServerTime
+		// );
 		// console.log('time correction : ' + correction);
 		 
 		this.latencies.push(latency);

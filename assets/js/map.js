@@ -1,28 +1,46 @@
 "use strict";
 
-var canvas;
-
-var DRAW_MODE_ONLY_SERVER = 1,
+const DRAW_MODE_ONLY_SERVER = 1,
     DRAW_MODE_ONLY_REAL = 2,
     DRAW_MODE_BOTH = 3;
 
+/**
+ * Class for holding and drawing list of map objects (including players)
+ * @param {HTMLCanvasElement} elem
+ * @constructor
+ */
 function Map(elem) {
-	canvas = elem;
 	this.elem = elem;
+    /**
+     * Canvas for drawing
+     * @type {CanvasRenderingContext2D}
+     */
 	this.ctx = this.elem.getContext("2d");
 	var _this = this;
+    /**
+     * Position (real) and scale of viewport
+     * @type {{x: number, y: number, scale: number}}
+     */
 	this.viewport = {
 		x: 0,
 		y: 0,
 		scale: 3,
 	};
 	this.points = [];
+    /**
+     * List of map objects
+     * @type {MapObject[]}
+     */
 	this.objects = [];
 	this.myObject = null; // объект текущего игрока
 	this.objectsById = {};
 	this.gridSize = 100;
 	this.prevOffset = 0;
 	this.lastCursorPositionReal = null;
+    /**
+     *
+     * @type {Player[]}
+     */
 	this.players = {};
 	this.latency = 0; // пинг до сервера
 	this.timeCorrection = 0; // сколько нужно прибавить к текущему времени, чтобы получить серверное
@@ -30,8 +48,8 @@ function Map(elem) {
 	this.timeCanvas.width = 300;
 	this.timeCanvas.height = 100;
 
-	this.drawMode = DRAW_MODE_ONLY_SERVER;
-
+	// this.drawMode = DRAW_MODE_ONLY_SERVER;
+	this.drawMode = DRAW_MODE_BOTH;
 
 	$(elem).on('click', function (event) {
 		this.points.push({x: event.offsetX, y: event.offsetY, color: randomColor()});
@@ -71,6 +89,8 @@ function Map(elem) {
 		}
 
 		this.lastCursorPositionReal = this.viewportToReal({x: ev.offsetX, y: ev.offsetY});
+
+		this.draw_();
 		// capture all scrolling over map
 		return false;
 	}.bind(this));
@@ -81,40 +101,18 @@ function Map(elem) {
 		return false;
 	}.bind(this));
 
+    /**
+     * Flag, is auto drawing enabled
+     * @type {boolean}
+     */
 	this.isAnimating = false;
+    /**
+     * List of animations time (for diagram)
+     * @type {Array}
+     */
 	this.animations = [];
 	this.prevAnimationTime = null;
-
-	// this.fillObjects();
 }
-
-Map.prototype.fillObjects = function () {
-	// static objects
-	var i;
-	for (i = 0; i < 1000; i++) {
-		this.addObject(1000000 + i, ObjectType.Obstacle, {
-			x: Math.random() * 10000 - 5000,
-			y: Math.random() * 10000 - 5000
-		}).setSize(Math.random() * 200).setColor(randomColor());
-	}
-
-	var chaos = function (_this) {
-		_this.setSpeed({
-			x: Math.random() * 100 - 50,
-			y: Math.random() * 100 - 50,
-		});
-
-		setTimeout(function () {
-			chaos(_this);
-		}, 20000 * Math.random());
-	};
-
-	for (i = 0; i < 10; i++) {
-		var obj = this.addObject(1100000 + i, ObjectType.NPC);
-		obj.setSize(50);
-		chaos(obj);
-	}
-};
 
 Map.prototype.addObject = function (id, objectType, coords) {
 	if (objectType === undefined) {
@@ -183,15 +181,29 @@ Map.prototype.removePlayer = function (playerId) {
 	}
 };
 
-Map.prototype.draw = function () {
-	if (this.isAnimating) {
-		return;
-	}
+Map.prototype.toggleAutoDrawing = function() {
+    this.isAnimating = !this.isAnimating;
 
-	this.isAnimating = true;
-	this.draw_();
+    if (this.isAnimating) {
+        this.draw();
+    }
 };
 
+/**
+ * Wrapper for automatic drawing
+ */
+Map.prototype.draw = function () {
+    if (this.isAnimating) {
+        this.draw_();
+
+        window.requestAnimationFrame(this.draw.bind(this));
+    }
+};
+
+/**
+ * Exokicit drawing int canvas
+ * @private
+ */
 Map.prototype.draw_ = function () {
 	var ctx = this.ctx;
 	var elem = this.elem;
@@ -225,8 +237,6 @@ Map.prototype.draw_ = function () {
 	this.prevAnimationTime = now;
 
 	this.drawTime();
-
-	window.requestAnimationFrame(this.draw_.bind(this));
 };
 
 Map.prototype.drawTime = function () {
@@ -277,8 +287,8 @@ Map.prototype.drawTime = function () {
 };
 
 Map.prototype.adjustViewport = function () {
-	// disable viewport adjustement
-	// return;
+	// disable viewport adjustment
+	return;
 
 	if (this.myObject != null) {
 
@@ -346,11 +356,12 @@ Map.prototype.drawObjects = function () {
                 // рисуем текущее положение объекта по серверу
                 ctx.save();
                 var serverPos = this.realToViewport(objPosServer);
+                console.log('translating to ', serverPos);
                 ctx.translate(serverPos.x, serverPos.y);
                 ctx.lineWidth = 1;
                 ctx.setLineDash([4, 2]);
                 ctx.beginPath();
-                ctx.arc(0, 0, objHalfSizeReal, 0, Math.PI * 2);
+                ctx.arc(0, 0, 10, 0, Math.PI * 2);
                 ctx.strokeStyle = '#aaaaaa';
                 ctx.closePath();
                 ctx.stroke();

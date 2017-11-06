@@ -108,12 +108,12 @@ func (logic *Logic) sendSyncMessage() {
 
 // Возвращает true, если нужно синхронизировать положение объектов заново
 func (logic *Logic) ProcessActionMessage(userId uint64, msg *network.ActionMessage) (needSync bool) {
-	log.Println("UNIMPLEMENTED!")
+	log.Println("UNIMPLEMENTED action message processing")
 	needSync = false
 	switch msg.ActionType {
 	case "move":
 		user := logic.Users[userId]
-		userObject := logic.mWorldMap.UsersObjects[userId]
+		userObject := logic.mWorldMap.GetUserObject(userId)
 
 		x, okX := msg.ActionData["x"].(float64)
 		y, okY := msg.ActionData["y"].(float64)
@@ -236,7 +236,10 @@ func (logic *Logic) Start() {
 		case _ = <-sendTimer.C:
 			// дополнительно рассылаем всем уведомления по таймеру
 			// по идее потом это можно будет убрать
-			logic.sendSyncMessage()
+
+			// todo fortest временно отключаем отправку sync message
+			//logic.sendSyncMessage()
+
 			sendTimer.Reset(logic.params.SendObjectsTimeout)
 		case msg := <-logic.IncomingMessages:
 			log.Println("Logic: message received")
