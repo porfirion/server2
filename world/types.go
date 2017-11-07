@@ -66,8 +66,8 @@ func (v Vector2D) Mult(multiplier float64) Vector2D {
 }
 // единичный вектор, колинеарный данному
 func (v Vector2D) Unit() Vector2D {
-	var sum float64 = math.Abs(v.X) + math.Abs(v.Y);
-	return Vector2D{v.X / sum, v.Y / sum}
+	var sum float64 = 1 / math.Sqrt(v.X * v.X + v.Y * v.Y);
+	return Vector2D{v.X * sum, v.Y * sum}
 }
 // обратный вектор
 func (v Vector2D) Revers() Vector2D {
