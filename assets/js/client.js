@@ -1,8 +1,15 @@
 "use strict";
 
+/**
+ * Client for connecting to server
+ * Auto correcting latency.
+ * @param {url} wsAddr WebSocket address of server
+ * @param {string} name Name to use when login
+ * @constructor
+ */
 function WsClient(wsAddr, name) {
 	
-	var reconnectTimeout = 1;
+	var reconnectTimeout = 1000;
 
 	var _this = this;
 
@@ -23,12 +30,12 @@ function WsClient(wsAddr, name) {
 		}
 
 		var msg = {
-			type: type,
+			type: type
 			// data: JSON.stringify(data),
 			// Data: btoa(JSON.stringify(data)),
 		};
 
-		if (typeof data != 'undefined' && data != null) {
+		if (typeof data !== 'undefined' && data != null) {
 			msg.data = JSON.stringify(data);
 		}
 
@@ -81,17 +88,18 @@ function WsClient(wsAddr, name) {
 		console.log('on close');
 		_this.websocket = null;
 		_this.id = null;
-		// window.setTimeout(connect, reconnectTimeout * 1000);
+		setTimeout(_this.connect, reconnectTimeout);
 		_this.trigger(WsClient.NotificationClose);
 	};
 
 	var onerrorHandler = function() {
 		console.warn('WebSocket error:', arguments);
-		//_this.websocket = null;
+		_this.websocket = null;
+		_this.id = null;
 		_this.trigger(WsClient.NotificationError);
 
-		// console.log('Reconnecting...');
-		// connect()
+		console.log('Reconnecting...');
+		setTimeout(connect, reconnectTimeout);
 	};
 
 	var onmessageHandler = function (event) {
@@ -104,10 +112,10 @@ function WsClient(wsAddr, name) {
 			console.error(err);
 		}
 
-		if (wrapper.type == MessageType.WELLCOME) {
+		if (wrapper.type === MessageType.WELLCOME) {
 			_this.id = data.id;
 		}
-		if (wrapper.type == MessageType.SYNC_TIME) {
+		if (wrapper.type === MessageType.SYNC_TIME) {
 			_this.syncTime(data);
 			return;
 		}
@@ -118,14 +126,16 @@ function WsClient(wsAddr, name) {
 		// onmessage.call(this, wrapper.MessageType, data);
 	};
 
-	var connect = function() {
+	this.connect = function() {
 		if (!_this.websocket) {
 			_this.websocket = new WebSocket(wsAddr);
 			_this.websocket.onopen = onopenHandler.bind(_this);
 			_this.websocket.onclose = oncloseHandler.bind(_this);
 			_this.websocket.onmessage = onmessageHandler.bind(_this);
 			_this.websocket.onerror = onerrorHandler.bind(_this);
-		}
+		} else {
+		    console.log('we are already connected to server');
+        }
 	};
 
 	this.requestTime = function() {
@@ -168,14 +178,12 @@ function WsClient(wsAddr, name) {
 
 		this.trigger(WsClient.NotificationTimeSynced, latency, correction);
 	};
-
-	connect();
 }
 
-WsClient.NotificationOpen = 'open',
-WsClient.NotificationClose = 'close',
-WsClient.NotificationError = 'error',
-WsClient.NotificationMessage = 'message',
+WsClient.NotificationOpen = 'open';
+WsClient.NotificationClose = 'close';
+WsClient.NotificationError = 'error';
+WsClient.NotificationMessage = 'message';
 WsClient.NotificationTimeSynced = 'timeSynced';
 
 var MessageType = {
@@ -194,11 +202,11 @@ var MessageType = {
 
 	ACTION_MESSAGE: 1000000,
 	SIMULATE_MESSAGE: 1000001
-}
+};
 
 function getMessageType(messageTypeId) {
 	for (var key in MessageType) {
-		if (MessageType[key] == messageTypeId) {
+		if (MessageType[key] === messageTypeId) {
 			return key;
 		}
 	}

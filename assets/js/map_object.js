@@ -17,7 +17,7 @@ function MapObject(id, type, pos, size, color) {
      */
 	this.type = type;
 
-	this.size = 10;
+	this.size = size;
 
 	if (type === ObjectType.Obstacle) {
 		this.color = 'lightblue';

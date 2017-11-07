@@ -44,8 +44,8 @@ func NewWorldMap() *WorldMap {
 	for i := 0; i < 10; i++ {
 		obj := world.NewObject(
 			Point2D{
-				X: rand.Float64()*300 - 150,
-				Y: rand.Float64()*300 - 150,
+				X: rand.Float64()*200 - 100,
+				Y: rand.Float64()*200 - 100,
 			},
 			MapObjectTypeObstacle)
 

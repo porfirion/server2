@@ -17,12 +17,30 @@ type SimpleResolver struct {
 }
 
 func (r SimpleResolver) resolve(obj1 *MapObject, obj2 *MapObject) {
-	log.Printf("Resolving %d VS %d\n", obj1.Id, obj2.Id)
+	log.Printf("Resolving %d (%+v) size %f VS %d (%+v) size %f\n",
+		obj1.Id,
+		obj1.CurrentPosition,
+		obj1.Size,
+		obj2.Id,
+		obj2.CurrentPosition,
+		obj2.Size)
 	// строим линию между центрами
-	line1to2 := LineByPoints(obj1.CurrentPosition, obj2.CurrentPosition).Directing().Unit()
-	fmt.Println(obj1.CurrentPosition, obj2.CurrentPosition, line1to2)
+	line1To2 := LineByPoints(obj1.CurrentPosition, obj2.CurrentPosition)
+	// берём от неё направляющий вектор
+	directing1To2 := line1To2.Directing()
+	vector1to2 := directing1To2.Unit()
 
-	penetration := (-1)*(obj1.CurrentPosition.DistanceTo(obj2.CurrentPosition) - obj1.Size - obj2.Size);
+	distance := obj1.CurrentPosition.DistanceTo(obj2.CurrentPosition)
+	penetration := obj1.Size + obj2.Size - distance;
+	fmt.Printf("1: %v\n2: %v\nline: %v\ndirect: %v\nvect: %v\ndist: %f\npenetr: %f\n",
+		obj1.CurrentPosition,
+		obj2.CurrentPosition,
+		line1To2,
+		directing1To2,
+		vector1to2,
+		distance,
+		penetration)
+
 	if (penetration < 0) {
 		log.Printf("No penetration! %v %v dist %f (%f + %f)", obj1.CurrentPosition, obj2.CurrentPosition, obj1.CurrentPosition.DistanceTo(obj2.CurrentPosition), obj1.Size, obj2.Size)
 		// это какая-то ерунда - получается, что соприкосновения и не было!
@@ -30,13 +48,14 @@ func (r SimpleResolver) resolve(obj1 *MapObject, obj2 *MapObject) {
 	}
 
 	sumMass := (float64)(obj1.Mass + obj2.Mass);
-	var obj1Proportion float64 = float64(obj1.Mass) / sumMass;
-	var obj2Proportion float64 = 1 - obj1Proportion;
+	var obj1Proportion = float64(obj1.Mass) / sumMass;
+	var obj2Proportion = 1 - obj1Proportion;
+	log.Printf("mass proportions: 1 - %f  2 - %f \n", obj1Proportion, obj2Proportion)
 
 	prev1, prev2 := obj1.CurrentPosition, obj2.CurrentPosition
 
-	obj1.CurrentPosition = obj1.CurrentPosition.Move(line1to2.Opposite().Mult(penetration * obj1Proportion));
-	obj2.CurrentPosition = obj2.CurrentPosition.Move(line1to2.Mult(penetration * obj2Proportion))
+	obj1.CurrentPosition = obj1.CurrentPosition.Move(vector1to2.Revers().Mult(penetration * obj1Proportion));
+	obj2.CurrentPosition = obj2.CurrentPosition.Move(vector1to2.Mult(penetration * obj2Proportion))
 
 	log.Printf("{%f, %f} -> {%f, %f} and {%f, %f} -> {%f, %f}\n",
 		prev1.X, prev1.Y,

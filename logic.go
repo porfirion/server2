@@ -90,7 +90,7 @@ func (logic *Logic) AddUser(id uint64, name string) *network.User {
 	user := &network.User{Id: id, Name: name}
 	logic.Users[id] = user
 
-	pos := world.Point2D{X: rand.Float64()*1000 - 500, Y: rand.Float64()*1000 - 500}
+	pos := world.Point2D{X: rand.Float64()*600 - 300, Y: rand.Float64()*600 - 300}
 	logic.mWorldMap.AddUser(user.Id, pos)
 
 	return user
@@ -242,11 +242,11 @@ func (logic *Logic) Start() {
 
 			sendTimer.Reset(logic.params.SendObjectsTimeout)
 		case msg := <-logic.IncomingMessages:
-			log.Println("Logic: message received")
+			//log.Println("Logic: message received")
 			if needSync := logic.ProcessMessage(msg); needSync {
 				logic.sendSyncMessage()
 			}
-			log.Println("Logic: message processed")
+			//log.Println("Logic: message processed")
 		}
 	}
 

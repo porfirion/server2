@@ -11,7 +11,7 @@ type Point2D struct {
 }
 
 var (
-	NilPosition Point2D = Point2D{X: math.MaxFloat64, Y: math.MaxFloat64}
+	NilPosition = Point2D{X: 0, Y: 0}
 )
 
 /**
@@ -66,11 +66,11 @@ func (v Vector2D) Mult(multiplier float64) Vector2D {
 }
 // единичный вектор, колинеарный данному
 func (v Vector2D) Unit() Vector2D {
-	var sum float64 = math.Abs(v.X + v.Y);
+	var sum float64 = math.Abs(v.X) + math.Abs(v.Y);
 	return Vector2D{v.X / sum, v.Y / sum}
 }
 // обратный вектор
-func (v Vector2D) Opposite() Vector2D {
+func (v Vector2D) Revers() Vector2D {
 	return Vector2D{-v.X, -v.Y}
 }
 
