@@ -77,6 +77,9 @@ function onmessage(messageType, data) {
             break;
         case MessageType.SYNC_OBJECTS_POSITIONS:
             updateObjectsPositions(data.positions, data.time);
+            if (!map.isAnimating) {
+                map.forceDraw();
+            }
             break;
         case MessageType.ERROR:
             showMessage('Error: ' + data.description);
