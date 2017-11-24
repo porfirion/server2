@@ -377,11 +377,11 @@ Map.prototype.drawObjects = function () {
 
     for (var i = 0; i < this.objects.length; i++) {
         var obj = this.objects[i];
-        var objHalfSizeReal = obj.size / 2; // half of object size
+        var objSizeReal = obj.size; // half of object size
 
         if (this.drawMode === DRAW_MODE_ONLY_SERVER || this.drawMode === DRAW_MODE_BOTH) {
             var objPosServer = obj.getLastServerPosition();
-            if (this.rectContainsPoint(viewportReal, objPosServer, objHalfSizeReal)) {
+            if (this.rectContainsPoint(viewportReal, objPosServer, objSizeReal)) {
                 // рисуем текущее положение объекта по серверу
                 ctx.save();
                 var serverPos = this.realToViewport(objPosServer);
@@ -398,7 +398,7 @@ Map.prototype.drawObjects = function () {
         }
         if (this.drawMode === DRAW_MODE_ONLY_REAL || this.drawMode === DRAW_MODE_BOTH) {
             var objPosReal = obj.getApproximatedPosition(serverTime);
-            if (this.rectContainsPoint(viewportReal, objPosReal, objHalfSizeReal)) {
+            if (this.rectContainsPoint(viewportReal, objPosReal, objSizeReal) || true) {
                 ctx.save();
                 var objPosViewport = this.realToViewport(objPosReal); // viewport position of object
                 ctx.translate(objPosViewport.x, objPosViewport.y);

@@ -97,7 +97,7 @@ func LineByPoints(p1, p2 Point2D) Line2D {
 
 // направляющий вектор (он же колинеарный) к прямой
 func (l Line2D) Directing() Vector2D {
-	return Vector2D{-l.B, l.A}
+	return Vector2D{l.B, -l.A}
 }
 
 // нормаль/нормальный (перпендикулярный) вектор к прямой

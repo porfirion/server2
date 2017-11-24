@@ -117,7 +117,7 @@ MapObject.prototype.draw = function(ctx) {
 		ctx.font = '8px serif';
 		ctx.fillStyle = this.color;
 		ctx.beginPath();
-		ctx.arc(0, 0, this.size / 2, 0, Math.PI * 2);
+		ctx.arc(0, 0, this.size, 0, Math.PI * 2);
 		ctx.fill();
 		ctx.strokeStyle = '#777';
 		ctx.stroke();
@@ -142,7 +142,7 @@ MapObject.prototype.draw = function(ctx) {
 		ctx.lineWidth = 1;
 		ctx.strokeStyle = this.color;
 		ctx.beginPath();
-		ctx.arc(0, 0, this.size / 2, 0, Math.PI * 2);
+		ctx.arc(0, 0, this.size, 0, Math.PI * 2);
 		// ctx.rect(0 - this.size / 2, 0 - this.size / 2, this.size, this.size);
 		ctx.stroke();
 	}
