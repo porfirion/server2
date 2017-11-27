@@ -13,13 +13,15 @@
 	<body>
 		<div class="panel help-panel">
 			<div class="playerName"></div>
-			<div class="latency">Latency: <span class="value"></span></div>
-			<div class="timeCorrection">Time correction: <span class="value"></span></div>
-			<a href="#" class="btn btn-default btn-xs drawButton btn-disabled">Draw</a>
-            <a href="#" class="btn btn-default btn-xs autoDrawButton btn-disabled">Auto draw</a>
-			<br/>
-			<a href="#" class="btn btn-default btn-xs simulateButton">Simulate! (Space)</a>
 			<div>
+				<span class="latency">Lat: <span class="value"></span></span>
+				<span class="timeCorrection">time cor: <span class="value"></span></span>
+            </div>
+			<a href="#" class="btn btn-default btn-sm drawButton btn-disabled">Draw</a>
+            <a href="#" class="btn btn-default btn-sm autoDrawButton btn-disabled">Auto draw</a>
+			<br/>
+			<a href="#" class="btn bigButton simulateButton">Simulate! (Space)</a>
+			<div class="clearfix">
 				<a href="#" class="btn btn-default btn-sm floatingButton" data-x="-1" data-y="+1">&#8598;</a>
 				<a href="#" class="btn btn-default btn-sm floatingButton" data-x="+0" data-y="+1">&#8593;</a>
 				<a href="#" class="btn btn-default btn-sm floatingButton" data-x="+1" data-y="+1">&#8599;</a>
@@ -30,13 +32,19 @@
 				<a href="#" class="btn btn-default btn-sm floatingButton" data-x="+0" data-y="-1">&#8595;</a>
 				<a href="#" class="btn btn-default btn-sm floatingButton" data-x="+1" data-y="-1">&#8600;</a>
 			</div>
+			<div>
+				<span class="btn bigButton zoomIn">ZoomIN</span>
+				<span class="btn bigButton zoomOut">ZoomOUT</span>
+			</div>
+			<a href="#" class="btn bigButton reloadButton">RELOAD</a>
+            <a href="#" class="btn bigButton chatToggler">Show/hide chat</a>
 		</div>
 		<div class="panel panel-default">
 			<div class="panel-body main-wrapper">
 				<div id="map-wrapper">
 					<canvas id="map" width="600" height="500"></canvas>
 				</div>
-                <button class="chatToggler">Show/hide chat</button>
+
                 <div class="widthSeparator"></div>
 				<div id="chat" style="display: none;">
 					<div class="chat_window"></div>

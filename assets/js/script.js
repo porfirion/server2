@@ -207,7 +207,7 @@ jQuery(document).ready(function () {
         var currentCorrection = client.timeCorrections.reduce(function (sum, a) {
             return sum + a
         }, 0) / (client.timeCorrections.length || 1);
-        $('.timeCorrection .value').html(currentCorrection);
+        $('.timeCorrection .value').html(currentCorrection.toFixed(3));
         map.latency = latency;
         map.timeCorrection = currentCorrection;
     });
@@ -255,7 +255,7 @@ jQuery(document).ready(function () {
         map.viewport.x = 0;
         map.viewport.y = 0;
         map.viewportAdjustPoint = null;
-
+        map.forceDraw();
         return false;
     });
 
@@ -270,6 +270,18 @@ jQuery(document).ready(function () {
 
         map.viewport.x += Number(x) * map.viewport.scale * 20;
         map.viewport.y += Number(y) * map.viewport.scale * 20;
+        map.forceDraw();
+    });
+
+    $(document).on('click', '.zoomIn', function() {
+        map.viewport.scale *= 1.1;
+        map.forceDraw();
+        return false;
+    });
+    $(document).on('click', '.zoomOut', function() {
+        map.viewport.scale /= 1.1;
+        map.forceDraw();
+        return false;
     });
 
     $(map).on('game:click', function (event, data) {
@@ -305,6 +317,14 @@ jQuery(document).ready(function () {
                 console.log('Key pressed', e.keyCode);
                 break;
         }
+    });
+
+    $(document).on('click', '.reloadButton', function(event) {
+        window.location.reload(true);
+
+        event.stopPropagation();
+        event.preventDefault();
+        return false;
     });
 
     map.toggleAutoDrawing();
