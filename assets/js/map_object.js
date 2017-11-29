@@ -75,11 +75,11 @@ MapObject.prototype.getApproximatedPosition = function(currentTime) {
 
 MapObject.prototype.getLastServerPosition = function() {
 	return this.serverPosition;
-}
+};
 
 MapObject.prototype.setSpeed = function(speed) {
 	this.speed = speed;
-	this.isMoving = speed.x !== 0 || speed.y !== 0 ? true : false;
+	this.isMoving = speed.x !== 0 || speed.y !== 0;
 };
 
 MapObject.prototype.adjustState = function(obj, time) {
@@ -87,6 +87,7 @@ MapObject.prototype.adjustState = function(obj, time) {
 	this.serverPosition = obj.position;
 	this.setSpeed(obj.speed);
 	this.setSize(obj.size);
+	this.destination = obj.destination;
 
 	// this.posTime = obj.startTime;
 	// this.destination = obj.destinationPosition;
@@ -138,7 +139,7 @@ MapObject.prototype.draw = function(ctx) {
 			drawTextCentered(ctx, "NPC" + this.id, 0, this.size);
 		}
 	} else {
-		// рисуем просто квадрат
+		// рисуем просто круг
 		ctx.lineWidth = 1;
 		ctx.strokeStyle = this.color;
 		ctx.beginPath();
@@ -147,6 +148,7 @@ MapObject.prototype.draw = function(ctx) {
 		ctx.stroke();
 	}
 
+	// id объекта
 	ctx.font = '10px serif';
     ctx.fillStyle = 'blue';
 	drawTextCentered(ctx, this.id, 0, 2);
@@ -156,6 +158,12 @@ MapObject.prototype.draw = function(ctx) {
 	ctx.fillStyle = 'black';
 	drawTextCentered(ctx, str, 0, 0 - this.size / 1.5);
 
+
+	ctx.beginPath();
+	ctx.moveTo(0, 0);
+	ctx.lineTo(this.destination.x - this.serverPosition.x, - this.destination.y + this.serverPosition.y);
+	ctx.stroke();
+
 	// if (this.active) {
 	// 	ctx.save();
 	// 	//ctx.globalAlpha = 0.3;
@@ -163,7 +171,7 @@ MapObject.prototype.draw = function(ctx) {
 	// 	ctx.fill();
 	// 	ctx.restore();
 	// }
-}
+};
 
 const ObjectType = {
 	Obstacle: 1,

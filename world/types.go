@@ -11,7 +11,7 @@ type Point2D struct {
 }
 
 var (
-	NilPosition = Point2D{X: 0, Y: 0}
+	NilPosition = Point2D{X: math.MaxFloat64, Y: math.MaxFloat64}
 )
 
 /**
@@ -45,8 +45,8 @@ func (v Vector2D) Length() float64 {
 
 // приведение длины вектора
 func (v Vector2D) Modulus(base float64) Vector2D {
-	modulo := v.Length() / base
-	return Vector2D{v.X / modulo, v.Y / modulo}
+	var sum float64 = 1 / math.Sqrt(v.X * v.X + v.Y * v.Y);
+	return Vector2D{v.X * sum * base, v.Y * sum * base}
 }
 // сложение векторов
 func (v Vector2D) Plus(v2 Vector2D) Vector2D {

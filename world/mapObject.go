@@ -13,12 +13,13 @@ const (
 )
 
 type MapObjectDescription struct {
-	Id         uint64        `json:"id"`
-	ObjectType MapObjectType `json:"objectType"`
-	Speed      Vector2D      `json:"speed"`
-	Position   Point2D       `json:"position"`
-	UserId     uint64        `json:"userId"`
-	Size       float64        `json:"size"`
+	Id          uint64        `json:"id"`
+	ObjectType  MapObjectType `json:"objectType"`
+	Speed       Vector2D      `json:"speed"`
+	Position    Point2D       `json:"position"`
+	UserId      uint64        `json:"userId"`
+	Size        float64       `json:"size"`
+	Destination Point2D       `json:"destination"`
 }
 
 type MapObject struct {
@@ -45,11 +46,12 @@ type MapObjectCollision struct {
 
 func (obj *MapObject) GetDescription() MapObjectDescription {
 	description := MapObjectDescription{
-		Id:         obj.Id,
-		ObjectType: obj.ObjectType,
-		Position:   obj.CurrentPosition,
-		Speed:      obj.Speed,
-		Size:       obj.Size,
+		Id:          obj.Id,
+		ObjectType:  obj.ObjectType,
+		Position:    obj.CurrentPosition,
+		Speed:       obj.Speed,
+		Size:        obj.Size,
+		Destination: obj.DestinationPosition,
 		//StartPosition:       obj.StartPosition,
 		//StartTime:           obj.StartTime.UnixNano() / int64(time.Millisecond),
 		//DestinationPosition: obj.DestinationPosition,
@@ -67,7 +69,7 @@ func (obj *MapObject) GetDescription() MapObjectDescription {
 }
 
 func (obj *MapObject) StartMoveTo(dest Point2D) {
-	obj.Speed = obj.CurrentPosition.VectorTo(dest).Modulus(ObjectSpeed)
+	obj.Speed = obj.CurrentPosition.VectorTo(dest).Unit().Mult(ObjectSpeed)
 	obj.DestinationPosition = dest
 	log.Printf("pos %#v dest %#v speed %#v", obj.CurrentPosition, dest, obj.Speed)
 }

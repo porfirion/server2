@@ -1,6 +1,7 @@
 "use strict";
 
-const DRAW_MODE_ONLY_SERVER = 1,
+const
+    DRAW_MODE_ONLY_SERVER = 1,
     DRAW_MODE_ONLY_REAL = 2,
     DRAW_MODE_BOTH = 3;
 
@@ -160,6 +161,11 @@ Map.prototype.removeObject = function (obj) {
     delete this.objectsById[obj.id];
 };
 
+Map.prototype.removeAllObjects = function () {
+    this.objectsById = {};
+    this.objects = [];
+};
+
 Map.prototype.updateObjectPosition = function (obj, time) {
     var mapObject = null;
 
@@ -203,6 +209,15 @@ Map.prototype.removePlayer = function (playerId) {
             break;
         }
     }
+};
+
+Map.prototype.removeAllPlayers = function () {
+    this.players = {};
+};
+
+Map.prototype.clear = function () {
+    this.removeAllObjects();
+    this.removeAllPlayers();
 };
 
 Map.prototype.toggleAutoDrawing = function () {

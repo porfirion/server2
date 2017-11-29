@@ -107,6 +107,8 @@ function onclose() {
 
     syncTimeTimer = null;
     $('.chat_members').empty();
+    members = {};
+    map.clear();
     showMessage('disconnected');
 }
 
