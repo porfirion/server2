@@ -20,6 +20,12 @@ var (
 func (pos Point2D) DistanceTo(dest Point2D) float64 {
 	return math.Sqrt(math.Pow(dest.X-pos.X, 2) + math.Pow(dest.Y-pos.Y, 2))
 }
+/**
+ * Квадрат расстояния между точками
+ */
+func (pos Point2D) Distance2To(dest Point2D) float64 {
+	return math.Pow(dest.X-pos.X, 2) + math.Pow(dest.Y-pos.Y, 2)
+}
 
 func (pos Point2D) VectorTo(dest Point2D) Vector2D {
 	return Vector2D{dest.X - pos.X, dest.Y - pos.Y}

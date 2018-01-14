@@ -123,8 +123,8 @@ func (world *WorldMap) ProcessSimulationStep() (somethingChanged bool) {
 	for _, obj := range world.ObjectsById {
 		if obj.DestinationPosition != NilPosition {
 			//log.Println("moving ", id)
-			distance := obj.CurrentPosition.DistanceTo(obj.DestinationPosition)
-			if distance <= ObjectSpeed*passedTime {
+			distance := obj.CurrentPosition.Distance2To(obj.DestinationPosition)
+			if distance <= (ObjectSpeed*passedTime)*(ObjectSpeed*passedTime) {
 				obj.CurrentPosition = obj.DestinationPosition
 				obj.DestinationPosition = NilPosition
 				obj.Speed = Vector2D{}
@@ -156,7 +156,7 @@ func (world *WorldMap) detectCollisions() []MapObjectCollision {
 	collisions := make([]MapObjectCollision, 0)
 	for i := 0; i < len(world.Objects); i++ {
 		obj1 := world.Objects[i]
-		if (i < len(world.Objects) - 1) {
+		if (i < len(world.Objects)-1) {
 			// это не послдений объект в списке
 			for j := i + 1; j < len(world.Objects); j++ {
 				obj2 := world.Objects[j]
@@ -171,7 +171,8 @@ func (world *WorldMap) detectCollisions() []MapObjectCollision {
 				//if obj1.ObjectType == MapObjectTypeUser || obj2.ObjectType == MapObjectTypeUser {
 				//	log.Printf("%d -- %d dist %f > %f + %f", id1, id2, obj1.CurrentPosition.DistanceTo(obj2.CurrentPosition), obj1.Size, obj2.Size)
 				//}
-				if obj1.CurrentPosition.DistanceTo(obj2.CurrentPosition) < float64(obj1.Size+obj2.Size) {
+				// маленький хак - используем не расстояние, а его квадрат, чтобы не извлекать корень
+				if obj1.CurrentPosition.Distance2To(obj2.CurrentPosition) < float64(obj1.Size+obj2.Size)*float64(obj1.Size+obj2.Size) {
 					log.Printf("collide %d VS %d \n", id1, id2)
 					collisions = append(collisions, MapObjectCollision{obj1, obj2})
 				}
