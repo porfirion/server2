@@ -9,8 +9,8 @@ import (
 )
 
 const (
-	SimulationStepTime time.Duration = 100 * time.Millisecond // сколько виртуального времени проходит за один шаг симуляции
-	ObjectSpeed        float64       = 50.0                   // скорость объекта по умолчанию
+	SimulationStepTime = 100 * time.Millisecond // сколько виртуального времени проходит за один шаг симуляции
+	ObjectSpeed        = 50.0                   // скорость объекта по умолчанию
 )
 
 type WorldMap struct {
@@ -35,7 +35,7 @@ type WorldMap struct {
 }
 
 func NewWorldMap() *WorldMap {
-	var world *WorldMap = new(WorldMap)
+	var world = new(WorldMap)
 	world.Width = 10000
 	world.Height = 10000
 	world.ObjectsById = make(map[uint64]*MapObject)
@@ -109,16 +109,15 @@ func (world *WorldMap) GetStepTime(step int) time.Time {
 	return world.SimulationStartTime.Add(SimulationStepTime * time.Duration(step))
 }
 
-// Выполнение симуляции.
-// Первый возвращаемый результат - была ли выполнены симуляция
-// Второй возвращаемый результат - произошли ли какие-то существенные изменения
+//Выполнение симуляции.
+//return произошли ли какие-то существенные изменения
 func (world *WorldMap) ProcessSimulationStep() (somethingChanged bool) {
 	somethingChanged = false
 
 	world.SimulationStep++
 	world.SimulationTime = world.SimulationStartTime.Add(time.Duration(world.SimulationStep) * SimulationStepTime)
 
-	var passedTime float64 = float64(SimulationStepTime) / float64(time.Second)
+	var passedTime = float64(SimulationStepTime) / float64(time.Second)
 
 	for _, obj := range world.ObjectsById {
 		if obj.DestinationPosition != NilPosition {
@@ -136,6 +135,8 @@ func (world *WorldMap) ProcessSimulationStep() (somethingChanged bool) {
 				//obj.CurrentPosition.Y += dy / distance * ObjectSpeed
 				//log.Printf("Position: %#v Speed %#v passedTime %f", obj.CurrentPosition, obj.Speed, passedTime)
 
+				obj.Speed = obj.CurrentPosition.VectorTo(obj.DestinationPosition).Modulus(ObjectSpeed)
+
 				obj.CurrentPosition.X += obj.Speed.X * passedTime
 				obj.CurrentPosition.Y += obj.Speed.Y * passedTime
 
@@ -146,23 +147,28 @@ func (world *WorldMap) ProcessSimulationStep() (somethingChanged bool) {
 	}
 
 	if collisions := world.detectCollisions(); len(collisions) > 0 {
-		world.resolveCollisions(collisions)
+		res := world.resolveCollisions(collisions)
+		somethingChanged = somethingChanged || res
 	}
 
 	return
 }
 
+/**
+ * Ищет возможные коллизии.
+ * TODO здесь надо бы переделать на bounding box
+ */
 func (world *WorldMap) detectCollisions() []MapObjectCollision {
 	collisions := make([]MapObjectCollision, 0)
 	for i := 0; i < len(world.Objects); i++ {
 		obj1 := world.Objects[i]
-		if (i < len(world.Objects)-1) {
+		if i < len(world.Objects)-1 {
 			// это не послдений объект в списке
 			for j := i + 1; j < len(world.Objects); j++ {
 				obj2 := world.Objects[j]
 
-				if (obj1.Id == obj2.Id) {
-					log.Println("WARNING! the same objects!");
+				if obj1.Id == obj2.Id {
+					log.Println("WARNING! the same objects!")
 					continue
 				}
 
@@ -183,11 +189,12 @@ func (world *WorldMap) detectCollisions() []MapObjectCollision {
 	return collisions
 }
 
-func (world *WorldMap) resolveCollisions(collisions []MapObjectCollision) {
+func (world *WorldMap) resolveCollisions(collisions []MapObjectCollision) bool {
+	changed := false
 	log.Printf("Resolving %d collisions", len(collisions))
 	for _, collision := range collisions {
-		resolver := GetResolver(collision.obj1, collision.obj2)
-		resolver.resolve(collision.obj1, collision.obj2)
+		res := GetResolver(collision.obj1, collision.obj2).resolve(collision.obj1, collision.obj2)
+		changed = changed || res;
 	}
-	// TODO introduce collisions resolver
+	return changed
 }

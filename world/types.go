@@ -80,6 +80,14 @@ func (v Vector2D) Revers() Vector2D {
 	return Vector2D{-v.X, -v.Y}
 }
 
+func (v Vector2D) Limit(max float64) Vector2D {
+	if v.X * v.X + v.Y * v.Y > max * max {
+		return v.Modulus(max)
+	} else {
+		return v
+	}
+}
+
 func (v Vector2D) String() string {
 	return fmt.Sprintf("{{%f, %f}}", v.X, v.Y)
 }
