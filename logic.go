@@ -23,6 +23,8 @@ type Logic struct {
 
 	mWorldMap *world.WorldMap
 
+	forceSimulationChannel chan int
+
 	StartTime    time.Time // время начала симуляции (отсчитывается от первого вызова simulationStep)
 	NextStepTime time.Time // время, в которое должен произойти следующий шаг симуляции
 }
@@ -168,11 +170,21 @@ func (logic *Logic) ProcessMessage(message network.UserMessage) (needSync bool) 
 	case *network.ActionMessage:
 		needSync = logic.ProcessActionMessage(message.Source, msg)
 	case *network.SimulateMessage:
-		log.Println("Simulating!");
+		log.Println("Pushing to force chan")
 		if logic.params.SimulateByStep {
-			logic.mWorldMap.ProcessSimulationStep()
-			logic.sendSyncMessage()
+			select {
+			case logic.forceSimulationChannel <- msg.Steps:
+				log.Println("Pushed to force chan")
+			default:
+				log.Println("Already busy force chan")
+			}
+		} else {
+			log.Println("We are not in step by step mode");
 		}
+	case *network.ChangeSimulationMode:
+		newValue := msg.StepByStep;
+		log.Printf("Changing simulation mode from %b to %b", logic.params.SimulateByStep, newValue);
+		logic.params.SimulateByStep = newValue
 	default:
 		log.Printf("Logic: Unknown message type %#v from %d\n", message.Data, message.Source)
 	}
@@ -196,6 +208,8 @@ func (logic *Logic) Start() {
 	rand.Seed(int64(time.Now().Nanosecond()))
 
 	logic.Users = make(map[uint64]*network.User)
+
+	logic.forceSimulationChannel = make(chan int, 1)
 
 	logic.mWorldMap = world.NewWorldMap()
 
@@ -233,6 +247,14 @@ func (logic *Logic) Start() {
 			}
 
 			simulationTimer.Reset(logic.TimeToNextStep())
+		case _ = <-logic.forceSimulationChannel:
+			if logic.params.SimulateByStep {
+				log.Println("Simulating!");
+				logic.mWorldMap.ProcessSimulationStep()
+				logic.sendSyncMessage()
+			} else {
+				log.Println("Not in step by step mode");
+			}
 		case _ = <-sendTimer.C:
 			// дополнительно рассылаем всем уведомления по таймеру
 			// по идее потом это можно будет убрать
@@ -242,11 +264,11 @@ func (logic *Logic) Start() {
 
 			sendTimer.Reset(logic.params.SendObjectsTimeout)
 		case msg := <-logic.IncomingMessages:
-			//log.Println("Logic: message received")
+			log.Println("Logic: message received")
 			if needSync := logic.ProcessMessage(msg); needSync {
 				logic.sendSyncMessage()
 			}
-			//log.Println("Logic: message processed")
+			log.Println("Logic: message processed")
 		}
 	}
 

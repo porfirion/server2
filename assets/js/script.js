@@ -84,6 +84,9 @@ function onmessage(messageType, data) {
         case MessageType.ERROR:
             showMessage('Error: ' + data.description);
             break;
+        case MessageType.CHANGE_SIMULATION_MODE:
+            log.warn("TODO");
+            break;
         default:
             for (var key in MessageType) {
                 if (MessageType.hasOwnProperty(key)) {
@@ -327,6 +330,10 @@ jQuery(document).ready(function () {
         event.stopPropagation();
         event.preventDefault();
         return false;
+    });
+
+    $(document).on("click", ".changeSimulationMode", function() {
+        client.sendMessage(MessageType.CHANGE_SIMULATION_MODE, {stepByStep: false});
     });
 
     map.toggleAutoDrawing();

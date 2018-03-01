@@ -73,7 +73,7 @@ type UserLoggedoutMessage struct {
  */
 type SyncPositionsMessage struct {
 	Positions map[string]world.MapObjectDescription `json:"positions"`
-	Time      int64 `json:"time"`
+	Time      int64                                 `json:"time"`
 }
 
 /**
@@ -96,6 +96,10 @@ type ActionMessage struct {
  */
 type SimulateMessage struct {
 	Steps int `json:"steps"`
+}
+
+type ChangeSimulationMode struct {
+	StepByStep bool `json:"stepByStep"`
 }
 
 /* SPECIAL STRUCTURES */
@@ -130,8 +134,9 @@ var dict map[reflect.Type]int = map[reflect.Type]int{
 	reflect.TypeOf(SyncPositionsMessage{}): 10003,
 	reflect.TypeOf(SyncTimeMessage{}):      10004,
 
-	reflect.TypeOf(ActionMessage{}): 1000000,
-	reflect.TypeOf(SimulateMessage{}): 1000001,
+	reflect.TypeOf(ActionMessage{}):        1000000,
+	reflect.TypeOf(SimulateMessage{}):      1000001,
+	reflect.TypeOf(ChangeSimulationMode{}): 1000002,
 }
 
 func GetMessageTypeId(value interface{}) int {
