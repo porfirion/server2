@@ -60,6 +60,7 @@ function onmessage(messageType, data) {
             }
             break;
         case MessageType.WELLCOME:
+            console.log(messageType, data);
             myId = data.id;
             newMember(myId, myName);
             break;
@@ -86,6 +87,9 @@ function onmessage(messageType, data) {
             break;
         case MessageType.CHANGE_SIMULATION_MODE:
             log.warn("TODO");
+            break;
+        case MessageType.SERVER_STATE:
+
             break;
         default:
             for (var key in MessageType) {
@@ -293,8 +297,8 @@ jQuery(document).ready(function () {
         console.log('clicked at ', data);
 
         client.sendMessage(MessageType.ACTION_MESSAGE, {
-            actionType: 'move',
-            actionData: data
+            action_type: 'move',
+            action_data: data
         });
     });
 
@@ -306,8 +310,8 @@ jQuery(document).ready(function () {
     // 	console.log('send last pos ', map.lastCursorPosition, map.lastCursorPositionReal);
     // 	if (map.lastCursorPositionReal != null) {
     // 		client.sendMessage(MessageType.ACTION_MESSAGE, {
-    // 			actionType: 'accelerate',
-    // 			actionData: map.lastCursorPositionReal,
+    // 			action_type: 'accelerate',
+    // 			action_data: map.lastCursorPositionReal,
     // 		});
     // 	}
     // }, 1000);
@@ -333,7 +337,7 @@ jQuery(document).ready(function () {
     });
 
     $(document).on("click", ".changeSimulationMode", function() {
-        client.sendMessage(MessageType.CHANGE_SIMULATION_MODE, {stepByStep: false});
+        client.sendMessage(MessageType.CHANGE_SIMULATION_MODE, {step_by_step: false});
     });
 
     map.toggleAutoDrawing();

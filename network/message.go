@@ -72,8 +72,17 @@ type UserLoggedoutMessage struct {
  * Отправляет на клиент список объектов с координатами
  */
 type SyncPositionsMessage struct {
-	Positions map[string]world.MapObjectDescription `json:"positions"`
-	Time      int64                                 `json:"time"`
+	Positions map[string]world.MapObjectDescription `json:"positions"` // список объектов
+	Time      int64                                 `json:"time"`      // время по серверу
+	Step      uint64                                `json:"step"`      // шаг симуляции
+}
+
+type ServerStateMessage struct {
+	SimulationByStep       bool   `json:"simulation_by_step"`        // идёт ли симуляция по шагам или по времени
+	SimulationStepNumber   uint64 `json:"simulation_step"`           // текущий шаг симуляции
+	SimulationStepTime     uint64 `json:"simulaiton_step_time"`      // мс, сколько времени симулируется за раз
+	SimulationStepRealTime uint64 `json:"simulation_step_real_time"` // мс, сколько времени реально проходит между симуляциями
+	ServerTime             uint64 `json:"server_time"`               // мс, текущее серверное время
 }
 
 /**
@@ -87,8 +96,8 @@ type SyncTimeMessage struct {
  * Действие пользователя (двигаться, остановиться, ...)
  */
 type ActionMessage struct {
-	ActionType string                 `json:"actionType"`
-	ActionData map[string]interface{} `json:"actionData"`
+	ActionType string                 `json:"action_type"`
+	ActionData map[string]interface{} `json:"action_data"`
 }
 
 /**
@@ -99,7 +108,7 @@ type SimulateMessage struct {
 }
 
 type ChangeSimulationMode struct {
-	StepByStep bool `json:"stepByStep"`
+	StepByStep bool `json:"step_by_step"`
 }
 
 /* SPECIAL STRUCTURES */
@@ -120,7 +129,7 @@ type MessagesChannel chan interface{}
 type ServerMessagesChannel chan ServerMessage
 type UserMessagesChannel chan UserMessage
 
-var dict map[reflect.Type]int = map[reflect.Type]int{
+var dict = map[reflect.Type]int{
 	reflect.TypeOf(AuthMessage{}):          1,
 	reflect.TypeOf(WellcomeMessage{}):      2,
 	reflect.TypeOf(LoginMessage{}):         10,
@@ -133,6 +142,7 @@ var dict map[reflect.Type]int = map[reflect.Type]int{
 	reflect.TypeOf(UserLoggedoutMessage{}): 10002,
 	reflect.TypeOf(SyncPositionsMessage{}): 10003,
 	reflect.TypeOf(SyncTimeMessage{}):      10004,
+	reflect.TypeOf(ServerStateMessage{}):   10005,
 
 	reflect.TypeOf(ActionMessage{}):        1000000,
 	reflect.TypeOf(SimulateMessage{}):      1000001,

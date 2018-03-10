@@ -9,10 +9,10 @@ import (
 )
 
 type LogicParams struct {
-	SimulateByStep           bool // если выставить этот флаг, то симуляция запускается не по таймеру, а по приходу события Simulate
-	SendObjectsTimeout       time.Duration
+	SimulateByStep           bool          // если выставить этот флаг, то симуляция запускается не по таймеру, а по приходу события Simulate
+	SendObjectsTimeout       time.Duration // частота отправки состояний объектов клиентам
 	SimulationStepRealTime   time.Duration // сколько реального времени проходит за один шаг симуляции
-	MaxSimulationStepsAtOnce int
+	MaxSimulationStepsAtOnce int           // максимальнео количество симуляций подряд.
 }
 
 type Logic struct {
@@ -105,7 +105,7 @@ func (logic *Logic) RemoveUser(id uint64) {
 
 func (logic *Logic) sendSyncMessage() {
 	var currentTime int64 = logic.mWorldMap.SimulationTime.UnixNano() / int64(time.Millisecond) / int64(time.Nanosecond)
-	logic.SendMessage(network.SyncPositionsMessage{logic.mWorldMap.GetObjectsPositions(), currentTime})
+	logic.SendMessage(network.SyncPositionsMessage{logic.mWorldMap.GetObjectsPositions(), currentTime, logic.mWorldMap.SimulationStep})
 }
 
 // Возвращает true, если нужно синхронизировать положение объектов заново
@@ -156,13 +156,12 @@ func (logic *Logic) ProcessMessage(message network.UserMessage) (needSync bool) 
 
 		user := logic.AddUser(msg.Id, msg.Name)
 		logic.SendTextMessageToUser("Logic: Wellcome, "+user.Name, 0, user.Id)
-
+		logic.SendMessage(logic.getServerStateMessage(), network.UsersList{user.Id})
 		logic.SendMessage(network.UserLoggedinMessage{Id: user.Id, Name: user.Name}, network.UsersList{}, network.UsersList{user.Id})
-
 		logic.SendMessage(network.UserListMessage{logic.GetUserList(user.Id)}, network.UsersList{user.Id})
 		log.Println("sent. sync next")
 		var currentTime int64 = logic.mWorldMap.SimulationTime.UnixNano() / int64(time.Millisecond) / int64(time.Nanosecond)
-		logic.SendMessage(network.SyncPositionsMessage{logic.mWorldMap.GetObjectsPositions(), currentTime})
+		logic.SendMessage(network.SyncPositionsMessage{logic.mWorldMap.GetObjectsPositions(), currentTime, logic.mWorldMap.SimulationStep})
 	case *network.LogoutMessage:
 		log.Println("Logic: Logout message", msg.Id)
 		logic.RemoveUser(msg.Id)
@@ -183,13 +182,31 @@ func (logic *Logic) ProcessMessage(message network.UserMessage) (needSync bool) 
 		}
 	case *network.ChangeSimulationMode:
 		newValue := msg.StepByStep;
-		log.Printf("Changing simulation mode from %b to %b", logic.params.SimulateByStep, newValue);
-		logic.params.SimulateByStep = newValue
+		if logic.params.SimulateByStep != newValue {
+
+			log.Printf("Changing simulation mode from %b to %b\n", logic.params.SimulateByStep, newValue);
+			logic.params.SimulateByStep = newValue
+
+			// а теперь уведомляем всех об изменившемся режиме
+			logic.SendMessage(logic.getServerStateMessage())
+		} else {
+			log.Printf("Simulation already in mode %b\n", newValue)
+		}
 	default:
 		log.Printf("Logic: Unknown message type %#v from %d\n", message.Data, message.Source)
 	}
 
 	return
+}
+
+func (logic *Logic) getServerStateMessage() network.ServerStateMessage {
+	return network.ServerStateMessage{
+		SimulationByStep:       logic.params.SimulateByStep,
+		SimulationStepNumber:   logic.mWorldMap.SimulationStep,
+		SimulationStepTime:     (uint64)(world.SimulationStepTime.Nanoseconds() / 1000),
+		SimulationStepRealTime: (uint64)(logic.params.SimulationStepRealTime.Nanoseconds() / 1000),
+		ServerTime:             (uint64)(time.Now().UnixNano() / 1000),
+	}
 }
 
 func (logic *Logic) TimeToNextStep() time.Duration {
