@@ -9,7 +9,6 @@ import (
 )
 
 const (
-	SimulationStepTime = 100 * time.Millisecond // сколько виртуального времени проходит за один шаг симуляции
 	ObjectSpeed        = 50.0                   // скорость объекта по умолчанию
 )
 
@@ -29,7 +28,6 @@ type WorldMap struct {
 	//5124095,576	часов
 	//213503,9823	дней
 	//584,9424174	лет
-	SimulationStep      uint64    // номер последнего рассчитанного шага симуляции
 	SimulationTime      time.Time // текущее игровое время
 	SimulationStartTime time.Time // время начала симуляции (по идее оно чисто условное и может начинаться с любого времени)
 }
@@ -40,7 +38,6 @@ func NewWorldMap() *WorldMap {
 	world.Height = 10000
 	world.ObjectsById = make(map[uint64]*MapObject)
 	world.UsersObjects = make(map[uint64]*MapObject)
-	world.SimulationStep = 0
 	for i := 0; i < 10; i++ {
 		obj := world.NewObject(
 			Point2D{
@@ -102,22 +99,14 @@ func (world *WorldMap) GetObjectsPositions() map[string]MapObjectDescription {
 	return res
 }
 
-/**
- * Возвращает игровое время для указанного шага симуляции
- */
-func (world *WorldMap) GetStepTime(step int) time.Time {
-	return world.SimulationStartTime.Add(SimulationStepTime * time.Duration(step))
-}
-
 //Выполнение симуляции.
 //return произошли ли какие-то существенные изменения
-func (world *WorldMap) ProcessSimulationStep() (somethingChanged bool) {
+func (world *WorldMap) ProcessSimulationStep(passedTimeDur time.Duration) (somethingChanged bool) {
 	somethingChanged = false
 
-	world.SimulationStep++
-	world.SimulationTime = world.SimulationStartTime.Add(time.Duration(world.SimulationStep) * SimulationStepTime)
+	world.SimulationTime = world.SimulationTime.Add(passedTimeDur)
 
-	var passedTime = float64(SimulationStepTime) / float64(time.Second)
+	var passedTime = float64(passedTimeDur) / float64(time.Second)
 
 	for _, obj := range world.ObjectsById {
 		if obj.DestinationPosition != NilPosition {

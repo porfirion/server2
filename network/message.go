@@ -74,12 +74,10 @@ type UserLoggedoutMessage struct {
 type SyncPositionsMessage struct {
 	Positions map[string]world.MapObjectDescription `json:"positions"` // список объектов
 	Time      int64                                 `json:"time"`      // время по серверу
-	Step      uint64                                `json:"step"`      // шаг симуляции
 }
 
 type ServerStateMessage struct {
 	SimulationByStep       bool   `json:"simulation_by_step"`        // идёт ли симуляция по шагам или по времени
-	SimulationStepNumber   uint64 `json:"simulation_step"`           // текущий шаг симуляции
 	SimulationStepTime     uint64 `json:"simulaiton_step_time"`      // мс, сколько времени симулируется за раз
 	SimulationStepRealTime uint64 `json:"simulation_step_real_time"` // мс, сколько времени реально проходит между симуляциями
 	ServerTime             uint64 `json:"server_time"`               // мс, текущее серверное время
@@ -107,6 +105,9 @@ type SimulateMessage struct {
 	Steps int `json:"steps"`
 }
 
+/**
+ * Сменить режим симуляции на пощаговый или непрерывный
+ */
 type ChangeSimulationMode struct {
 	StepByStep bool `json:"step_by_step"`
 }

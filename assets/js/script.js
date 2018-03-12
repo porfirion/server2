@@ -44,6 +44,7 @@ var client = null;
 var syncTimeTimer = null;
 var map = null;
 var gameTime = 0;
+var lastServerState = null;
 
 function onmessage(messageType, data) {
     switch (messageType) {
@@ -86,10 +87,11 @@ function onmessage(messageType, data) {
             showMessage('Error: ' + data.description);
             break;
         case MessageType.CHANGE_SIMULATION_MODE:
-            log.warn("TODO");
+            // сервер вообще не должен присылать такого сообщения
+            console.warn("TODO");
             break;
         case MessageType.SERVER_STATE:
-
+            map.updateServerState(data);
             break;
         default:
             for (var key in MessageType) {
@@ -337,7 +339,7 @@ jQuery(document).ready(function () {
     });
 
     $(document).on("click", ".changeSimulationMode", function() {
-        client.sendMessage(MessageType.CHANGE_SIMULATION_MODE, {step_by_step: false});
+        client.sendMessage(MessageType.CHANGE_SIMULATION_MODE, {step_by_step: !map.simulationMode});
     });
 
     map.toggleAutoDrawing();

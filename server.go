@@ -28,9 +28,10 @@ func main() {
 	// стартуем логику. она готова, чтобы принимать и обрабатывать соощения
 	logic = &Logic{}
 	logic.SetParams(LogicParams{
-		SimulateByStep:     true, // если выставить этот флаг, то симуляция запускается не по таймеру, а по приходу события Simulate
-		SendObjectsTimeout: time.Second * 1,
-		SimulationStepRealTime: 100 * time.Millisecond, // сколько реального времени проходит за один шаг симуляции
+		SimulateByStep:           false,                  // если выставить этот флаг, то симуляция запускается не по таймеру, а по приходу события Simulate
+		SimulationStepTime:       100 * time.Millisecond, // сколько виртуального времени проходит за один шаг симуляции
+		SimulationStepRealTime:   100 * time.Millisecond, // сколько реального времени проходит за один шаг симуляции
+		SendObjectsTimeout:       time.Second * 1,
 		MaxSimulationStepsAtOnce: 10,
 	})
 	logic.SetIncomingMessagesChannel(incomingMessages)
@@ -43,7 +44,7 @@ func main() {
 	wsGate := &ws.WebSocketGate{Addr: &net.TCPAddr{IP: net.IPv4(0, 0, 0, 0), Port: 8080}, IncomingConnections: incomingConnections}
 	go wsGate.Start()
 
-	tcpGate := &tcp.TcpGate{Addr:&net.TCPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 25001}, IncomingConnections: incomingConnections}
+	tcpGate := &tcp.TcpGate{Addr: &net.TCPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 25001}, IncomingConnections: incomingConnections}
 	go tcpGate.Start()
 
 	log.Println("Running")
@@ -55,4 +56,3 @@ func main() {
 
 	log.Println("exit")
 }
-

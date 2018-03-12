@@ -8,10 +8,14 @@ import (
 	"time"
 )
 
+/**
+ * соотношением SimulationStepTime / SimulationStepRealTime можно регулировать скорость игрового сервера
+ */
 type LogicParams struct {
 	SimulateByStep           bool          // если выставить этот флаг, то симуляция запускается не по таймеру, а по приходу события Simulate
-	SendObjectsTimeout       time.Duration // частота отправки состояний объектов клиентам
+	SimulationStepTime       time.Duration // сколько виртуального времени проходит за один шаг симуляции
 	SimulationStepRealTime   time.Duration // сколько реального времени проходит за один шаг симуляции
+	SendObjectsTimeout       time.Duration // частота отправки состояний объектов клиентам
 	MaxSimulationStepsAtOnce int           // максимальнео количество симуляций подряд.
 }
 
@@ -23,14 +27,16 @@ type Logic struct {
 
 	mWorldMap *world.WorldMap
 
-	forceSimulationChannel chan int
+	forceSimulationChannel      chan int  // отправка сообщения в этот канал инициирует новый шаг симуляции
+	changeSimulationModeChannel chan bool // отправка сообщения в этот канал инициирует изменение режима симуляции
 
 	StartTime    time.Time // время начала симуляции (отсчитывается от первого вызова simulationStep)
 	NextStepTime time.Time // время, в которое должен произойти следующий шаг симуляции
+	PrevStepTime time.Time // время, в которое произошёл предыдущий шаг симуляции
 }
 
 func (logic *Logic) SetParams(params LogicParams) {
-	logic.params = params;
+	logic.params = params
 }
 
 func (logic Logic) GetIncomingMessagesChannel() network.UserMessagesChannel {
@@ -47,7 +53,7 @@ func (logic *Logic) SetOutgoingMessagesChannel(channel network.ServerMessagesCha
 }
 
 func (logic *Logic) GetUserList(exceptId uint64) []network.User {
-	userlist := []network.User{}
+	var userlist []network.User
 	for userId, user := range logic.Users {
 		if userId != exceptId {
 			userlist = append(userlist, network.User{Id: user.Id, Name: user.Name})
@@ -104,8 +110,8 @@ func (logic *Logic) RemoveUser(id uint64) {
 }
 
 func (logic *Logic) sendSyncMessage() {
-	var currentTime int64 = logic.mWorldMap.SimulationTime.UnixNano() / int64(time.Millisecond) / int64(time.Nanosecond)
-	logic.SendMessage(network.SyncPositionsMessage{logic.mWorldMap.GetObjectsPositions(), currentTime, logic.mWorldMap.SimulationStep})
+	var currentTime = logic.mWorldMap.SimulationTime.UnixNano() / int64(time.Millisecond) / int64(time.Nanosecond)
+	logic.SendMessage(network.SyncPositionsMessage{logic.mWorldMap.GetObjectsPositions(), currentTime})
 }
 
 // Возвращает true, если нужно синхронизировать положение объектов заново
@@ -160,8 +166,8 @@ func (logic *Logic) ProcessMessage(message network.UserMessage) (needSync bool) 
 		logic.SendMessage(network.UserLoggedinMessage{Id: user.Id, Name: user.Name}, network.UsersList{}, network.UsersList{user.Id})
 		logic.SendMessage(network.UserListMessage{logic.GetUserList(user.Id)}, network.UsersList{user.Id})
 		log.Println("sent. sync next")
-		var currentTime int64 = logic.mWorldMap.SimulationTime.UnixNano() / int64(time.Millisecond) / int64(time.Nanosecond)
-		logic.SendMessage(network.SyncPositionsMessage{logic.mWorldMap.GetObjectsPositions(), currentTime, logic.mWorldMap.SimulationStep})
+		var currentTime = logic.mWorldMap.SimulationTime.UnixNano() / int64(time.Millisecond) / int64(time.Nanosecond)
+		logic.SendMessage(network.SyncPositionsMessage{logic.mWorldMap.GetObjectsPositions(), currentTime})
 	case *network.LogoutMessage:
 		log.Println("Logic: Logout message", msg.Id)
 		logic.RemoveUser(msg.Id)
@@ -169,22 +175,21 @@ func (logic *Logic) ProcessMessage(message network.UserMessage) (needSync bool) 
 	case *network.ActionMessage:
 		needSync = logic.ProcessActionMessage(message.Source, msg)
 	case *network.SimulateMessage:
-		log.Println("Pushing to force chan")
 		if logic.params.SimulateByStep {
 			select {
 			case logic.forceSimulationChannel <- msg.Steps:
-				log.Println("Pushed to force chan")
+				log.Println("Pushed to force simulation chan")
 			default:
 				log.Println("Already busy force chan")
 			}
 		} else {
-			log.Println("We are not in step by step mode");
+			log.Println("We are not in step by step mode")
 		}
 	case *network.ChangeSimulationMode:
-		newValue := msg.StepByStep;
+		newValue := msg.StepByStep
 		if logic.params.SimulateByStep != newValue {
 
-			log.Printf("Changing simulation mode from %b to %b\n", logic.params.SimulateByStep, newValue);
+			log.Printf("Changing simulation mode from %b to %b\n", logic.params.SimulateByStep, newValue)
 			logic.params.SimulateByStep = newValue
 
 			// а теперь уведомляем всех об изменившемся режиме
@@ -202,8 +207,7 @@ func (logic *Logic) ProcessMessage(message network.UserMessage) (needSync bool) 
 func (logic *Logic) getServerStateMessage() network.ServerStateMessage {
 	return network.ServerStateMessage{
 		SimulationByStep:       logic.params.SimulateByStep,
-		SimulationStepNumber:   logic.mWorldMap.SimulationStep,
-		SimulationStepTime:     (uint64)(world.SimulationStepTime.Nanoseconds() / 1000),
+		SimulationStepTime:     (uint64)(logic.params.SimulationStepTime.Nanoseconds() / 1000),
 		SimulationStepRealTime: (uint64)(logic.params.SimulationStepRealTime.Nanoseconds() / 1000),
 		ServerTime:             (uint64)(time.Now().UnixNano() / 1000),
 	}
@@ -218,7 +222,18 @@ func (logic *Logic) TimeToNextStep() time.Duration {
 }
 
 func (logic *Logic) NextSimulationStepTime() time.Time {
-	return logic.StartTime.Add(time.Duration(logic.mWorldMap.SimulationStep+1) * logic.params.SimulationStepRealTime)
+	if logic.params.SimulateByStep {
+		// следующий шаг симуляции не произойдёт никогда! мухахаха
+		return time.Date(3000, time.January, 0, 0, 0, 0, 0, time.Local)
+	} else {
+		return logic.PrevStepTime.Add(logic.params.SimulationStepRealTime)
+	}
+}
+func (logic *Logic) executeSimulation(dt time.Duration) (changed bool) {
+	changed = logic.mWorldMap.ProcessSimulationStep(logic.params.SimulationStepTime)
+	logic.PrevStepTime = time.Now()
+	logic.NextStepTime.Add(logic.params.SimulationStepRealTime)
+	return
 }
 
 func (logic *Logic) Start() {
@@ -230,16 +245,37 @@ func (logic *Logic) Start() {
 
 	logic.mWorldMap = world.NewWorldMap()
 
-	var simulationTimer *time.Timer = time.NewTimer(logic.TimeToNextStep())
-	var sendTimer *time.Timer = time.NewTimer(time.Second * 0)
+	// таймер, который инициализирует симуляцию
+	var simulationTimer = time.NewTimer(logic.TimeToNextStep())
 
-	if (logic.params.SimulateByStep) {
-		simulationTimer.Stop();
+	if logic.params.SimulateByStep {
+		if !simulationTimer.Stop() {
+			<-simulationTimer.C
+		}
 	}
 
 	log.Println("Logic: started")
 	for {
 		select {
+		case mode := <-logic.changeSimulationModeChannel:
+			if logic.params.SimulateByStep != mode {
+				log.Printf("Simulation mode changed to %v\n", mode)
+				logic.params.SimulateByStep = mode
+
+				if logic.params.SimulateByStep {
+					// симуляция по шагам
+					if !simulationTimer.Stop() {
+						<-simulationTimer.C
+					}
+				} else {
+					// непрерывная симуляция
+					logic.PrevStepTime = time.Now().Add(-1 * logic.params.SimulationStepRealTime - 1)
+					logic.NextStepTime = time.Now()
+					simulationTimer.Reset(0)
+				}
+			} else {
+				log.Printf("Simulation mode already was %v\n", mode)
+			}
 		case _ = <-simulationTimer.C:
 			//log.Println("Logic: simulation step")
 
@@ -251,11 +287,8 @@ func (logic *Logic) Start() {
 			// если уже пора симулировать, то симулируем, н оне больше 10 шагов
 			for logic.NextStepTime.Before(time.Now()) && stepsCount < logic.params.MaxSimulationStepsAtOnce {
 				// если что-то изменилось - нужно разослать всем уведомления
-				changed := logic.mWorldMap.ProcessSimulationStep()
+				changed := logic.executeSimulation(logic.params.SimulationStepTime)
 				globallyCahnged = globallyCahnged || changed
-
-				//logic.NextStepTime = logic.StartTime.Add(time.Duration(logic.mWorldMap.SimulationStep+1) * SimulationStepRealTime)
-				logic.NextStepTime.Add(logic.params.SimulationStepRealTime)
 				stepsCount++
 			}
 
@@ -266,20 +299,12 @@ func (logic *Logic) Start() {
 			simulationTimer.Reset(logic.TimeToNextStep())
 		case _ = <-logic.forceSimulationChannel:
 			if logic.params.SimulateByStep {
-				log.Println("Simulating!");
-				logic.mWorldMap.ProcessSimulationStep()
+				log.Println("Simulating!")
+				logic.executeSimulation(logic.params.SimulationStepTime)
 				logic.sendSyncMessage()
 			} else {
-				log.Println("Not in step by step mode");
+				log.Println("Not in step by step mode")
 			}
-		case _ = <-sendTimer.C:
-			// дополнительно рассылаем всем уведомления по таймеру
-			// по идее потом это можно будет убрать
-
-			// todo fortest временно отключаем отправку sync message
-			//logic.sendSyncMessage()
-
-			sendTimer.Reset(logic.params.SendObjectsTimeout)
 		case msg := <-logic.IncomingMessages:
 			log.Println("Logic: message received")
 			if needSync := logic.ProcessMessage(msg); needSync {

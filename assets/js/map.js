@@ -50,6 +50,12 @@ function Map(elem) {
     this.gridSize = 100;
     this.prevOffset = 0;
     this.lastCursorPositionReal = null;
+
+    /**
+     *
+     * @type {boolean}
+     */
+    this.simulationMode = SimulationMode.CONTINUOUS;
     /**
      *
      * @type {Player[]}
@@ -705,6 +711,12 @@ Map.prototype.getRealViewport = function () {
     };
 };
 
+/**
+ *
+ * @param {Point} a
+ * @param {Point} b
+ * @returns {number}
+ */
 Map.prototype.distance = function (a, b) {
     return Math.sqrt(Math.pow(a.x - b.x, 2) + Math.pow(a.y - b.y, 2));
 };
@@ -712,6 +724,24 @@ Map.prototype.distance = function (a, b) {
 Map.prototype.drawTextCentered = function (ctx, text, x, y) {
     var measure = ctx.measureText(text);
     ctx.fillText(text, x - measure.width / 2, y);
+};
+
+/**
+ *
+ * @param {bool} mode
+ */
+Map.prototype.setSimulationMode = function(mode) {
+    if (this.simulationMode !== mode) {
+        this.simulationMode = mode;
+        var modeName = (this.simulationMode === SimulationMode.STEP_BY_STEP ? "StepByStep" : "Continious");
+        $('.simulationMode .value').html(modeName);
+    } else {
+
+    }
+};
+
+Map.prototype.updateServerState = function(state) {
+    this.setSimulationMode(state.simulation_by_step);
 };
 
 /**
@@ -795,3 +825,9 @@ function normalizeWheel(event) {
         pixelY: pY
     };
 }
+
+
+var SimulationMode = {
+    STEP_BY_STEP: true,
+    CONTINUOUS: false
+};
