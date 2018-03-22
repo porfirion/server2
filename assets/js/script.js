@@ -61,13 +61,14 @@ function onmessage(messageType, data) {
             }
             break;
         case MessageType.WELLCOME:
-            console.log(messageType, data);
             myId = data.id;
             newMember(myId, myName);
             break;
         case MessageType.USER_LIST:
-            for (var i = 0, user; user = data.users[i]; i++) {
-                newMember(user.id, user.name);
+            if ('users' in data && data.users != null) {
+                for (var i = 0, user; user = data.users[i]; i++) {
+                    newMember(user.id, user.name);
+                }
             }
             break;
         case MessageType.USER_LOGGEDIN:
@@ -108,13 +109,11 @@ function onmessage(messageType, data) {
 }
 
 function onclose() {
-    console.log('Timer: ', syncTimeTimer);
-
-    if (syncTimeTimer) {
+    if (syncTimeTimer != null) {
         clearInterval(syncTimeTimer);
+        syncTimeTimer = null;
     }
 
-    syncTimeTimer = null;
     $('.chat_members').empty();
     members = {};
     map.clear();
@@ -137,7 +136,7 @@ function updateObjectsPositions(positions, time) {
  */
 function newMember(id, name) {
     if (!(id in members)) {
-        console.log('adding player #' + id + ' (' + name + ')');
+        // console.log('adding player #' + id + ' (' + name + ')');
         var member = new Player(id, name);
         member.anchor = $('<div class="member" aria-hidden="true" data-id="' + id + '">' + name + '</div>');
         $('.chat_members').append(member.anchor);

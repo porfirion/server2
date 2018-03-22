@@ -15,16 +15,18 @@ function WsClient(wsAddr, name) {
 
     this.name = name;
     this.id = null;
-    this.websocket = false;
+    this.websocket = null;
     this.handlers = {};
 
     this.lastSyncTimeRequest = null;
 
     this.latencies = [];
     this.timeCorrections = [];
+    this.requestTimeTimer = 0;
+    this.reconnectTimeout = 0;
 
     this.sendMessage = function (type, data) {
-        if (this.websocket == null) {
+        if (_this.websocket == null) {
             console.error('no websocket connection');
             return;
         }
@@ -40,7 +42,7 @@ function WsClient(wsAddr, name) {
         }
 
         try {
-            this.websocket.send(JSON.stringify(msg))
+            _this.websocket.send(JSON.stringify(msg))
         } catch (err) {
             console.error(err);
         }
@@ -79,7 +81,7 @@ function WsClient(wsAddr, name) {
         _this.sendMessage(MessageType.AUTH, {name: name});
 
         _this.requestTime();
-        setInterval(_this.requestTime.bind(this), 10000);
+        _this.requestTimeTimer = setInterval(_this.requestTime.bind(this), 10000);
 
         _this.trigger(WsClient.NotificationOpen);
     };
@@ -88,18 +90,29 @@ function WsClient(wsAddr, name) {
         console.log('on close');
         _this.websocket = null;
         _this.id = null;
-        setTimeout(_this.connect, reconnectTimeout);
+        if (_this.requestTimeTimer !== 0) {
+            clearInterval(_this.requestTimeTimer);
+            _this.requestTimeTimer = 0;
+        }
+        if (_this.reconnectTimeout === 0) {
+            _this.reconnectTimeout = setTimeout(_this.connect, reconnectTimeout);
+        }
         _this.trigger(WsClient.NotificationClose);
     };
 
     var onerrorHandler = function () {
-        console.warn('WebSocket error:', arguments);
+        console.log('WebSocket error:', arguments);
         _this.websocket = null;
         _this.id = null;
-        _this.trigger(WsClient.NotificationError);
+        if (_this.requestTimeTimer !== 0) {
+            clearInterval(_this.requestTimeTimer);
+            _this.requestTimeTimer = 0;
+        }
 
-        console.log('Reconnecting...');
-        setTimeout(connect, reconnectTimeout);
+        _this.trigger(WsClient.NotificationError);
+        if (_this.reconnectTimeout === 0) {
+            _this.reconnectTimeout = setTimeout(_this.connect, reconnectTimeout);
+        }
     };
 
     var onmessageHandler = function (event) {
@@ -107,8 +120,7 @@ function WsClient(wsAddr, name) {
         try {
             var wrapper = JSON.parse(event.data);
             var data = JSON.parse(wrapper.data);
-        }
-        catch (err) {
+        } catch (err) {
             console.error(err);
         }
 
@@ -120,14 +132,19 @@ function WsClient(wsAddr, name) {
             return;
         }
 
-        console.log('%c' + wrapper.type + ' (' + getMessageType(wrapper.type) + ')', 'color: green; font-weight: bold;', data);
+        console.log('%c%d (%s): %o', 'color: green; font-weight: bold;', wrapper.type, getMessageType(wrapper.type), data);
 
         _this.trigger(WsClient.NotificationMessage, wrapper.type, data);
         // onmessage.call(this, wrapper.MessageType, data);
     };
 
     this.connect = function () {
-        if (!_this.websocket) {
+        if (_this.reconnectTimeout !== 0) {
+            clearTimeout(_this.reconnectTimeout);
+            _this.reconnectTimeout = 0;
+        }
+        if (_this.websocket === null) {
+            console.log('Connecting...');
             _this.websocket = new WebSocket(wsAddr);
             _this.websocket.onopen = onopenHandler.bind(_this);
             _this.websocket.onclose = oncloseHandler.bind(_this);
@@ -139,8 +156,8 @@ function WsClient(wsAddr, name) {
     };
 
     this.requestTime = function () {
-        this.sendMessage(MessageType.SYNC_TIME, {});
-        this.lastSyncTimeRequest = Date.now();
+        _this.sendMessage(MessageType.SYNC_TIME, {});
+        _this.lastSyncTimeRequest = Date.now();
     };
 
     this.syncTime = function (data) {
@@ -166,17 +183,17 @@ function WsClient(wsAddr, name) {
         // );
         // console.log('time correction : ' + correction);
 
-        this.latencies.push(latency);
-        if (this.latencies.length > 10) {
-            this.latencies.shift();
+        _this.latencies.push(latency);
+        if (_this.latencies.length > 10) {
+            _this.latencies.shift();
         }
 
-        this.timeCorrections.push(correction);
-        if (this.timeCorrections.length > 10) {
-            this.timeCorrections.shift();
+        _this.timeCorrections.push(correction);
+        if (_this.timeCorrections.length > 10) {
+            _this.timeCorrections.shift();
         }
 
-        this.trigger(WsClient.NotificationTimeSynced, latency, correction);
+        _this.trigger(WsClient.NotificationTimeSynced, latency, correction);
     };
 }
 
@@ -187,25 +204,30 @@ WsClient.NotificationMessage = 'message';
 WsClient.NotificationTimeSynced = 'timeSynced';
 
 var MessageType = {
-    AUTH:                         1,
-    WELLCOME:                     2,
-    LOGIN:                       10,
-    LOGOUT:                      11,
-    ERROR:                      100,
-    DATA:                      1000,
-    TEXT:                      1001,
-    USER_LIST:                10000,
-    USER_LOGGEDIN:            10001,
-    USER_LOGGEDOUT:           10002,
-    SYNC_OBJECTS_POSITIONS:   10003,
-    SYNC_TIME:                10004,
-    SERVER_STATE:             10005,
+    AUTH: 1,
+    WELLCOME: 2,
+    LOGIN: 10,
+    LOGOUT: 11,
+    ERROR: 100,
+    DATA: 1000,
+    TEXT: 1001,
+    USER_LIST: 10000,
+    USER_LOGGEDIN: 10001,
+    USER_LOGGEDOUT: 10002,
+    SYNC_OBJECTS_POSITIONS: 10003,
+    SYNC_TIME: 10004,
+    SERVER_STATE: 10005,
     // special messages
-    ACTION_MESSAGE:         1000000,
-    SIMULATE_MESSAGE:       1000001,
+    ACTION_MESSAGE: 1000000,
+    SIMULATE_MESSAGE: 1000001,
     CHANGE_SIMULATION_MODE: 1000002
 };
 
+/**
+ * Возвращает название типа сообщения по его идентификатору
+ * @param messageTypeId {number}
+ * @returns {String}
+ */
 function getMessageType(messageTypeId) {
     for (var key in MessageType) {
         if (MessageType[key] === messageTypeId) {
