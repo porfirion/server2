@@ -28,7 +28,14 @@ func (r SimpleResolver) resolve(obj1 *MapObject, obj2 *MapObject) bool {
 	distance := obj1.CurrentPosition.DistanceTo(obj2.CurrentPosition)
 	penetration := obj1.Size + obj2.Size - distance
 
-	log.Printf("\n\t%6d: %v size %.2f\n\t%6d: %v size %.2f\n\t  line: %v\n\tdirect: %v\n\t  vect: %v\n\t  dist: %f\n\tpenetr: %f\n",
+	log.Printf("\n"+
+		"\t%6d: %v size %.2f\n"+
+		"\t%6d: %v size %.2f\n"+
+		"\t  line: %v\n"+
+		"\tdirect: %v\n"+
+		"\t  vect: %v\n"+
+		"\t  dist: %f\n"+
+		"\tpenetr: %f\n",
 		obj1.Id,
 		obj1.CurrentPosition,
 		obj1.Size,
@@ -50,14 +57,19 @@ func (r SimpleResolver) resolve(obj1 *MapObject, obj2 *MapObject) bool {
 	sumMass := (float64)(obj1.Mass + obj2.Mass)
 	var obj1Proportion = float64(obj1.Mass) / sumMass
 	var obj2Proportion = 1 - obj1Proportion
-	log.Printf("mass proportions: 1 - %f  2 - %f \n", obj1Proportion, obj2Proportion)
+	log.Printf("mass proportions:\n"+
+		"\t%6d: %f(%3d)\n"+
+		"\t%6d: %f(%3d)\n",
+		obj1.Id, obj1Proportion, obj1.Mass, obj2.Id, obj2Proportion, obj2.Mass)
 
 	prev1, prev2 := obj1.CurrentPosition, obj2.CurrentPosition
 
 	obj1.CurrentPosition = obj1.CurrentPosition.Move(vector1to2.Revers().Mult(penetration * obj1Proportion))
 	obj2.CurrentPosition = obj2.CurrentPosition.Move(vector1to2.Mult(penetration * obj2Proportion))
 
-	log.Printf("\n\t%6d: {%f, %f} -> {%f, %f}\n\t%6 d: {%f, %f} -> {%f, %f}\n",
+	log.Printf("resulting positions:\n"+
+		"\t%6d: {%f, %f} -> {%f, %f}\n"+
+		"\t%6d: {%f, %f} -> {%f, %f}\n",
 		obj1.Id,
 		prev1.X, prev1.Y,
 		obj1.CurrentPosition.X, obj1.CurrentPosition.Y,

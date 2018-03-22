@@ -9,7 +9,11 @@ import (
 )
 
 const (
-	ObjectSpeed        = 50.0                   // скорость объекта по умолчанию
+	ObjectSpeed        = 50.0  // скорость объекта по умолчанию
+
+	// Чтобы из-за точности float не происходило лишних расчётов столкновений,
+	// когда объекты сталкиваются на 1.1368683772161603e-13, вводим эту константу
+	CollisionThreshold = 0.001 // минимальное расстояние, которое считается столкновением
 )
 
 type WorldMap struct {
@@ -166,9 +170,12 @@ func (world *WorldMap) detectCollisions() []MapObjectCollision {
 				//if obj1.ObjectType == MapObjectTypeUser || obj2.ObjectType == MapObjectTypeUser {
 				//	log.Printf("%d -- %d dist %f > %f + %f", id1, id2, obj1.CurrentPosition.DistanceTo(obj2.CurrentPosition), obj1.Size, obj2.Size)
 				//}
+
 				// маленький хак - используем не расстояние, а его квадрат, чтобы не извлекать корень
-				if obj1.CurrentPosition.Distance2To(obj2.CurrentPosition) < float64(obj1.Size+obj2.Size)*float64(obj1.Size+obj2.Size) {
-					log.Printf("collide %d VS %d \n", id1, id2)
+				distance := obj1.CurrentPosition.Distance2To(obj2.CurrentPosition)
+				minimum := float64(obj1.Size+obj2.Size) * float64(obj1.Size+obj2.Size)
+				if distance < minimum && minimum-distance > CollisionThreshold {
+					log.Printf("collide %d VS %d (%f < %f)\n", id1, id2, distance, minimum)
 					collisions = append(collisions, MapObjectCollision{obj1, obj2})
 				}
 			}
@@ -183,7 +190,7 @@ func (world *WorldMap) resolveCollisions(collisions []MapObjectCollision) bool {
 	log.Printf("Resolving %d collisions", len(collisions))
 	for _, collision := range collisions {
 		res := GetResolver(collision.obj1, collision.obj2).resolve(collision.obj1, collision.obj2)
-		changed = changed || res;
+		changed = changed || res
 	}
 	return changed
 }

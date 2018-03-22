@@ -83,7 +83,12 @@ func (logic *Logic) SendMessage(msg interface{}, targets ...network.UsersList) {
 		serverMessage.Except = targets[1]
 	}
 
-	logic.OutgoingMessages <- serverMessage
+	select {
+	case logic.OutgoingMessages <- serverMessage:
+	default:
+		log.Println("busy outgoing messages chan")
+	}
+
 }
 
 func (logic *Logic) SendTextMessage(text string, sender uint64) {
@@ -178,7 +183,6 @@ func (logic *Logic) ProcessMessage(message network.UserMessage) (needSync bool) 
 		if logic.params.SimulateByStep {
 			select {
 			case logic.forceSimulationChannel <- msg.Steps:
-				log.Println("Pushed to force simulation chan")
 			default:
 				log.Println("Already busy force chan")
 			}
@@ -188,14 +192,13 @@ func (logic *Logic) ProcessMessage(message network.UserMessage) (needSync bool) 
 	case *network.ChangeSimulationMode:
 		newValue := msg.StepByStep
 		if logic.params.SimulateByStep != newValue {
-
-			log.Printf("Changing simulation mode from %b to %b\n", logic.params.SimulateByStep, newValue)
-			logic.params.SimulateByStep = newValue
-
-			// а теперь уведомляем всех об изменившемся режиме
-			logic.SendMessage(logic.getServerStateMessage())
+			select {
+			case logic.changeSimulationModeChannel <- newValue:
+			default:
+				log.Println("Already busy mode chan")
+			}
 		} else {
-			log.Printf("Simulation already in mode %b\n", newValue)
+			log.Printf("Simulation already in mode %v\n", newValue)
 		}
 	default:
 		log.Printf("Logic: Unknown message type %#v from %d\n", message.Data, message.Source)
@@ -240,7 +243,7 @@ func (logic *Logic) Start() {
 	rand.Seed(int64(time.Now().Nanosecond()))
 
 	logic.Users = make(map[uint64]*network.User)
-
+	logic.changeSimulationModeChannel = make(chan bool, 2)
 	logic.forceSimulationChannel = make(chan int, 1)
 
 	logic.mWorldMap = world.NewWorldMap()
@@ -259,24 +262,44 @@ func (logic *Logic) Start() {
 		select {
 		case mode := <-logic.changeSimulationModeChannel:
 			if logic.params.SimulateByStep != mode {
-				log.Printf("Simulation mode changed to %v\n", mode)
 				logic.params.SimulateByStep = mode
 
 				if logic.params.SimulateByStep {
+					log.Println("Simulation mode changed to STEP_BY_STEP")
 					// симуляция по шагам
 					if !simulationTimer.Stop() {
 						<-simulationTimer.C
 					}
 				} else {
+					log.Println("Simulation mode changed to CONTINIOUS")
 					// непрерывная симуляция
-					logic.PrevStepTime = time.Now().Add(-1 * logic.params.SimulationStepRealTime - 1)
+					logic.PrevStepTime = time.Now().Add(-1*logic.params.SimulationStepRealTime - 1)
 					logic.NextStepTime = time.Now()
+					log.Println("stopping timer")
+
+					// если попытаться по-новой остановить уже остановленный таймер - он вернёт false.
+					// но при этом в C будет пусто и мы просто навечно залокируемся тут
+					if !simulationTimer.Stop() {
+						select {
+						case <-simulationTimer.C:
+						default:
+							log.Println("timer channel is already empty")
+						}
+					}
+
+					log.Println("resetting timer")
 					simulationTimer.Reset(0)
 				}
+
+				log.Println("sending server state message")
+				// а теперь уведомляем всех об изменившемся режиме
+				logic.SendMessage(logic.getServerStateMessage())
+				log.Println("server state message sent")
 			} else {
 				log.Printf("Simulation mode already was %v\n", mode)
 			}
 		case _ = <-simulationTimer.C:
+			log.Println("timer fired")
 			//log.Println("Logic: simulation step")
 
 			// ага, уже пора производить симуляцию
@@ -306,11 +329,11 @@ func (logic *Logic) Start() {
 				log.Println("Not in step by step mode")
 			}
 		case msg := <-logic.IncomingMessages:
-			log.Println("Logic: message received")
+			//log.Println("Logic: message received")
 			if needSync := logic.ProcessMessage(msg); needSync {
 				logic.sendSyncMessage()
 			}
-			log.Println("Logic: message processed")
+			//log.Println("Logic: message processed")
 		}
 	}
 

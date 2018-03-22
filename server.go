@@ -22,15 +22,15 @@ func main() {
 
 	var incomingConnections network.ConnectionsChannel = make(network.ConnectionsChannel)
 
-	var incomingMessages network.UserMessagesChannel = make(network.UserMessagesChannel)
-	var outgoingMessages network.ServerMessagesChannel = make(network.ServerMessagesChannel)
+	var incomingMessages network.UserMessagesChannel = make(network.UserMessagesChannel, 10)
+	var outgoingMessages network.ServerMessagesChannel = make(network.ServerMessagesChannel, 10)
 
 	// стартуем логику. она готова, чтобы принимать и обрабатывать соощения
 	logic = &Logic{}
 	logic.SetParams(LogicParams{
 		SimulateByStep:           false,                  // если выставить этот флаг, то симуляция запускается не по таймеру, а по приходу события Simulate
 		SimulationStepTime:       100 * time.Millisecond, // сколько виртуального времени проходит за один шаг симуляции
-		SimulationStepRealTime:   100 * time.Millisecond, // сколько реального времени проходит за один шаг симуляции
+		SimulationStepRealTime:   1000 * time.Millisecond, // сколько реального времени проходит за один шаг симуляции
 		SendObjectsTimeout:       time.Second * 1,
 		MaxSimulationStepsAtOnce: 10,
 	})
