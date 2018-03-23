@@ -8,6 +8,10 @@ import (
 	"time"
 )
 
+const (
+	MAX_SYNC_TIMEOUT = 100 * time.Millisecond
+)
+
 /**
  * соотношением SimulationStepTime / SimulationStepRealTime можно регулировать скорость игрового сервера
  */
@@ -29,6 +33,7 @@ type Logic struct {
 
 	forceSimulationChannel      chan int  // отправка сообщения в этот канал инициирует новый шаг симуляции
 	changeSimulationModeChannel chan bool // отправка сообщения в этот канал инициирует изменение режима симуляции
+	prevSyncTime                time.Time
 
 	StartTime    time.Time // время начала симуляции (отсчитывается от первого вызова simulationStep)
 	NextStepTime time.Time // время, в которое должен произойти следующий шаг симуляции
@@ -114,9 +119,10 @@ func (logic *Logic) RemoveUser(id uint64) {
 	logic.mWorldMap.RemoveUser(id)
 }
 
-func (logic *Logic) sendSyncMessage() {
+func (logic *Logic) sendSyncPositionMessage() {
 	var currentTime = logic.mWorldMap.SimulationTime.UnixNano() / int64(time.Millisecond) / int64(time.Nanosecond)
 	logic.SendMessage(network.SyncPositionsMessage{logic.mWorldMap.GetObjectsPositions(), currentTime})
+	logic.prevSyncTime = time.Now()
 }
 
 // Возвращает true, если нужно синхронизировать положение объектов заново
@@ -216,26 +222,10 @@ func (logic *Logic) getServerStateMessage() network.ServerStateMessage {
 	}
 }
 
-func (logic *Logic) TimeToNextStep() time.Duration {
-	if logic.NextSimulationStepTime().After(time.Now()) {
-		return logic.NextSimulationStepTime().Sub(time.Now())
-	} else {
-		return 0
-	}
-}
-
-func (logic *Logic) NextSimulationStepTime() time.Time {
-	if logic.params.SimulateByStep {
-		// следующий шаг симуляции не произойдёт никогда! мухахаха
-		return time.Date(3000, time.January, 0, 0, 0, 0, 0, time.Local)
-	} else {
-		return logic.PrevStepTime.Add(logic.params.SimulationStepRealTime)
-	}
-}
 func (logic *Logic) executeSimulation(dt time.Duration) (changed bool) {
 	changed = logic.mWorldMap.ProcessSimulationStep(logic.params.SimulationStepTime)
 	logic.PrevStepTime = time.Now()
-	logic.NextStepTime.Add(logic.params.SimulationStepRealTime)
+	logic.NextStepTime = logic.NextStepTime.Add(logic.params.SimulationStepRealTime)
 	return
 }
 
@@ -248,8 +238,10 @@ func (logic *Logic) Start() {
 
 	logic.mWorldMap = world.NewWorldMap()
 
+	logic.NextStepTime = time.Now()
+	logic.prevSyncTime = time.Unix(0, 0)
 	// таймер, который инициализирует симуляцию
-	var simulationTimer = time.NewTimer(logic.TimeToNextStep())
+	var simulationTimer = time.NewTimer(0)
 
 	if logic.params.SimulateByStep {
 		if !simulationTimer.Stop() {
@@ -261,6 +253,7 @@ func (logic *Logic) Start() {
 	for {
 		select {
 		case mode := <-logic.changeSimulationModeChannel:
+			// обработка смены режима симуляции
 			if logic.params.SimulateByStep != mode {
 				logic.params.SimulateByStep = mode
 
@@ -270,10 +263,12 @@ func (logic *Logic) Start() {
 					if !simulationTimer.Stop() {
 						<-simulationTimer.C
 					}
+					// обнулили таймер и просто ждём что нам скажут делать дальше:
+					// либо симулировать очередной шаг по команде,
+					// либо вернуть непрерывную симуляцию
 				} else {
 					log.Println("Simulation mode changed to CONTINIOUS")
 					// непрерывная симуляция
-					logic.PrevStepTime = time.Now().Add(-1*logic.params.SimulationStepRealTime - 1)
 					logic.NextStepTime = time.Now()
 					log.Println("stopping timer")
 
@@ -294,44 +289,60 @@ func (logic *Logic) Start() {
 				log.Println("sending server state message")
 				// а теперь уведомляем всех об изменившемся режиме
 				logic.SendMessage(logic.getServerStateMessage())
+				logic.sendSyncPositionMessage()
 				log.Println("server state message sent")
 			} else {
 				log.Printf("Simulation mode already was %v\n", mode)
 			}
 		case _ = <-simulationTimer.C:
-			log.Println("timer fired")
-			//log.Println("Logic: simulation step")
-
-			// ага, уже пора производить симуляцию
+			// по идее уже пора выполнять очередной шаг симуляции
+			//log.Println("Timer fired!")
+			//log.Printf("Now %v next %v\n", time.Now(), logic.NextStepTime)
 
 			stepsCount := 0
-			globallyCahnged := false
+			globallyChanged := false
+
+			if (!logic.NextStepTime.Equal(time.Now()) && !logic.NextStepTime.Before(time.Now())) {
+				log.Println("WARNING! simulation timer fired before next step!")
+			}
+
+			startTime := time.Now().UnixNano()
 
 			// если уже пора симулировать, то симулируем, н оне больше 10 шагов
-			for logic.NextStepTime.Before(time.Now()) && stepsCount < logic.params.MaxSimulationStepsAtOnce {
+			for (logic.NextStepTime.Equal(time.Now()) || logic.NextStepTime.Before(time.Now())) && stepsCount < logic.params.MaxSimulationStepsAtOnce {
 				// если что-то изменилось - нужно разослать всем уведомления
 				changed := logic.executeSimulation(logic.params.SimulationStepTime)
-				globallyCahnged = globallyCahnged || changed
+				globallyChanged = globallyChanged || changed
 				stepsCount++
+
+				if stepsCount > 1 {
+					log.Printf("step %d\n", stepsCount)
+				}
 			}
 
-			if globallyCahnged {
-				logic.sendSyncMessage()
+			passedTime := time.Now().UnixNano() - startTime
+			log.Printf("Simulation step took %d steps (%d mcs)\n", stepsCount, passedTime / 1000.0)
+
+			if globallyChanged || time.Now().Sub(logic.prevSyncTime) > MAX_SYNC_TIMEOUT {
+				logic.sendSyncPositionMessage()
 			}
 
-			simulationTimer.Reset(logic.TimeToNextStep())
+			timeToNextStep := logic.NextStepTime.Sub(time.Now())
+			//log.Printf("Delaying timer for %v nanoseconds\n", timeToNextStep.Nanoseconds())
+			simulationTimer.Reset(timeToNextStep)
 		case _ = <-logic.forceSimulationChannel:
+			// нас попросили выполнить очередной шаг симуляции
 			if logic.params.SimulateByStep {
 				log.Println("Simulating!")
 				logic.executeSimulation(logic.params.SimulationStepTime)
-				logic.sendSyncMessage()
+				logic.sendSyncPositionMessage()
 			} else {
 				log.Println("Not in step by step mode")
 			}
 		case msg := <-logic.IncomingMessages:
 			//log.Println("Logic: message received")
 			if needSync := logic.ProcessMessage(msg); needSync {
-				logic.sendSyncMessage()
+				logic.sendSyncPositionMessage()
 			}
 			//log.Println("Logic: message processed")
 		}
