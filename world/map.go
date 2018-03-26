@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	ObjectSpeed        = 50.0  // скорость объекта по умолчанию
+	ObjectSpeed = 50.0 // скорость объекта по умолчанию
 
 	// Чтобы из-за точности float не происходило лишних расчётов столкновений,
 	// когда объекты сталкиваются на 1.1368683772161603e-13, вводим эту константу
@@ -32,8 +32,8 @@ type WorldMap struct {
 	//5124095,576	часов
 	//213503,9823	дней
 	//584,9424174	лет
-	SimulationTime      time.Time // текущее игровое время
-	SimulationStartTime time.Time // время начала симуляции (по идее оно чисто условное и может начинаться с любого времени)
+	SimulationTime      time.Duration // сколько прошло игрового времени с начала симуляции
+	SimulationStartTime time.Time     // время начала симуляции (по идее оно чисто условное и может начинаться с любого времени)
 }
 
 func NewWorldMap() *WorldMap {
@@ -49,12 +49,11 @@ func NewWorldMap() *WorldMap {
 				Y: rand.Float64()*200 - 100,
 			},
 			MapObjectTypeObstacle)
-
 		world.AddObject(obj)
 	}
 
-	// TODO FORTEST
-	world.SimulationStartTime = time.Unix(0, 0)
+	world.SimulationStartTime = time.Now()
+	world.SimulationTime = 0 //time.Duration(10000000000 * rand.Float32())
 
 	log.Println("world created")
 	return world
@@ -103,20 +102,28 @@ func (world *WorldMap) GetObjectsPositions() map[string]MapObjectDescription {
 	return res
 }
 
+// возвращает текущее время в миллисекундах
+// (начиная с неизвестно чего). Имеет смысл ориентироваться только на разницу во времени,
+// а не на его абсолютное значение
+func (world *WorldMap) GetCurrentTimeMillis() uint64 {
+	return uint64(world.SimulationTime)
+}
+
 //Выполнение симуляции.
 //return произошли ли какие-то существенные изменения
 func (world *WorldMap) ProcessSimulationStep(passedTimeDur time.Duration) (somethingChanged bool) {
 	somethingChanged = false
 
-	world.SimulationTime = world.SimulationTime.Add(passedTimeDur)
+	world.SimulationTime += passedTimeDur
 
-	var passedTime = float64(passedTimeDur) / float64(time.Second)
+	// время, которое прошло за шаг, секунды
+	var dt = float64(passedTimeDur) / float64(time.Second)
 
 	for _, obj := range world.ObjectsById {
 		if obj.DestinationPosition != NilPosition {
 			//log.Println("moving ", id)
 			distance := obj.CurrentPosition.Distance2To(obj.DestinationPosition)
-			if distance <= (ObjectSpeed*passedTime)*(ObjectSpeed*passedTime) {
+			if distance <= (ObjectSpeed*dt)*(ObjectSpeed*dt) {
 				obj.CurrentPosition = obj.DestinationPosition
 				obj.DestinationPosition = NilPosition
 				obj.Speed = Vector2D{}
@@ -126,12 +133,12 @@ func (world *WorldMap) ProcessSimulationStep(passedTimeDur time.Duration) (somet
 				//dy := obj.DestinationPosition.Y - obj.CurrentPosition.Y
 				//obj.CurrentPosition.X += dx / distance * ObjectSpeed
 				//obj.CurrentPosition.Y += dy / distance * ObjectSpeed
-				//log.Printf("Position: %#v Speed %#v passedTime %f", obj.CurrentPosition, obj.Speed, passedTime)
+				//log.Printf("Position: %#v Speed %#v dt %f", obj.CurrentPosition, obj.Speed, dt)
 
 				obj.Speed = obj.CurrentPosition.VectorTo(obj.DestinationPosition).Modulus(ObjectSpeed)
 
-				obj.CurrentPosition.X += obj.Speed.X * passedTime
-				obj.CurrentPosition.Y += obj.Speed.Y * passedTime
+				obj.CurrentPosition.X += obj.Speed.X * dt
+				obj.CurrentPosition.Y += obj.Speed.Y * dt
 
 				//log.Printf("Position: %#v Speed %#v", obj.CurrentPosition, obj.Speed)
 			}
@@ -139,7 +146,7 @@ func (world *WorldMap) ProcessSimulationStep(passedTimeDur time.Duration) (somet
 		//log.Println("id, obj", id, obj)
 	}
 
-	if collisions := world.detectCollisions(); len(collisions) > 0 {
+	if collisions := world.detectPossibleCollisions(); len(collisions) > 0 {
 		res := world.resolveCollisions(collisions)
 		somethingChanged = somethingChanged || res
 	}
@@ -150,8 +157,9 @@ func (world *WorldMap) ProcessSimulationStep(passedTimeDur time.Duration) (somet
 /**
  * Ищет возможные коллизии.
  * TODO здесь надо бы переделать на bounding box
+ * Wide phase
  */
-func (world *WorldMap) detectCollisions() []MapObjectCollision {
+func (world *WorldMap) detectPossibleCollisions() []MapObjectCollision {
 	collisions := make([]MapObjectCollision, 0)
 	for i := 0; i < len(world.Objects); i++ {
 		obj1 := world.Objects[i]

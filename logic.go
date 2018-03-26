@@ -120,8 +120,12 @@ func (logic *Logic) RemoveUser(id uint64) {
 }
 
 func (logic *Logic) sendSyncPositionMessage() {
-	var currentTime = logic.mWorldMap.SimulationTime.UnixNano() / int64(time.Millisecond) / int64(time.Nanosecond)
-	logic.SendMessage(network.SyncPositionsMessage{logic.mWorldMap.GetObjectsPositions(), currentTime})
+	logic.SendMessage(
+		network.SyncPositionsMessage{
+			logic.mWorldMap.GetObjectsPositions(),
+			logic.mWorldMap.GetCurrentTimeMillis(),
+		},
+	)
 	logic.prevSyncTime = time.Now()
 }
 
@@ -177,8 +181,7 @@ func (logic *Logic) ProcessMessage(message network.UserMessage) (needSync bool) 
 		logic.SendMessage(network.UserLoggedinMessage{Id: user.Id, Name: user.Name}, network.UsersList{}, network.UsersList{user.Id})
 		logic.SendMessage(network.UserListMessage{logic.GetUserList(user.Id)}, network.UsersList{user.Id})
 		log.Println("sent. sync next")
-		var currentTime = logic.mWorldMap.SimulationTime.UnixNano() / int64(time.Millisecond) / int64(time.Nanosecond)
-		logic.SendMessage(network.SyncPositionsMessage{logic.mWorldMap.GetObjectsPositions(), currentTime})
+		logic.SendMessage(network.SyncPositionsMessage{logic.mWorldMap.GetObjectsPositions(), logic.mWorldMap.GetCurrentTimeMillis()})
 	case *network.LogoutMessage:
 		log.Println("Logic: Logout message", msg.Id)
 		logic.RemoveUser(msg.Id)
@@ -216,9 +219,10 @@ func (logic *Logic) ProcessMessage(message network.UserMessage) (needSync bool) 
 func (logic *Logic) getServerStateMessage() network.ServerStateMessage {
 	return network.ServerStateMessage{
 		SimulationByStep:       logic.params.SimulateByStep,
-		SimulationStepTime:     (uint64)(logic.params.SimulationStepTime.Nanoseconds() / 1000),
-		SimulationStepRealTime: (uint64)(logic.params.SimulationStepRealTime.Nanoseconds() / 1000),
-		ServerTime:             (uint64)(time.Now().UnixNano() / 1000),
+		SimulationStepTime:     (uint64)(logic.params.SimulationStepTime / time.Millisecond),
+		SimulationStepRealTime: (uint64)(logic.params.SimulationStepRealTime / time.Millisecond),
+		ServerTime:             (uint64)(time.Now().UnixNano() / int64(time.Millisecond)),
+		SimulationTime:         logic.mWorldMap.GetCurrentTimeMillis(),
 	}
 }
 
@@ -306,7 +310,7 @@ func (logic *Logic) Start() {
 				log.Println("WARNING! simulation timer fired before next step!")
 			}
 
-			startTime := time.Now().UnixNano()
+			startTime := time.Now()
 
 			// если уже пора симулировать, то симулируем, н оне больше 10 шагов
 			for (logic.NextStepTime.Equal(time.Now()) || logic.NextStepTime.Before(time.Now())) && stepsCount < logic.params.MaxSimulationStepsAtOnce {
@@ -320,8 +324,8 @@ func (logic *Logic) Start() {
 				}
 			}
 
-			passedTime := time.Now().UnixNano() - startTime
-			log.Printf("Simulation step took %d steps (%d mcs)\n", stepsCount, passedTime / 1000.0)
+			passedTime := time.Now().Sub(startTime)
+			log.Printf("Simulated %d steps (%.3f ms)\n", stepsCount, float64(passedTime)/1000000.0)
 
 			if globallyChanged || time.Now().Sub(logic.prevSyncTime) > MAX_SYNC_TIMEOUT {
 				logic.sendSyncPositionMessage()
@@ -334,7 +338,10 @@ func (logic *Logic) Start() {
 			// нас попросили выполнить очередной шаг симуляции
 			if logic.params.SimulateByStep {
 				log.Println("Simulating!")
+				startTime := time.Now()
 				logic.executeSimulation(logic.params.SimulationStepTime)
+				passedTime := time.Now().Sub(startTime)
+				log.Printf("Simulated 1 step (%.3f ms)", float64(passedTime) / 1000000.0)
 				logic.sendSyncPositionMessage()
 			} else {
 				log.Println("Not in step by step mode")

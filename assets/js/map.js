@@ -3,7 +3,9 @@
 const
     DRAW_MODE_ONLY_SERVER = 1,
     DRAW_MODE_ONLY_REAL = 2,
-    DRAW_MODE_BOTH = 3;
+    DRAW_MODE_BOTH = 3,
+    SIMULATION_MODE_STEP_BY_STEP = true,
+    SIMULATION_MODE_CONTINIOUS = false;
 
 
 /**
@@ -51,13 +53,11 @@ function Map(elem) {
     this.prevOffset = 0;
     this.lastCursorPositionReal = null;
 
+    this.simulationMode = SimulationMode.CONTINUOUS; // @type {boolean}
+    this.simulationTime = 0; // игровое время
+    this.stateSyncTime = 0; // время, в которое мы получили состояние серера
+
     /**
-     *
-     * @type {boolean}
-     */
-    this.simulationMode = SimulationMode.CONTINUOUS;
-    /**
-     *
      * @type {Player[]}
      */
     this.players = {};
@@ -144,6 +144,18 @@ function Map(elem) {
     this.animations = [];
     this.prevAnimationTime = null;
 }
+
+// возвращает текущее время, оттуалкиваясь от которого мы рисуем объекты
+Map.prototype.getCurrentSimulationTime = function() {
+    if (this.simulationMode === SIMULATION_MODE_STEP_BY_STEP) {
+        // отдаём то, что нам сказали в последний раз, так как итерируем по шагам
+        return this.simulationTime;
+    } else {
+        var timeSinceSync = Date.now() - this.stateSyncTime;
+        // игровое время + плюс сколько прошло с момента синхронизации + коррекция
+        return this.simulationTime + timeSinceSync + this.timeCorrection;
+    }
+};
 
 Map.prototype.addObject = function (id, objectType, coords) {
     if (objectType === undefined) {
@@ -341,7 +353,7 @@ Map.prototype.adjustViewport = function () {
 
     // disable adjusting to out object
     // if (this.myObject != null) {
-    //
+    //     // следование за "своим" объектом
     //     var viewportW = this.elem.width * 0.3 / this.viewport.scale;
     //     var viewportH = this.elem.height * 0.3 / this.viewport.scale;
     //
@@ -390,7 +402,7 @@ Map.prototype.drawObjects = function () {
     var ctx = this.ctx;
     var viewportReal = this.getRealViewport(); // real position and size of viewport
 
-    var serverTime = Date.now() + this.timeCorrection;
+    var serverTime = this.getCurrentSimulationTime();
 
     ctx.save();
     ctx.scale(this.viewport.scale, this.viewport.scale);
@@ -742,6 +754,9 @@ Map.prototype.setSimulationMode = function(mode) {
 
 Map.prototype.updateServerState = function(state) {
     this.setSimulationMode(state.simulation_by_step);
+    this.simulationTime = state.simulation_time;
+    this.stateSyncTime = Date.now();
+    console.log(state);
 };
 
 /**

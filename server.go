@@ -29,9 +29,9 @@ func main() {
 	logic = &Logic{}
 	logic.SetParams(LogicParams{
 		SimulateByStep:           false,                  // если выставить этот флаг, то симуляция запускается не по таймеру, а по приходу события Simulate
-		SimulationStepTime:       100 * time.Millisecond, // сколько виртуального времени проходит за один шаг симуляции
-		SimulationStepRealTime:   1000 * time.Millisecond, // сколько реального времени проходит за один шаг симуляции
-		SendObjectsTimeout:       time.Second * 1,
+		SimulationStepTime:       500 * time.Millisecond, // сколько виртуального времени проходит за один шаг симуляции
+		SimulationStepRealTime:   500 * time.Millisecond, // сколько реального времени проходит за один шаг симуляции
+		SendObjectsTimeout:       time.Millisecond * 500,
 		MaxSimulationStepsAtOnce: 10,
 	})
 	logic.SetIncomingMessagesChannel(incomingMessages)
