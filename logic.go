@@ -255,6 +255,19 @@ func (logic *Logic) Start() {
 
 	log.Println("Logic: started")
 	for {
+		// сначала пытаемся вычитаь все входящие соединения.
+		// потом надо будет учесть вариант, что нас могут заспамить и симуляция вообще не произойдёт.
+		select {
+			case msg := <-logic.IncomingMessages:
+				//log.Println("Logic: message received")
+				if needSync := logic.ProcessMessage(msg); needSync {
+					logic.sendSyncPositionMessage()
+				}
+				//log.Println("Logic: message processed")
+				continue
+			default:
+		}
+
 		select {
 		case mode := <-logic.changeSimulationModeChannel:
 			// обработка смены режима симуляции
@@ -325,7 +338,7 @@ func (logic *Logic) Start() {
 			}
 
 			passedTime := time.Now().Sub(startTime)
-			log.Printf("Simulated %d steps (%.3f ms)\n", stepsCount, float64(passedTime)/1000000.0)
+			log.Printf("Simulated %d steps (%d mcs): world time %d ms\n", stepsCount, passedTime/time.Microsecond, logic.mWorldMap.GetCurrentTimeMillis())
 
 			if globallyChanged || time.Now().Sub(logic.prevSyncTime) > MAX_SYNC_TIMEOUT {
 				logic.sendSyncPositionMessage()
@@ -341,7 +354,7 @@ func (logic *Logic) Start() {
 				startTime := time.Now()
 				logic.executeSimulation(logic.params.SimulationStepTime)
 				passedTime := time.Now().Sub(startTime)
-				log.Printf("Simulated 1 step (%.3f ms)", float64(passedTime) / 1000000.0)
+				log.Printf("Simulated 1 step (%d mcs): world time %d ms", passedTime/time.Microsecond, logic.mWorldMap.GetCurrentTimeMillis())
 				logic.sendSyncPositionMessage()
 			} else {
 				log.Println("Not in step by step mode")

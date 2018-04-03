@@ -106,7 +106,7 @@ func (world *WorldMap) GetObjectsPositions() map[string]MapObjectDescription {
 // (начиная с неизвестно чего). Имеет смысл ориентироваться только на разницу во времени,
 // а не на его абсолютное значение
 func (world *WorldMap) GetCurrentTimeMillis() uint64 {
-	return uint64(world.SimulationTime)
+	return uint64(world.SimulationTime / time.Millisecond)
 }
 
 //Выполнение симуляции.
