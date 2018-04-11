@@ -70,25 +70,39 @@ function Map(elem) {
     // this.drawMode = DRAW_MODE_ONLY_SERVER;
     this.drawMode = DRAW_MODE_BOTH;
 
-    $(elem).on('click', function (event) {
-        this.points.push({x: event.offsetX, y: event.offsetY, color: randomColor()});
-        var real = this.viewportToReal({x: event.offsetX, y: event.offsetY});
-
-        // for (var i = 0; i < this.objects.length; i++) {
-        // 	if (this.distance(real, this.objects[i]) < this.objects[i].size) {
-        // 		this.objects[i].active = true;
-        // 	}
-        // }
-
-        $(_this).trigger('game:click', real);
+    $(elem).on('mousedown', function (event) {
+        var viewportCoords = new Point(event.offsetX, event.offsetY);
+        var realCoords = this.viewportToReal(viewportCoords);
+        switch (event.button) {
+            case 0:
+                this.points.push({x: event.offsetX, y: event.offsetY, color: randomColor()});
+                $(this).trigger('game:click', realCoords);
+                break;
+            case 1:
+                break;
+            case 2:
+                if (this.isAnimating) {
+                    this.viewportAdjustPoint = realCoords;
+                    this.viewportAdjustPointVP = viewportCoords;
+                } else {
+                    this.setViewport(realCoords);
+                    this.draw_();
+                }
+                break;
+            default:
+                console.warn("unexpected button " + event.button);
+                break;
+        }
+        return false;
     }.bind(this));
 
-    $(elem).on('mousemove', function (ev) {
-        this.lastCursorPositionReal = this.viewportToReal({x: ev.offsetX, y: ev.offsetY});
+    $(elem).on('mousemove', function (event) {
+        var viewportCoords = new Point(event.offsetX, event.offsetY);
+        this.viewportAdjustPointVP = viewportCoords;
+        this.lastCursorPositionReal = this.viewportToReal(viewportCoords);
     }.bind(this));
 
     $(elem).on('mouseenter', function () {
-
     }.bind(this));
 
     $(elem).on('mouseout', function () {
@@ -107,9 +121,8 @@ function Map(elem) {
             this.viewport.scale = Math.min(this.viewport.scale, 50);
         }
 
-        this.lastCursorPositionReal = this.viewportToReal({x: ev.offsetX, y: ev.offsetY});
+        this.lastCursorPositionReal = this.viewportToReal(new Point(ev.offsetX, ev.offsetY));
 
-        this.draw_();
         // capture all scrolling over map
         return false;
     }.bind(this));
@@ -123,12 +136,7 @@ function Map(elem) {
         this.viewport.y = p.y;
     };
     $(elem).on('contextmenu', function (event) {
-        if (this.isAnimating) {
-            _this.viewportAdjustPoint = this.viewportToReal({x: event.offsetX, y: event.offsetY});
-        } else {
-            _this.setViewport(this.viewportToReal({x: event.offsetX, y: event.offsetY}));
-            this.draw_();
-        }
+        event.preventDefault();
         return false;
     }.bind(this));
 
@@ -146,7 +154,7 @@ function Map(elem) {
 }
 
 // возвращает текущее время, оттуалкиваясь от которого мы рисуем объекты
-Map.prototype.getCurrentSimulationTime = function() {
+Map.prototype.getCurrentSimulationTime = function () {
     if (this.simulationMode === SIMULATION_MODE_STEP_BY_STEP) {
         // отдаём то, что нам сказали в последний раз, так как итерируем по шагам
         return this.simulationTime;
@@ -270,7 +278,7 @@ Map.prototype.draw_ = function () {
     var elem = this.elem;
 
     elem.width = elem.clientWidth;
-    elem.height = elem.clientHeight;
+    elem.height = elem.clientHeight - 1;
 
     // у контекста нет ширины и высоты - они есть только у элемента canvas
     // ctx.width = this.elem.clientWidth;
@@ -391,6 +399,8 @@ Map.prototype.adjustViewport = function () {
 
     this.viewport.x = Math.min(5000, Math.max(-5000, this.viewport.x));
     this.viewport.y = Math.min(5000, Math.max(-5000, this.viewport.y));
+
+    this.lastCursorPositionReal = this.viewportToReal(this.viewportAdjustPointVP);
 };
 
 Map.prototype.rectContainsPoint = function (rect, point, radius) {
@@ -511,7 +521,6 @@ Map.prototype.drawGrid = function () {
             ctx.restore();
         }
     }
-
 
     // рисуем центр
     ctx.strokeStyle = 'lime';
@@ -742,7 +751,7 @@ Map.prototype.drawTextCentered = function (ctx, text, x, y) {
  *
  * @param {bool} mode
  */
-Map.prototype.setSimulationMode = function(mode) {
+Map.prototype.setSimulationMode = function (mode) {
     if (this.simulationMode !== mode) {
         this.simulationMode = mode;
         var modeName = (this.simulationMode === SimulationMode.STEP_BY_STEP ? "StepByStep" : "Continious");
@@ -752,7 +761,7 @@ Map.prototype.setSimulationMode = function(mode) {
     }
 };
 
-Map.prototype.updateServerState = function(state) {
+Map.prototype.updateServerState = function (state) {
     this.setSimulationMode(state.simulation_by_step);
     this.simulationTime = state.simulation_time;
     this.stateSyncTime = Date.now();
