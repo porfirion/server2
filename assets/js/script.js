@@ -60,7 +60,7 @@ function onmessage(messageType, data) {
                 showMessage(username + ": " + data.text);
             }
             break;
-        case MessageType.WELLCOME:
+        case MessageType.WELCOME:
             myId = data.id;
             newMember(myId, myName);
             break;

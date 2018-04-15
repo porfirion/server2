@@ -176,7 +176,7 @@ func (logic *Logic) ProcessMessage(message network.UserMessage) (needSync bool) 
 		log.Println("Logic: Login message received")
 
 		user := logic.AddUser(msg.Id, msg.Name)
-		logic.SendTextMessageToUser("Logic: Wellcome, "+user.Name, 0, user.Id)
+		logic.SendTextMessageToUser("Logic: Welcome, "+user.Name, 0, user.Id)
 		logic.SendMessage(logic.getServerStateMessage(), network.UsersList{user.Id})
 		logic.SendMessage(network.UserLoggedinMessage{Id: user.Id, Name: user.Name}, network.UsersList{}, network.UsersList{user.Id})
 		logic.SendMessage(network.UserListMessage{logic.GetUserList(user.Id)}, network.UsersList{user.Id})

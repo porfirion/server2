@@ -45,7 +45,7 @@ func (pool *ConnectionsPool) processConnection(connection Connection) {
 			connection.SetClosingChannel(pool.ClosingChannel)
 
 			// извещаем клиента о том, что он подключился
-			connection.GetResponseChannel() <- WellcomeMessage{Id: connectionId}
+			connection.GetResponseChannel() <- WelcomeMessage{Id: connectionId}
 
 			pool.Connections[connectionId] = connection
 			pool.Logic.GetIncomingMessagesChannel() <- UserMessage{Data: &LoginMessage{Id: connectionId, Name: authMessage.Name}, Source: connectionId}

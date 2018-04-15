@@ -124,7 +124,7 @@ function WsClient(wsAddr, name) {
             console.error(err);
         }
 
-        if (wrapper.type === MessageType.WELLCOME) {
+        if (wrapper.type === MessageType.WELCOME) {
             _this.id = data.id;
         }
         if (wrapper.type === MessageType.SYNC_TIME) {
@@ -205,7 +205,7 @@ WsClient.NotificationTimeSynced = 'timeSynced';
 
 var MessageType = {
     AUTH: 1,
-    WELLCOME: 2,
+    WELCOME: 2,
     LOGIN: 10,
     LOGOUT: 11,
     ERROR: 100,

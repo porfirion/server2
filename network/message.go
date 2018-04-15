@@ -33,7 +33,7 @@ type AuthMessage struct {
 /**
  * Посылается клиенту, чтобы сообщить, что он успешно подключился и сказать ему его id
  */
-type WellcomeMessage struct {
+type WelcomeMessage struct {
 	Id uint64 `json:"id"`
 }
 
@@ -133,7 +133,7 @@ type UserMessagesChannel chan UserMessage
 
 var dict = map[reflect.Type]int{
 	reflect.TypeOf(AuthMessage{}):          1,
-	reflect.TypeOf(WellcomeMessage{}):      2,
+	reflect.TypeOf(WelcomeMessage{}):       2,
 	reflect.TypeOf(LoginMessage{}):         10,
 	reflect.TypeOf(LogoutMessage{}):        11,
 	reflect.TypeOf(ErrorMessage{}):         100,
