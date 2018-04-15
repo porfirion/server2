@@ -26,38 +26,23 @@ function Point(x, y) {
  * @constructor
  */
 function Map(elem) {
-    var _this = this;
-    this.points = [];
     /**
      * List of map objects
      * @type {MapObject[]}
      */
 
+    this.objectsById = {};
     this.myObject = null; // объект текущего игрока
-
-
     this.lastCursorPositionReal = null;
-
     this.simulationMode = SimulationMode.CONTINUOUS; // @type {boolean}
     this.simulationTime = 0; // игровое время
     this.stateSyncTime = 0; // время, в которое мы получили состояние серера
-
-    /**
+   /**
      * @type {Player[]}
      */
     this.players = {};
     this.latency = 0; // пинг до сервера
     this.timeCorrection = 0; // сколько нужно прибавить к текущему времени, чтобы получить серверное
-
-    /**
-     *
-     * @param {Point} p
-     */
-    _this.setViewport = function (p) {
-        this.viewport.x = p.x;
-        this.viewport.y = p.y;
-    };
-
     /**
      * Flag, is auto drawing enabled
      * @type {boolean}
@@ -80,16 +65,20 @@ Map.prototype.initHandlers = function(elem) {
         var realCoords = this.viewport.toReal(viewportCoords);
         switch (event.button) {
             case 0:
+                // левая кнопка мыши
                 $(this).trigger('game:click', realCoords);
                 break;
             case 1:
+                // средняя кнопка мыши
                 break;
             case 2:
+                // правая кнопка мыши
                 if (this.isAnimating) {
                     this.viewportAdjustPoint = realCoords;
                     this.viewportAdjustPointVP = viewportCoords;
                 } else {
-                    this.setViewport(realCoords);
+                    this.viewport.x = realCoords.x;
+                    this.viewport.y = realCoords.y;
                     this.draw_();
                 }
                 break;
@@ -101,9 +90,11 @@ Map.prototype.initHandlers = function(elem) {
     }.bind(this));
 
     $(elem).on('mousemove', function(event) {
-        var viewportCoords = new Point(event.offsetX, event.offsetY);
-        this.viewportAdjustPointVP = viewportCoords;
-        this.lastCursorPositionReal = this.viewport.toReal(viewportCoords);
+        var canvasCoords = new Point(event.offsetX, event.offsetY);
+        var viewportCoords = this.viewport.fromCanvas(canvasCoords);
+        var realCoords = this.viewport.toReal(viewportCoords);
+        this.viewportAdjustPointVP = canvasCoords;
+        this.lastCursorPositionReal = realCoords;
     }.bind(this));
 
     $(elem).on('mouseenter', function() {}.bind(this));
