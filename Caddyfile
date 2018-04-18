@@ -1,0 +1,10 @@
+:2018 {
+	tls off
+	root d:/work/go/src/github.com/porfirion/server2/templates
+	ext .html
+}
+
+:2018/assets {
+	tls off
+	root d:/work/go/src/github.com/porfirion/server2/assets
+}
