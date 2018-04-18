@@ -10,18 +10,7 @@ var SimulationMode = {
 };
 
 /**
- *
- * @param {Number} x
- * @param {Number} y
- * @constructor
- */
-function Point(x, y) {
-    this.x = x;
-    this.y = y;
-}
-
-/**
- * Class for holding and drawing list of map objects (including players)
+ * Class for holding and NOT drawing list of map objects (including players)
  * @param {HTMLCanvasElement} elem
  * @constructor
  */
@@ -57,6 +46,12 @@ function Map(elem) {
 
     this.initHandlers(this.elem);
 }
+
+Map.prototype.mainLoop = function() {
+    if (this.isAnimating) {
+        requestAnimationFrame(this.mainLoop().bind(this));
+    }
+};
 
 Map.prototype.initHandlers = function(elem) {
     $(elem).on('mousedown', function(event) {

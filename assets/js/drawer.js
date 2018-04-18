@@ -4,6 +4,17 @@ const
     DRAW_MODE_BOTH = 3;
 
 /**
+ *
+ * @param {Number} x
+ * @param {Number} y
+ * @constructor
+ */
+function Point(x, y) {
+    this.x = x;
+    this.y = y;
+}
+
+/**
  * Viewport - is a window from sceen to real world;
  * @param x
  * @param y
@@ -145,26 +156,7 @@ function Drawer(elem) {
     this.drawMode = DRAW_MODE_BOTH;
 }
 
-/**
- * Wrapper for automatic drawing
- * @private
- */
 Drawer.prototype.draw = function() {
-    if (this.isAnimating) {
-        this.draw_();
-
-        requestAnimationFrame(this.draw.bind(this));
-    }
-};
-Drawer.prototype.forceDraw = function() {
-    this.draw_();
-};
-
-/**
- * Exokicit drawing int canvas
- * @private
- */
-Drawer.prototype.draw_ = function() {
     this.elem.width = this.elem.clientWidth;
     this.elem.height = this.elem.clientHeight;
 
@@ -176,7 +168,7 @@ Drawer.prototype.draw_ = function() {
 
     this.ctx.font = "16px serif";
 
-    this.adjustViewport();
+    // this.adjustViewport();
     this.drawGrid();
     this.drawObjects();
     // this.drawAnchors();
@@ -247,9 +239,7 @@ Drawer.prototype.draw_ = function() {
 
 Drawer.prototype.drawObjects = function() {
     var ctx = this.ctx;
-    var viewportReal = this.getRealViewport(); // real position and size of viewport
-
-    var serverTime = this.getCurrentSimulationTime();
+    var viewportReal = this.viewport.getRealDimensions(); // real position and size of viewport
 
     ctx.save();
     ctx.scale(this.viewport.scale, this.viewport.scale);
@@ -312,7 +302,7 @@ Drawer.prototype.drawGrid = function() {
 
     // рисуем вертикали
     for (var i = 0; i < colCount; i++) {
-        var x = this.xToCanvas(leftCol + i * this.gridSize);
+        var x = this.viewport.xToCanvas(leftCol + i * this.gridSize);
         if (leftCol + i * this.gridSize === 0) {
             ctx.strokeStyle = '#888';
         } else {
@@ -326,7 +316,7 @@ Drawer.prototype.drawGrid = function() {
 
     // рисуем горизонтали
     for (var j = 0; j < rowCount; j++) {
-        var y = this.yToCanvas(topRow + j * this.gridSize);
+        var y = this.viewport.yToCanvas(topRow + j * this.gridSize);
         if (topRow + j * this.gridSize === 0) {
             ctx.strokeStyle = '#888';
         } else {
@@ -349,7 +339,7 @@ Drawer.prototype.drawGrid = function() {
             this.prevOffset = (this.prevOffset + 0.5) % 18;
             ctx.lineDashOffset = this.prevOffset;
 
-            var cursorViewport = this.realToViewport(this.lastCursorPositionReal);
+            var cursorViewport = this.viewport.fromReal(this.lastCursorPositionReal);
 
             ctx.beginPath();
             ctx.arc(cursorViewport.x, cursorViewport.y, 20, 0, Math.PI * 2);
@@ -373,8 +363,8 @@ Drawer.prototype.drawGrid = function() {
     // рисуем границы области
     ctx.lineWidth = 10;
     ctx.beginPath();
-    var vlt = this.realToViewport({x: -5000, y: -5000});
-    var vrb = this.realToViewport({x: 5000, y: 5000});
+    var vlt = this.viewport.fromReal({x: -5000, y: -5000});
+    var vrb = this.viewport.fromReal({x: 5000, y: 5000});
     ctx.rect(vlt.x, vlt.y, vrb.x - vlt.x, vrb.y - vlt.y);
     ctx.stroke();
 

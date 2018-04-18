@@ -7,6 +7,8 @@ import (
 	"net"
 	"net/http"
 	"github.com/porfirion/server2/network"
+	"strings"
+	"os"
 )
 
 type WebSocketGate struct {
@@ -66,9 +68,22 @@ func (gate *WebSocketGate) wsHandler(rw http.ResponseWriter, request *http.Reque
  * @return {[type]} [description]
  */
 func (gate *WebSocketGate) indexHandler(rw http.ResponseWriter, request *http.Request) {
-	indexTempl := template.Must(template.ParseFiles("templates/index.html"))
-	data := struct{}{}
-	indexTempl.Execute(rw, data)
+	var path string
+	if request.RequestURI == "/" {
+		path = "templates/index.html"
+	} else {
+		path = "templates/" + strings.Replace(request.RequestURI[1:], "..", "", -1);
+	}
+	if _, err := os.Stat(path); err == nil {
+		indexTempl := template.Must(template.ParseFiles(path))
+		data := struct{}{}
+		indexTempl.Execute(rw, data)
+	} else {
+
+		rw.WriteHeader(404);
+		rw.Write([]byte(path));
+		rw.Write(([]byte)("404 Not Found"));
+	}
 }
 
 /**
