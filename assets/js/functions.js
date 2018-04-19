@@ -79,3 +79,10 @@ function randomColorComponent() {
 function randomColor() {
     return '#' + randomColorComponent() + randomColorComponent() + randomColorComponent();
 }
+
+function numberPrecisionLimiter(key, value) {
+    if (typeof value === 'number') {
+        return parseFloat(value.toFixed(1));
+    }
+    return value;
+}

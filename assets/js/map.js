@@ -55,7 +55,7 @@ Map.prototype.mainLoop = function() {
 
 Map.prototype.initHandlers = function(elem) {
     $(elem).on('mousedown', function(event) {
-        var canvasCoords = new Point(event.offsetX, event.offsetY);
+        var canvasCoords = new Point2D(event.offsetX, event.offsetY);
         var viewportCoords = this.viewport.fromCanvas(canvasCoords);
         var realCoords = this.viewport.toReal(viewportCoords);
         switch (event.button) {
@@ -85,7 +85,7 @@ Map.prototype.initHandlers = function(elem) {
     }.bind(this));
 
     $(elem).on('mousemove', function(event) {
-        var canvasCoords = new Point(event.offsetX, event.offsetY);
+        var canvasCoords = new Point2D(event.offsetX, event.offsetY);
         var viewportCoords = this.viewport.fromCanvas(canvasCoords);
         var realCoords = this.viewport.toReal(viewportCoords);
         this.viewportAdjustPointVP = canvasCoords;
@@ -102,15 +102,13 @@ Map.prototype.initHandlers = function(elem) {
         var params = normalizeWheel(ev.originalEvent);
         if (params.spinY > 0) {
             // на себя
-            this.viewport.scale *= 0.97;
-            this.viewport.scale = Math.max(this.viewport.scale, 0.005);
+            this.viewport.scaleBy(0.97);
         } else {
             // от себя
-            this.viewport.scale *= 1.05;
-            this.viewport.scale = Math.min(this.viewport.scale, 50);
+            this.viewport.scaleBy(1.05);
         }
 
-        this.lastCursorPositionReal = this.viewport.toReal(new Point(ev.offsetX, ev.offsetY));
+        this.lastCursorPositionReal = this.viewport.toReal(new Point2D(ev.offsetX, ev.offsetY));
 
         // capture all scrolling over map
         return false;
@@ -277,8 +275,8 @@ Map.prototype.rectContainsPoint = function (rect, point, radius) {
 
 /**
  *
- * @param {Point} a
- * @param {Point} b
+ * @param {Point2D} a
+ * @param {Point2D} b
  * @returns {number}
  */
 Map.prototype.distance = function (a, b) {

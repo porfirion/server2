@@ -3,121 +3,9 @@ const
     DRAW_MODE_ONLY_REAL = 2,
     DRAW_MODE_BOTH = 3;
 
-/**
- *
- * @param {Number} x
- * @param {Number} y
- * @constructor
- */
-function Point(x, y) {
-    this.x = x;
-    this.y = y;
-}
-
-/**
- * Viewport - is a window from sceen to real world;
- * @param x
- * @param y
- * @param scale
- * @constructor
- */
-function Viewport(x, y, scale, width, height) {
-    this.realX = typeof x !== 'undefined' ? Number(x) : 0;
-    this.realY = typeof y !== 'undefined' ? Number(y) : 0;
-    this.scale = typeof scale !== 'undefined' ? Number(scale) : 1.0;
-
-    this.realWidth = 1000;
-    this.realHeight = 1000;
-
-    if (typeof width !== 'undefined' && typeof height !== 'undefined') {
-        this.updateSize(width, height);
-    }
-}
-
-Viewport.prototype.updateSize = function(width, height) {
-    this.canvasWidth = width;
-    this.canvasHeight = height;
-
-    // размер вьюпорта в реальных пикселях
-    this.realWidth = width / this.scale;
-    this.realHeight = height / this.scale;
-    
-    this.realWidth_half = this.realWidth / 2;
-    this.realHeight_half = this.realHeight / 2;
-};
-
-/**
- * Returns real world coords and size of viewport
- * @returns {{x: number, y: number, width: number, height: number, left: number, top: number, right: number, bottom: number}}
- */
-Viewport.prototype.getRealDimensions = function() {
-    return {
-        // реальное положение и размер вьюпорта
-        x: this.realX,
-        y: this.realY,
-        width: this.realWidth,
-        height: this.realHeight,
-
-        // для удобства отдаём ещё и реальные границы
-        left: this.realX - this.realWidth_half,
-        top: this.realY - this.realHeight_half,
-        right: this.realX + this.realWidth_half,
-        bottom: this.realY + this.realHeight_half
-    };
-};
-
-/**
- * Рассчитывает X на канве без учёта скейла,
- * так как скейл применён на самом вьюпорте
- * @param xr реальная координата по X
- * @returns {number} координата X на канве
- */
-Viewport.prototype.xToCanvas = function(xr) {
-    return this.realWidth_half + (xr - this.x);
-};
-
-/**
- * Рассчитывает Y на канве без учёта скейла,
- * так как скейл применён на самом вьюпорте
- * @param yr реальная координата Y
- * @returns {number} координата Y на канве
- */
-Viewport.prototype.yToCanvas = function(yr) {
-    return this.realHeight_half - (yr - this.y);
-};
-
-/**
- * Рассчитывает положение объекта на канве без учёта скейла,
- * так как скейл применён на самом вьюпорте
- * @param realPos реальное положение объекта
- * @returns {{x: number, y: number}} координаты объекта на канве
- */
-Viewport.prototype.fromReal = function(realPos) {
-    return new Point(
-        this.realWidth_half + (realPos.x - this.x),
-        this.realHeight_half - (realPos.y - this.y)
-    );
-};
-
-/**
- * Translate viewport coords into real world coords
- * @param {Point} viewportPos положение курсора на канве
- * @returns {Point} реальное положение курсора
- */
-Viewport.prototype.toReal = function(viewportPos) {
-    return new Point(
-        this.x + (viewportPos.x / this.scale - this.realWidth_half),
-        this.y - (viewportPos.y / this.scale - this.realHeight_half)
-    );
-};
-
-Viewport.prototype.fromCanvas = function(canvasPos) {
-    return new Point(
-        canvasPos.x - this.realWidth_half,
-        -canvasPos.y + this.realHeight_half
-    );
-};
-
+const
+    MAIN_AXIS_COLOR = '#333',
+    SECONDARY_AXIS_COLOR = '#ccc';
 
 /**
  * Class for holding and drawing list of map objects (including players)
@@ -135,7 +23,7 @@ function Drawer(elem) {
 
     /**
      * Position (real) and scale of viewport
-     * @type {{x: number, y: number, scale: number}}
+     * @type {Viewport}
      */
     this.viewport = new Viewport();
 
@@ -156,7 +44,7 @@ function Drawer(elem) {
     this.drawMode = DRAW_MODE_BOTH;
 }
 
-Drawer.prototype.draw = function() {
+Drawer.prototype.draw = function () {
     this.elem.width = this.elem.clientWidth;
     this.elem.height = this.elem.clientHeight;
 
@@ -164,7 +52,7 @@ Drawer.prototype.draw = function() {
     // ctx.width = this.elem.clientWidth;
     // ctx.height = this.elem.clientHeight;
 
-    this.viewport.updateSize(this.elem.width, this.elem.height);
+    this.viewport.setCanvasSize(this.elem.width, this.elem.height);
 
     this.ctx.font = "16px serif";
 
@@ -237,7 +125,7 @@ Drawer.prototype.draw = function() {
 //     this.ctx.restore();
 // };
 
-Drawer.prototype.drawObjects = function() {
+Drawer.prototype.drawObjects = function () {
     var ctx = this.ctx;
     var viewportReal = this.viewport.getRealDimensions(); // real position and size of viewport
 
@@ -283,17 +171,17 @@ Drawer.prototype.drawObjects = function() {
     ctx.restore();
 };
 
-Drawer.prototype.drawGrid = function() {
-    var viewportW = this.elem.width / this.viewport.scale;
-    var viewportH = this.elem.height / this.viewport.scale;
-
+Drawer.prototype.drawGrid = function () {
     var realViewport = this.viewport.getRealDimensions();
+
+    var viewportRealWidth = realViewport.width;
+    var viewportRealHeight = realViewport.height;
 
     var ctx = this.ctx;
 
-    var leftCol = Math.ceil((realViewport.left) / this.gridSize) * this.gridSize;
+    var leftColReal = Math.ceil((realViewport.left) / this.gridSize) * this.gridSize;
     var colCount = Math.max(Math.ceil(realViewport.width / this.gridSize), 1);
-    var topRow = Math.ceil((realViewport.top) / this.gridSize) * this.gridSize;
+    var topRowReal = Math.floor((realViewport.top) / this.gridSize) * this.gridSize;
     var rowCount = Math.max(Math.ceil(realViewport.height / this.gridSize), 1);
 
     ctx.save();
@@ -301,30 +189,35 @@ Drawer.prototype.drawGrid = function() {
     ctx.strokeStyle = '#ccc';
 
     // рисуем вертикали
-    for (var i = 0; i < colCount; i++) {
-        var x = this.viewport.xToCanvas(leftCol + i * this.gridSize);
-        if (leftCol + i * this.gridSize === 0) {
-            ctx.strokeStyle = '#888';
+    for (let i = 0; i < colCount; i++) {
+        let rx = leftColReal + i * this.gridSize,
+            x = this.viewport.realXToCanvasWithScale(rx);
+
+        if (rx === 0) {
+            ctx.strokeStyle = MAIN_AXIS_COLOR;
         } else {
-            ctx.strokeStyle = '#ccc';
+            ctx.strokeStyle = SECONDARY_AXIS_COLOR;
         }
         ctx.beginPath();
         ctx.moveTo(x, 0);
-        ctx.lineTo(x, viewportH);
+        ctx.lineTo(x, viewportRealHeight);
         ctx.stroke();
     }
 
     // рисуем горизонтали
-    for (var j = 0; j < rowCount; j++) {
-        var y = this.viewport.yToCanvas(topRow + j * this.gridSize);
-        if (topRow + j * this.gridSize === 0) {
-            ctx.strokeStyle = '#888';
+    for (let j = 0; j < rowCount; j++) {
+        let ry = topRowReal - j * this.gridSize,
+            y = this.viewport.realYToCanvasWithScale(ry);
+
+        if (ry === 0) {
+            ctx.strokeStyle = MAIN_AXIS_COLOR;
         } else {
-            ctx.strokeStyle = '#ccc';
+            ctx.strokeStyle = SECONDARY_AXIS_COLOR;
         }
+
         ctx.beginPath();
         ctx.moveTo(0, y);
-        ctx.lineTo(viewportW, y);
+        ctx.lineTo(viewportRealWidth, y);
         ctx.stroke();
     }
 
@@ -353,10 +246,10 @@ Drawer.prototype.drawGrid = function() {
     ctx.strokeStyle = 'lime';
     ctx.beginPath();
     // ctx.ellipse(realWidth / 2, realHeight / 2, 10, 10, 0, 0, Math.PI * 2);
-    ctx.moveTo(viewportW / 2 - 15, viewportH / 2);
-    ctx.lineTo(viewportW / 2 + 15, viewportH / 2);
-    ctx.moveTo(viewportW / 2, viewportH / 2 - 15);
-    ctx.lineTo(viewportW / 2, viewportH / 2 + 15);
+    ctx.moveTo(viewportRealWidth / 2 - 15, viewportRealHeight / 2);
+    ctx.lineTo(viewportRealWidth / 2 + 15, viewportRealHeight / 2);
+    ctx.moveTo(viewportRealWidth / 2, viewportRealHeight / 2 - 15);
+    ctx.lineTo(viewportRealWidth / 2, viewportRealHeight / 2 + 15);
     // ctx.arc(realWidth / 2, realHeight / 2, 10, 0, Math.PI * 2);
     ctx.stroke();
 
@@ -388,7 +281,7 @@ Drawer.prototype.drawGrid = function() {
 /**
  * Бесполезная штука, которая рисует линии для отладки
  */
-Drawer.prototype.drawAnchors = function() {
+Drawer.prototype.drawAnchors = function () {
     var ctx = this.ctx;
     var elem = this.elem;
 
@@ -398,7 +291,7 @@ Drawer.prototype.drawAnchors = function() {
 
     ctx.globalAlpha = 0.7;
 
-    var realViewport = this.getRealViewport();
+    var realViewport = this.viewport.getRealDimensions();
 
     // рисуем рамки чуть меньше вьюпорта
     ctx.beginPath();
@@ -443,13 +336,13 @@ Drawer.prototype.drawAnchors = function() {
     ctx.stroke();
 
     ctx.beginPath();
-    ctx.strokeStyle = 'red';
     var gradient = ctx.createLinearGradient(0, 0, elem.width, elem.height);
     gradient.addColorStop(0, "yellow");
     gradient.addColorStop(0.3, "blue");
     gradient.addColorStop(0.7, "red");
     gradient.addColorStop(1, "purple");
     ctx.strokeStyle = gradient;
+    ctx.lineWidth = 5;
     ctx.moveTo(0, 0);
     ctx.lineTo(realViewport.width, realViewport.height);
     ctx.arc(realViewport.width, realViewport.height, 50, 50, 0);
@@ -458,12 +351,14 @@ Drawer.prototype.drawAnchors = function() {
     ctx.strokeText('width*height', realViewport.width, realViewport.height);
 
     ctx.beginPath();
+    ctx.lineWidth = 1;
     // ctx.ellipse(elem.width, elem.height, 20, 20, 0, 0, Math.PI * 2);
     ctx.arc(elem.width / this.viewport.scale, elem.height / this.viewport.scale, 20, 0, Math.PI * 2);
     ctx.stroke();
 
     ctx.beginPath();
     ctx.strokeStyle = 'black';
+    ctx.lineWidth = 1;
     ctx.rect(1, 1, 300, 300);
     ctx.stroke();
 
