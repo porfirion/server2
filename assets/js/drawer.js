@@ -126,23 +126,23 @@ Drawer.prototype.draw = function () {
 // };
 
 Drawer.prototype.drawObjects = function () {
-    var ctx = this.ctx;
-    var viewportReal = this.viewport.getRealDimensions(); // real position and size of viewport
+    const ctx = this.ctx;
+    const realViewport = this.viewport.getRealDimensions(); // real position and size of viewport
 
     ctx.save();
     ctx.scale(this.viewport.scale, this.viewport.scale);
     ctx.lineWidth = 1;
 
-    for (var i = 0; i < this.objects.length; i++) {
-        var obj = this.objects[i];
-        var objSizeReal = obj.size; // half of object size
+    for (let i = 0; i < this.objects.length; i++) {
+        let obj = this.objects[i];
+        let objSizeReal = obj.size; // half of object size
 
         if (this.drawMode === DRAW_MODE_ONLY_SERVER || this.drawMode === DRAW_MODE_BOTH) {
-            var objPosServer = obj.getLastServerPosition();
-            if (this.rectContainsPoint(viewportReal, objPosServer, objSizeReal)) {
+            let objPosServer = obj.getLastServerPosition();
+            if (this.rectContainsPoint(realViewport, objPosServer, objSizeReal)) {
                 // рисуем текущее положение объекта по серверу
                 ctx.save();
-                var serverPos = this.realToViewport(objPosServer);
+                let serverPos = this.realToViewport(objPosServer);
                 ctx.translate(serverPos.x, serverPos.y);
                 ctx.lineWidth = 1;
                 ctx.setLineDash([4, 2]);
@@ -155,10 +155,10 @@ Drawer.prototype.drawObjects = function () {
             }
         }
         if (this.drawMode === DRAW_MODE_ONLY_REAL || this.drawMode === DRAW_MODE_BOTH) {
-            var objPosReal = obj.getApproximatedPosition(serverTime);
-            if (this.rectContainsPoint(viewportReal, objPosReal, objSizeReal) || true) {
+            let objPosReal = obj.getApproximatedPosition(serverTime);
+            if (this.rectContainsPoint(realViewport, objPosReal, objSizeReal) || true) {
                 ctx.save();
-                var objPosViewport = this.realToViewport(objPosReal); // viewport position of object
+                let objPosViewport = this.realToViewport(objPosReal); // viewport position of object
                 ctx.translate(objPosViewport.x, objPosViewport.y);
                 obj.draw(ctx);
                 ctx.restore();
@@ -172,17 +172,17 @@ Drawer.prototype.drawObjects = function () {
 };
 
 Drawer.prototype.drawGrid = function () {
-    var realViewport = this.viewport.getRealDimensions();
+    const realViewport = this.viewport.getRealDimensions();
 
-    var viewportRealWidth = realViewport.width;
-    var viewportRealHeight = realViewport.height;
+    const viewportRealWidth = realViewport.width;
+    const viewportRealHeight = realViewport.height;
 
-    var ctx = this.ctx;
+    const ctx = this.ctx;
 
-    var leftColReal = Math.ceil((realViewport.left) / this.gridSize) * this.gridSize;
-    var colCount = Math.max(Math.ceil(realViewport.width / this.gridSize), 1);
-    var topRowReal = Math.floor((realViewport.top) / this.gridSize) * this.gridSize;
-    var rowCount = Math.max(Math.ceil(realViewport.height / this.gridSize), 1);
+    const leftColReal = Math.ceil((realViewport.left) / this.gridSize) * this.gridSize;
+    const colCount = Math.max(Math.ceil(realViewport.width / this.gridSize), 1);
+    const topRowReal = Math.floor((realViewport.top) / this.gridSize) * this.gridSize;
+    const rowCount = Math.max(Math.ceil(realViewport.height / this.gridSize), 1);
 
     ctx.save();
     ctx.scale(this.viewport.scale, this.viewport.scale);
@@ -232,7 +232,7 @@ Drawer.prototype.drawGrid = function () {
             this.prevOffset = (this.prevOffset + 0.5) % 18;
             ctx.lineDashOffset = this.prevOffset;
 
-            var cursorViewport = this.viewport.fromReal(this.lastCursorPositionReal);
+            let cursorViewport = this.viewport.fromReal(this.lastCursorPositionReal);
 
             ctx.beginPath();
             ctx.arc(cursorViewport.x, cursorViewport.y, 20, 0, Math.PI * 2);
@@ -256,8 +256,8 @@ Drawer.prototype.drawGrid = function () {
     // рисуем границы области
     ctx.lineWidth = 10;
     ctx.beginPath();
-    var vlt = this.viewport.fromReal({x: -5000, y: -5000});
-    var vrb = this.viewport.fromReal({x: 5000, y: 5000});
+    let vlt = this.viewport.fromReal({x: -5000, y: -5000});
+    let vrb = this.viewport.fromReal({x: 5000, y: 5000});
     ctx.rect(vlt.x, vlt.y, vrb.x - vlt.x, vrb.y - vlt.y);
     ctx.stroke();
 
@@ -266,10 +266,10 @@ Drawer.prototype.drawGrid = function () {
     ctx.restore();
 
     // Выводим размеры вьюпорта
-    var l = Math.round(realViewport.left);
-    var t = Math.round(realViewport.top);
-    var r = Math.round(realViewport.right);
-    var b = Math.round(realViewport.bottom);
+    let l = Math.round(realViewport.left);
+    let t = Math.round(realViewport.top);
+    let r = Math.round(realViewport.right);
+    let b = Math.round(realViewport.bottom);
     ctx.fillStyle = 'black';
     ctx.font = '14px serif';
     ctx.fillText(t, this.elem.width / 2 - ctx.measureText(t).width / 2, 10);
@@ -282,8 +282,8 @@ Drawer.prototype.drawGrid = function () {
  * Бесполезная штука, которая рисует линии для отладки
  */
 Drawer.prototype.drawAnchors = function () {
-    var ctx = this.ctx;
-    var elem = this.elem;
+    const ctx = this.ctx;
+    const elem = this.elem;
 
     ctx.save();
 
@@ -291,7 +291,7 @@ Drawer.prototype.drawAnchors = function () {
 
     ctx.globalAlpha = 0.7;
 
-    var realViewport = this.viewport.getRealDimensions();
+    const realViewport = this.viewport.getRealDimensions();
 
     // рисуем рамки чуть меньше вьюпорта
     ctx.beginPath();
@@ -336,7 +336,7 @@ Drawer.prototype.drawAnchors = function () {
     ctx.stroke();
 
     ctx.beginPath();
-    var gradient = ctx.createLinearGradient(0, 0, elem.width, elem.height);
+    let gradient = ctx.createLinearGradient(0, 0, elem.width, elem.height);
     gradient.addColorStop(0, "yellow");
     gradient.addColorStop(0.3, "blue");
     gradient.addColorStop(0.7, "red");
