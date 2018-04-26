@@ -71,6 +71,9 @@ Viewport.prototype.setCanvasSize = function (width, height) {
     this.updateRealSize();
 };
 
+/**
+ * @private
+ */
 Viewport.prototype.updateRealSize = function () {
     this.realXScaled = this.realX * this.scale;
     this.realYScaled = this.realY * this.scale;
@@ -111,8 +114,8 @@ Viewport.prototype.getRealDimensions = function () {
 /**
  * Рассчитывает X на канве без учёта скейла,
  * так как скейл применён на самом вьюпорте
- * @param {Number} rx реальная координата по X
- * @returns {Number} координата X на канве
+ * @param {number} rx реальная координата по X
+ * @returns {number} координата X на канве
  */
 Viewport.prototype.realXToCanvasWithScale = function (rx) {
     /**
@@ -345,7 +348,7 @@ Viewport.prototype.fromCanvas = function (canvasPos) {
  */
 Viewport.prototype.fromCanvasToReal = function (canvasPos) {
     return new Point2D(
-        rX = this.realLeft + canvasPos.x / this.scale,
-        rY = this.realTop - canvasPos.y / this.scale
+        this.realLeft + canvasPos.x / this.scale,
+        this.realTop - canvasPos.y / this.scale
     );
 };

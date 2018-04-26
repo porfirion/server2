@@ -9,6 +9,12 @@ var SimulationMode = {
     CONTINUOUS: false
 };
 
+const ObjectType = {
+    Obstacle: 1,
+    NPC: 10,
+    Player: 100,
+};
+
 /**
  * Class for holding and NOT drawing list of map objects (including players)
  * @param {HTMLCanvasElement} elem
@@ -17,7 +23,7 @@ var SimulationMode = {
 function Map(elem) {
     /**
      * List of map objects
-     * @type {MapObject[]}
+     * @type {DrawableObject[]}
      */
 
     this.objectsById = {};
@@ -45,6 +51,17 @@ function Map(elem) {
     this.prevAnimationTime = null;
 
     this.initHandlers(this.elem);
+
+    if (type === ObjectType.Obstacle) {
+        this.color = 'lightblue';
+    } else if (type === ObjectType.Player) {
+        this.color = 'lightblue';
+    } else if (type === ObjectType.NPC) {
+        this.color = '#cccccc';
+        // this.color = 'red';
+    } else {
+        this.color = color || randomColor();
+    }
 }
 
 Map.prototype.mainLoop = function() {
@@ -139,7 +156,7 @@ Map.prototype.addObject = function (id, objectType, coords) {
     if (coords === undefined || coords === null) {
         coords = {x: 0, y: 0};
     }
-    var obj = new MapObject(id, objectType, coords);
+    var obj = new DrawableObject(id, objectType, coords);
 
     this.objects.push(obj);
     this.objectsById[obj.id] = obj;
@@ -266,11 +283,6 @@ Map.prototype.adjustViewport = function () {
     this.viewport.y = Math.min(5000, Math.max(-5000, this.viewport.y));
 
     this.lastCursorPositionReal = this.viewportToReal(this.viewportAdjustPointVP);
-};
-
-Map.prototype.rectContainsPoint = function (rect, point, radius) {
-    return rect.left <= (point.x + radius) && point.x - radius <= rect.right &&
-        rect.top <= (point.y + radius) && (point.y - radius) <= rect.bottom;
 };
 
 /**
