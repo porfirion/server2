@@ -94,3 +94,8 @@ function Extend(Child, Parent) {
     Child.prototype.constructor = Child;
     Child.superclass = Parent.prototype;
 }
+
+function drawTextCentered(ctx, text, x, y) {
+    var measure = ctx.measureText(text);
+    ctx.fillText(text, x - measure.width / 2, y);
+}

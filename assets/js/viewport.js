@@ -47,13 +47,19 @@ Viewport.prototype.setPos = function (p) {
 };
 
 /**
- * Изменить приближение на коэффициент
+ * Multiply current scale by coeff
  * @param coeff
+ * @public
  */
 Viewport.prototype.scaleBy = function (coeff) {
     this.setScale(this.scale * coeff);
 };
 
+/**
+ * Set exactly this scale
+ * @param value
+ * @public
+ */
 Viewport.prototype.setScale = function (value) {
     this.scale = Math.min(Math.max(value, this.maxScale), this.minScale);
 

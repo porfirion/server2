@@ -15,8 +15,14 @@ var MAIN_AXIS_COLOR = '#333', SECONDARY_AXIS_COLOR = '#ccc';
 var Drawer = /** @class */ (function () {
     function Drawer(elem) {
         this.elem = elem;
-        this.ctx = this.elem.getContext("2d");
-        this.viewport = new Viewport();
+        var context = this.elem.getContext("2d");
+        if (context != null) {
+            this.ctx = context;
+        }
+        else {
+            console.error("no context");
+        }
+        this.viewport = new Viewport(0, 0, 1, 1000, 1000);
         this.objects = [];
         this.objectsById = {};
         this.gridSize = 100;
@@ -50,7 +56,7 @@ var Drawer = /** @class */ (function () {
         var ctx = this.ctx;
         var realViewport = this.viewport.getRealDimensions(); // real position and size of viewport
         ctx.save();
-        ctx.scale(this.viewport.scale, this.viewport.scale);
+        ctx.scale(this.viewport.getScale(), this.viewport.getScale());
         ctx.lineWidth = 1;
         for (var i = 0; i < this.objects.length; i++) {
             var obj = this.objects[i];
@@ -85,7 +91,7 @@ var Drawer = /** @class */ (function () {
         var topRowReal = Math.floor((realViewport.top) / this.gridSize) * this.gridSize;
         var rowCount = Math.max(Math.ceil(realViewport.height / this.gridSize), 1);
         ctx.save();
-        ctx.scale(this.viewport.scale, this.viewport.scale);
+        ctx.scale(this.viewport.getScale(), this.viewport.getScale());
         ctx.strokeStyle = '#ccc';
         // рисуем вертикали
         for (var i = 0; i < colCount; i++) {
@@ -153,10 +159,10 @@ var Drawer = /** @class */ (function () {
         // ctx.globalAlpha = 0.6;
         ctx.restore();
         // Выводим размеры вьюпорта
-        var l = Math.round(realViewport.left);
-        var t = Math.round(realViewport.top);
-        var r = Math.round(realViewport.right);
-        var b = Math.round(realViewport.bottom);
+        var l = Math.round(realViewport.left).toString();
+        var t = Math.round(realViewport.top).toString();
+        var r = Math.round(realViewport.right).toString();
+        var b = Math.round(realViewport.bottom).toString();
         ctx.fillStyle = 'black';
         ctx.font = '14px serif';
         ctx.fillText(t, this.elem.width / 2 - ctx.measureText(t).width / 2, 10);
@@ -177,9 +183,45 @@ var Drawer = /** @class */ (function () {
     };
     Drawer.prototype.removeObject = function (objectId) {
     };
-    Drawer.prototype.getObject = function () {
-        if (this.objects) {
+    Drawer.prototype.drawTime = function () {
+        var ctx = this.timeCanvas.getContext('2d');
+        ctx.clearRect(0, 0, this.timeCanvas.width, this.timeCanvas.height);
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, this.timeCanvas.width, this.timeCanvas.height);
+        var min = Infinity;
+        var max = -Infinity;
+        var average = 0;
+        ctx.strokeStyle = '1px black';
+        for (var i = 0; i < this.animations.length; i++) {
+            average += this.animations[i];
+            if (this.animations[i] > max) {
+                max = this.animations[i];
+            }
+            if (this.animations[i] < min) {
+                min = this.animations[i];
+            }
+            ctx.beginPath();
+            ctx.moveTo(i * 3, 100);
+            ctx.lineTo(i * 3, 100 - this.animations[i]);
+            ctx.stroke();
         }
+        average = average / this.animations.length;
+        ctx.fillStyle = 'black';
+        var fillTextRight = function (text, right, top) {
+            ctx.fillText(text, right - ctx.measureText(text).width, top);
+        };
+        fillTextRight('FPS: ' + Math.round(1000 / average), 290, 15);
+        fillTextRight('min: ' + min, 290, 30);
+        fillTextRight('average: ' + Math.round(average), 290, 45);
+        fillTextRight('max: ' + max, 290, 60);
+        ctx.fillText('viewport: (x: ' + Math.round(this.viewport.x * 100) / 100 + '; y: ' + Math.round(this.viewport.y * 100) / 100 + ')', 15, 15);
+        ctx.fillText('scale: ' + Math.round(this.viewport.scale * 100) / 100, 15, 30);
+        ctx.fillText('latency: ' + this.latency.toFixed(0) + ' ms', 15, 45);
+        ctx.fillText('time correction: ' + this.timeCorrection.toFixed(1) + ' ms', 15, 60);
+        this.ctx.save();
+        this.ctx.globalAlpha = 0.7;
+        this.ctx.drawImage(this.timeCanvas, 0, 0, 300, 100);
+        this.ctx.restore();
     };
     Drawer.rectContainsPoint = function (rect, point, radius) {
         return rect.left <= (point.x + radius) && point.x - radius <= rect.right &&
@@ -187,3 +229,4 @@ var Drawer = /** @class */ (function () {
     };
     return Drawer;
 }());
+module.exports = Drawer;

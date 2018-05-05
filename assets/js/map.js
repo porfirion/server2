@@ -295,11 +295,6 @@ Map.prototype.distance = function (a, b) {
     return Math.sqrt(Math.pow(a.x - b.x, 2) + Math.pow(a.y - b.y, 2));
 };
 
-Map.prototype.drawTextCentered = function (ctx, text, x, y) {
-    var measure = ctx.measureText(text);
-    ctx.fillText(text, x - measure.width / 2, y);
-};
-
 /**
  *
  * @param {bool} mode
