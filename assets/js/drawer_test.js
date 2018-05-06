@@ -1,20 +1,28 @@
 "use strict";
 
 function onLoad() {
-    let elem = window.document.getElementById('map');
-    let drawer = new Drawer(elem);
+    window.elem = window.document.getElementById('map');
+    let drawer = new Drawer(elem.getContext("2d"), elem.clientWidth, elem.clientHeight);
     let clickPos = null;
     let clickViewportPos = null;
 
-    drawer.draw();
     updateViewportSize();
+    updateViewportInfo();
+    drawer.draw();
 
     function updateViewportSize() {
+        elem.width = elem.clientWidth;
+        elem.height = elem.clientHeight;
+        drawer.setCanvasSize(elem.clientWidth, elem.clientHeight);
+    }
+
+    function updateViewportInfo() {
         document.getElementById('viewportSize').innerHTML = JSON.stringify(drawer.viewport.getRealDimensions(), numberPrecisionLimiter, " ");
     }
 
     window.addEventListener("resize", () => {
         updateViewportSize();
+        updateViewportInfo();
         drawer.draw();
     });
 
@@ -28,8 +36,8 @@ function onLoad() {
             drawer.viewport.scaleBy(1.05);
 
         }
+        updateViewportInfo();
         drawer.draw();
-        updateViewportSize();
 
         // capture all scrolling over map
         return false;
@@ -57,8 +65,8 @@ function onLoad() {
             case 2:
                 // правая кнопка мыши
                 drawer.viewport.setPos(realCoords);
+                // updateViewportSize();
                 drawer.draw();
-                updateViewportSize();
                 break;
             default:
                 console.warn("unexpected button " + event.button);
@@ -83,14 +91,15 @@ function onLoad() {
 
         if (clickPos != null) {
             let
-                dx = (canvasCoords.x - clickPos.x) / drawer.viewport.scale,
-                dy = (canvasCoords.y - clickPos.y) / drawer.viewport.scale
+                dx = (canvasCoords.x - clickPos.x) / drawer.viewport.getScale(),
+                dy = (canvasCoords.y - clickPos.y) / drawer.viewport.getScale();
+
             drawer.viewport.setPos(new Point2D(
                 clickViewportPos.x - dx,
                 clickViewportPos.y + dy
             ));
+            updateViewportInfo();
             drawer.draw();
-            updateViewportSize();
 
             // мы передвинули вьюпорт, так что нужно по новой рассчитать положение указателя
             viewportCoords = drawer.viewport.fromCanvas(canvasCoords);

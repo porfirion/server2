@@ -10,6 +10,7 @@ function Point2D(x, y) {
 }
 
 /**
+ * @class
  * Viewport - assumed as a window from screen to real world;
  * @param {Number} x
  * @param {Number} y
@@ -95,6 +96,10 @@ Viewport.prototype.updateRealSize = function () {
     this.realRight = this.realX + this.realWidth_half;
     this.realBottom = this.realY - this.realHeight_half;
 };
+
+Viewport.prototype.getScale = function() {
+    return this.scale;
+}
 
 /**
  * Returns real world coords and size of viewport

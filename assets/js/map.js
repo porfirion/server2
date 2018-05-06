@@ -43,12 +43,6 @@ function Map(elem) {
      * @type {boolean}
      */
     this.isAnimating = false;
-    /**
-     * List of animations time (for diagram)
-     * @type {Array}
-     */
-    this.animations = [];
-    this.prevAnimationTime = null;
 
     this.initHandlers(this.elem);
 

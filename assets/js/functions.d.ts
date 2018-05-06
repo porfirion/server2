@@ -1,1 +1,0 @@
-declare function drawTextCentered(ctx: CanvasRenderingContext2D, text: string, x: number, y: number): void;

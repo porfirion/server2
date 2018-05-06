@@ -3,11 +3,17 @@
     "allowJs": true,
     "target": "es5",
     "lib": ["es6", "es5", "dom"],
+    "strict": true
     "noImplicitAny": true,
+    "noImplicitReturns": true,
     "strictNullChecks": true,
-    "noImplicitThis": true
+    "noImplicitThis": true,
+    "alwaysStrict": true,
+    "outDir": "compiled",
+    "pretty": true,
+    "sourceMap": true
   },
   "include": [
-    "./js/**/*"
+    "./src/**/*"
   ]
 }
