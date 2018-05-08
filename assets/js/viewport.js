@@ -40,7 +40,7 @@ function Viewport(x, y, scale, width, height) {
  * Move viewport center to (x; y)
  * @param {Point2D} p
  */
-Viewport.prototype.setPos = function (p) {
+Viewport.prototype.setPos = function(p) {
     this.realX = p.x;
     this.realY = p.y;
 
@@ -52,7 +52,7 @@ Viewport.prototype.setPos = function (p) {
  * @param coeff
  * @public
  */
-Viewport.prototype.scaleBy = function (coeff) {
+Viewport.prototype.scaleBy = function(coeff) {
     this.setScale(this.scale * coeff);
 };
 
@@ -61,13 +61,13 @@ Viewport.prototype.scaleBy = function (coeff) {
  * @param value
  * @public
  */
-Viewport.prototype.setScale = function (value) {
+Viewport.prototype.setScale = function(value) {
     this.scale = Math.min(Math.max(value, this.maxScale), this.minScale);
 
     this.updateRealSize();
 };
 
-Viewport.prototype.setCanvasSize = function (width, height) {
+Viewport.prototype.setCanvasSize = function(width, height) {
     // canvas size
     this.canvasWidth = width;
     this.canvasHeight = height;
@@ -81,7 +81,7 @@ Viewport.prototype.setCanvasSize = function (width, height) {
 /**
  * @private
  */
-Viewport.prototype.updateRealSize = function () {
+Viewport.prototype.updateRealSize = function() {
     this.realXScaled = this.realX * this.scale;
     this.realYScaled = this.realY * this.scale;
 
@@ -105,7 +105,7 @@ Viewport.prototype.getScale = function() {
  * Returns real world coords and size of viewport
  * @returns {{x: number, y: number, width: number, height: number, left: number, top: number, right: number, bottom: number}}
  */
-Viewport.prototype.getRealDimensions = function () {
+Viewport.prototype.getRealDimensions = function() {
     return {
         // реальное положение и размер вьюпорта
         x: this.realX,
@@ -128,7 +128,7 @@ Viewport.prototype.getRealDimensions = function () {
  * @param {number} rx реальная координата по X
  * @returns {number} координата X на канве
  */
-Viewport.prototype.realXToCanvasWithScale = function (rx) {
+Viewport.prototype.realXToCanvasWithScale = function(rx) {
     /**
      * Normally canvas x is:
      * cX = this.canvasWidth_half + (rX - this.realX) * this.scale,
@@ -166,10 +166,37 @@ Viewport.prototype.realXToCanvasWithScale = function (rx) {
  * @param ry реальная координата Y
  * @returns {number} координата Y на канве
  */
-Viewport.prototype.realYToCanvasWithScale = function (ry) {
+Viewport.prototype.realYToCanvasWithScale = function(ry) {
     return this.realTop - ry;
 };
 
+/**
+ *
+ * @param {number} x
+ * @param {boolean} applyScale
+ * @returns {number}
+ */
+Viewport.prototype.fromRealToCanvasX = function(x, applyScale) {
+    if (typeof applyScale === 'undefined' || Boolean(applyScale) === true) {
+        return (x - this.realLeft) * this.scale;
+    } else {
+        return (x - this.realLeft);
+    }
+}
+
+/**
+ *
+ * @param {number} y
+ * @param {boolean} applyScale
+ * @returns {number}
+ */
+Viewport.prototype.fromRealToCanvasY = function(y, applyScale) {
+    if (typeof applyScale === 'undefined' || Boolean(applyScale) === true) {
+        return (this.realTop - y) * this.scale;
+    } else {
+        return (this.realTop - y);
+    }
+}
 /**
  * Translate real world coords into viewport coords
  * @param realPos
@@ -190,7 +217,7 @@ Viewport.prototype.realYToCanvasWithScale = function (ry) {
  * vX = realPos.x * this.scale - this.realXScaled,
  * vY = realPos.y * this.scale - this.realYScaled
  */
-Viewport.prototype.fromReal = function (realPos) {
+Viewport.prototype.fromReal = function(realPos) {
     let
         vX = (realPos.x - this.realX) * this.scale,
         vY = (realPos.y - this.realY) * this.scale;
@@ -203,7 +230,7 @@ Viewport.prototype.fromReal = function (realPos) {
  * @param viewportPos
  * @returns {Point2D} canvas coords
  */
-Viewport.prototype.toCanvas = function (viewportPos) {
+Viewport.prototype.toCanvas = function(viewportPos) {
     let
         cX = this.canvasWidth_half + viewportPos.x,
         cY = this.canvasHeight_half - viewportPos.y;
@@ -217,7 +244,7 @@ Viewport.prototype.toCanvas = function (viewportPos) {
  * @param {Boolean} [applyScale = true]
  * @returns {Point2D} canvas coords
  */
-Viewport.prototype.fromRealToCanvas = function (realPos, applyScale) {
+Viewport.prototype.fromRealToCanvas = function(realPos, applyScale) {
     if (typeof applyScale === 'undefined' || Boolean(applyScale) === true) {
         //
         // return toCanvas(fromReal(realPos));
@@ -300,7 +327,7 @@ Viewport.prototype.fromRealToCanvas = function (realPos, applyScale) {
  * @param {Point2D} viewportPos
  * @returns {Point2D} real world coords
  */
-Viewport.prototype.toReal = function (viewportPos) {
+Viewport.prototype.toReal = function(viewportPos) {
     let
         rX = this.realX + (viewportPos.x / this.scale),
         rY = this.realY + (viewportPos.y / this.scale);
@@ -313,7 +340,7 @@ Viewport.prototype.toReal = function (viewportPos) {
  * @param canvasPos
  * @returns {Point2D}
  */
-Viewport.prototype.fromCanvas = function (canvasPos) {
+Viewport.prototype.fromCanvas = function(canvasPos) {
     let
         vX = canvasPos.x - this.canvasWidth_half,
         vY = -(canvasPos.y - this.canvasHeight_half);
@@ -357,7 +384,7 @@ Viewport.prototype.fromCanvas = function (canvasPos) {
  * rX = this.realLeft  + canvasPos.x / this.scale;
  * rY = this.realTop - canvasPos.y / this.scale;
  */
-Viewport.prototype.fromCanvasToReal = function (canvasPos) {
+Viewport.prototype.fromCanvasToReal = function(canvasPos) {
     return new Point2D(
         this.realLeft + canvasPos.x / this.scale,
         this.realTop - canvasPos.y / this.scale

@@ -3,7 +3,7 @@
 const
     MAIN_AXIS_COLOR = '#333',
     SECONDARY_AXIS_COLOR = '#ccc',
-    USE_CANVAS_SCALE = true;
+    USE_CANVAS_SCALE = false;
 
 interface Rectangle {
     left: number
@@ -96,6 +96,7 @@ class Drawer {
         ctx.save();
 
         if (USE_CANVAS_SCALE) {
+            console.log("using canvas scale");
             // применяем скейл ко всему канвасу, чтобы работал аппаратный зум
             ctx.scale(this.viewport.getScale(), this.viewport.getScale());
         }
@@ -112,7 +113,7 @@ class Drawer {
                 let canvasPos = this.viewport.fromRealToCanvas(obj.getPosition(), !USE_CANVAS_SCALE);
 
                 ctx.translate(canvasPos.x, canvasPos.y);
-                obj.draw(ctx);
+                obj.draw(ctx, this.viewport, !USE_CANVAS_SCALE);
 
                 ctx.restore();
             }
@@ -135,13 +136,17 @@ class Drawer {
         const rowCount = Math.max(Math.ceil(realViewport.height / this.gridSize), 1);
 
         ctx.save();
-        ctx.scale(this.viewport.getScale(), this.viewport.getScale());
+        if (USE_CANVAS_SCALE) {
+            ctx.scale(this.viewport.getScale(), this.viewport.getScale());
+        }
+
         ctx.strokeStyle = '#ccc';
 
         // рисуем вертикали
+        let height = USE_CANVAS_SCALE ? viewportRealHeight : viewportRealHeight * this.viewport.getScale();
         for (let i = 0; i < colCount; i++) {
             let rx = leftColReal + i * this.gridSize,
-                x = this.viewport.realXToCanvasWithScale(rx);
+                x = this.viewport.fromRealToCanvasX(rx, !USE_CANVAS_SCALE);
 
             if (rx === 0) {
                 ctx.strokeStyle = MAIN_AXIS_COLOR;
@@ -150,14 +155,15 @@ class Drawer {
             }
             ctx.beginPath();
             ctx.moveTo(x, 0);
-            ctx.lineTo(x, viewportRealHeight);
+            ctx.lineTo(x, height);
             ctx.stroke();
         }
 
         // рисуем горизонтали
+        let width = USE_CANVAS_SCALE ? viewportRealWidth : viewportRealWidth * this.viewport.getScale();
         for (let j = 0; j < rowCount; j++) {
             let ry = topRowReal - j * this.gridSize,
-                y = this.viewport.realYToCanvasWithScale(ry);
+                y = this.viewport.fromRealToCanvasY(ry, !USE_CANVAS_SCALE);
 
             if (ry === 0) {
                 ctx.strokeStyle = MAIN_AXIS_COLOR;
@@ -167,7 +173,7 @@ class Drawer {
 
             ctx.beginPath();
             ctx.moveTo(0, y);
-            ctx.lineTo(viewportRealWidth, y);
+            ctx.lineTo(width, y);
             ctx.stroke();
         }
 
@@ -192,7 +198,7 @@ class Drawer {
 
         // рисуем центр
         ctx.strokeStyle = 'lime';
-        let centerCanvasPos = this.viewport.fromRealToCanvas(this.viewport.getRealDimensions(), false);
+        let centerCanvasPos = this.viewport.fromRealToCanvas(this.viewport.getRealDimensions(), !USE_CANVAS_SCALE);
         ctx.beginPath();
         ctx.moveTo(centerCanvasPos.x - 15, centerCanvasPos.y);
         ctx.lineTo(centerCanvasPos.x + 15, centerCanvasPos.y);
@@ -201,10 +207,10 @@ class Drawer {
         ctx.stroke();
 
         // рисуем границы области
-        ctx.lineWidth = 10;
+        ctx.lineWidth = USE_CANVAS_SCALE ? 10 : 10 * this.viewport.getScale();
         ctx.beginPath();
-        let vlt = this.viewport.fromRealToCanvas({x: -5000, y: -5000}, false);
-        let vrb = this.viewport.fromRealToCanvas({x: 5000, y: 5000}, false);
+        let vlt = this.viewport.fromRealToCanvas({x: -5000, y: -5000}, !USE_CANVAS_SCALE);
+        let vrb = this.viewport.fromRealToCanvas({x: 5000, y: 5000}, !USE_CANVAS_SCALE);
         ctx.rect(vlt.x, vlt.y, vrb.x - vlt.x, vrb.y - vlt.y);
         ctx.stroke();
 
@@ -235,6 +241,6 @@ class Drawer {
 
     private static rectContainsPoint(rect: Rectangle, point: Point2D, radius: number): boolean {
         return rect.left <= (point.x + radius) && point.x - radius <= rect.right &&
-            rect.top <= (point.y + radius) && (point.y - radius) <= rect.bottom;
+            rect.bottom <= (point.y + radius) && (point.y - radius) <= rect.top;
     }
 }

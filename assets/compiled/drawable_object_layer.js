@@ -16,7 +16,13 @@ var __extends = (this && this.__extends) || (function () {
 var DrawableObjectLayer = /** @class */ (function () {
     function DrawableObjectLayer(obj) {
         this.obj = obj;
+        if (typeof this.obj == "undefined" || this.obj == null) {
+            console.warn("empty object!");
+        }
     }
+    DrawableObjectLayer.prototype.setObject = function (obj) {
+        this.obj = obj;
+    };
     DrawableObjectLayer.drawTextCentered = function (ctx, text, x, y) {
         var measure = ctx.measureText(text);
         ctx.fillText(text, x - measure.width / 2, y);
@@ -29,8 +35,17 @@ var IdLayer = /** @class */ (function (_super) {
     function IdLayer() {
         return _super !== null && _super.apply(this, arguments) || this;
     }
-    IdLayer.prototype.draw = function (ctx) {
-        DrawableObjectLayer.drawTextCentered(ctx, this.obj.getId().toString(), 0, 0);
+    IdLayer.prototype.draw = function (ctx, viewport, useScale) {
+        ctx.save();
+        try {
+            var size = Math.round(useScale ? 12 * viewport.getScale() : 12);
+            ctx.font = size + "px serif";
+            ctx.fillStyle = "black";
+            DrawableObjectLayer.drawTextCentered(ctx, this.obj.getId().toString(), 0, size / 3);
+        }
+        finally {
+            ctx.restore();
+        }
     };
     return IdLayer;
 }(DrawableObjectLayer));
@@ -39,23 +54,32 @@ var CoordsLayer = /** @class */ (function (_super) {
     function CoordsLayer() {
         return _super !== null && _super.apply(this, arguments) || this;
     }
-    CoordsLayer.prototype.draw = function (ctx) {
+    CoordsLayer.prototype.draw = function (ctx, viewport, useScale) {
         DrawableObjectLayer.drawTextCentered(ctx, this.obj.getPosition().toString(), 0, 0);
     };
     return CoordsLayer;
 }(DrawableObjectLayer));
 var CircleLayer = /** @class */ (function (_super) {
     __extends(CircleLayer, _super);
-    function CircleLayer() {
-        var _this = _super !== null && _super.apply(this, arguments) || this;
-        _this.strokeColor = null;
+    function CircleLayer(obj, strokeColor, fillColor) {
+        if (strokeColor === void 0) { strokeColor = "black"; }
+        if (fillColor === void 0) { fillColor = null; }
+        var _this = _super.call(this, obj) || this;
+        _this.strokeColor = "black";
         _this.fillColor = null;
+        _this.strokeColor = strokeColor;
+        _this.fillColor = fillColor;
+        if (_this.strokeColor == null && _this.fillColor == null) {
+            console.warn("no colors specified for circle");
+        }
         return _this;
     }
-    CircleLayer.prototype.draw = function (ctx) {
+    CircleLayer.prototype.draw = function (ctx, viewport, useScale) {
         ctx.lineWidth = 1;
         ctx.beginPath();
-        ctx.arc(0, 0, this.obj.getBoundingCircle(), 0, Math.PI * 2);
+        var radius = useScale ? this.obj.getBoundingCircle() * viewport.getScale() : this.obj.getBoundingCircle();
+        ctx.arc(0, 0, radius, 0, Math.PI * 2);
+        ctx.closePath();
         if (this.fillColor != null) {
             ctx.fillStyle = this.fillColor;
             ctx.fill();

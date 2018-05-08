@@ -1,5 +1,8 @@
 "use strict";
 
+const OBJECTS_DISTANCE = 400;
+const OBJECTS_COUNT = 100;
+
 function onLoad() {
     window.elem = window.document.getElementById('map');
     let drawer = new Drawer(elem.getContext("2d"), elem.clientWidth, elem.clientHeight);
@@ -8,6 +11,18 @@ function onLoad() {
 
     updateViewportSize();
     updateViewportInfo();
+
+
+    let objects = [];
+    for (let i = 0; i < OBJECTS_COUNT; i++) {
+        let obj = drawer.createObject();
+        obj.setSize(Math.random() * 30 + 8);
+        obj.setPosition({x: Math.random() * OBJECTS_DISTANCE * 2 - OBJECTS_DISTANCE, y: Math.random() * OBJECTS_DISTANCE * 2 - OBJECTS_DISTANCE});
+        obj.addLayer("circle", new CircleLayer(obj, randomColor(), Math.random() > 0.5 ? randomColor() : null));
+        obj.addLayer("id", new IdLayer(obj));
+        objects.push(obj);
+    }
+
     drawer.draw();
 
     function updateViewportSize() {

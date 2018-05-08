@@ -26,6 +26,10 @@ class DrawableObject {
         return this.id;
     }
 
+    setPosition(position: Point2D): void {
+        this.position = position;
+    }
+
     getPosition(): Point2D {
         return this.position;
     }
@@ -40,6 +44,7 @@ class DrawableObject {
      * @param {DrawableObjectLayer} layer
      */
     addLayer(name: string, layer: DrawableObjectLayer): void {
+        layer.setObject(this);
         this.layers.push(layer);
         this.layersByName.set(name, layer);
     }
@@ -62,13 +67,13 @@ class DrawableObject {
         }
     }
 
-    draw(ctx: CanvasRenderingContext2D) {
+    draw(ctx: CanvasRenderingContext2D, viewport: Viewport, useScale: boolean) {
         for (let i = 0; i < this.layers.length; i++) {
-            this.layers[i].draw(ctx);
+            this.layers[i].draw(ctx, viewport, useScale);
         }
     }
 
-    getBoundingCircle() {
+    getBoundingCircle():number {
         return this.size;
     }
 }

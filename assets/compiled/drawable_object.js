@@ -19,6 +19,9 @@ var DrawableObject = /** @class */ (function () {
     DrawableObject.prototype.getId = function () {
         return this.id;
     };
+    DrawableObject.prototype.setPosition = function (position) {
+        this.position = position;
+    };
     DrawableObject.prototype.getPosition = function () {
         return this.position;
     };
@@ -31,6 +34,7 @@ var DrawableObject = /** @class */ (function () {
      * @param {DrawableObjectLayer} layer
      */
     DrawableObject.prototype.addLayer = function (name, layer) {
+        layer.setObject(this);
         this.layers.push(layer);
         this.layersByName.set(name, layer);
     };
@@ -50,9 +54,9 @@ var DrawableObject = /** @class */ (function () {
             console.warn("no layer with name " + name);
         }
     };
-    DrawableObject.prototype.draw = function (ctx) {
+    DrawableObject.prototype.draw = function (ctx, viewport, useScale) {
         for (var i = 0; i < this.layers.length; i++) {
-            this.layers[i].draw(ctx);
+            this.layers[i].draw(ctx, viewport, useScale);
         }
     };
     DrawableObject.prototype.getBoundingCircle = function () {

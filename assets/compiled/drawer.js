@@ -1,5 +1,5 @@
 "use strict";
-var MAIN_AXIS_COLOR = '#333', SECONDARY_AXIS_COLOR = '#ccc', USE_CANVAS_SCALE = true;
+var MAIN_AXIS_COLOR = '#333', SECONDARY_AXIS_COLOR = '#ccc', USE_CANVAS_SCALE = false;
 /**
  * Class for holding and drawing list of map objects (including players)
  * Can be a wrapper to some framework
@@ -55,6 +55,7 @@ var Drawer = /** @class */ (function () {
         var realViewport = this.viewport.getRealDimensions(); // real position and size of viewport
         ctx.save();
         if (USE_CANVAS_SCALE) {
+            console.log("using canvas scale");
             // применяем скейл ко всему канвасу, чтобы работал аппаратный зум
             ctx.scale(this.viewport.getScale(), this.viewport.getScale());
         }
@@ -68,7 +69,7 @@ var Drawer = /** @class */ (function () {
                 // то здесь его применять уже не нужны и наоборот
                 var canvasPos = this.viewport.fromRealToCanvas(obj.getPosition(), !USE_CANVAS_SCALE);
                 ctx.translate(canvasPos.x, canvasPos.y);
-                obj.draw(ctx);
+                obj.draw(ctx, this.viewport, !USE_CANVAS_SCALE);
                 ctx.restore();
             }
         }
@@ -84,11 +85,14 @@ var Drawer = /** @class */ (function () {
         var topRowReal = Math.floor((realViewport.top) / this.gridSize) * this.gridSize;
         var rowCount = Math.max(Math.ceil(realViewport.height / this.gridSize), 1);
         ctx.save();
-        ctx.scale(this.viewport.getScale(), this.viewport.getScale());
+        if (USE_CANVAS_SCALE) {
+            ctx.scale(this.viewport.getScale(), this.viewport.getScale());
+        }
         ctx.strokeStyle = '#ccc';
         // рисуем вертикали
+        var height = USE_CANVAS_SCALE ? viewportRealHeight : viewportRealHeight * this.viewport.getScale();
         for (var i = 0; i < colCount; i++) {
-            var rx = leftColReal + i * this.gridSize, x = this.viewport.realXToCanvasWithScale(rx);
+            var rx = leftColReal + i * this.gridSize, x = this.viewport.fromRealToCanvasX(rx, !USE_CANVAS_SCALE);
             if (rx === 0) {
                 ctx.strokeStyle = MAIN_AXIS_COLOR;
             }
@@ -97,12 +101,13 @@ var Drawer = /** @class */ (function () {
             }
             ctx.beginPath();
             ctx.moveTo(x, 0);
-            ctx.lineTo(x, viewportRealHeight);
+            ctx.lineTo(x, height);
             ctx.stroke();
         }
         // рисуем горизонтали
+        var width = USE_CANVAS_SCALE ? viewportRealWidth : viewportRealWidth * this.viewport.getScale();
         for (var j = 0; j < rowCount; j++) {
-            var ry = topRowReal - j * this.gridSize, y = this.viewport.realYToCanvasWithScale(ry);
+            var ry = topRowReal - j * this.gridSize, y = this.viewport.fromRealToCanvasY(ry, !USE_CANVAS_SCALE);
             if (ry === 0) {
                 ctx.strokeStyle = MAIN_AXIS_COLOR;
             }
@@ -111,7 +116,7 @@ var Drawer = /** @class */ (function () {
             }
             ctx.beginPath();
             ctx.moveTo(0, y);
-            ctx.lineTo(viewportRealWidth, y);
+            ctx.lineTo(width, y);
             ctx.stroke();
         }
         // // рисуем вращающийся курсор только для непрерывной анимации
@@ -134,7 +139,7 @@ var Drawer = /** @class */ (function () {
         // }
         // рисуем центр
         ctx.strokeStyle = 'lime';
-        var centerCanvasPos = this.viewport.fromRealToCanvas(this.viewport.getRealDimensions(), false);
+        var centerCanvasPos = this.viewport.fromRealToCanvas(this.viewport.getRealDimensions(), !USE_CANVAS_SCALE);
         ctx.beginPath();
         ctx.moveTo(centerCanvasPos.x - 15, centerCanvasPos.y);
         ctx.lineTo(centerCanvasPos.x + 15, centerCanvasPos.y);
@@ -142,10 +147,10 @@ var Drawer = /** @class */ (function () {
         ctx.lineTo(centerCanvasPos.x, centerCanvasPos.y + 15);
         ctx.stroke();
         // рисуем границы области
-        ctx.lineWidth = 10;
+        ctx.lineWidth = USE_CANVAS_SCALE ? 10 : 10 * this.viewport.getScale();
         ctx.beginPath();
-        var vlt = this.viewport.fromRealToCanvas({ x: -5000, y: -5000 }, false);
-        var vrb = this.viewport.fromRealToCanvas({ x: 5000, y: 5000 }, false);
+        var vlt = this.viewport.fromRealToCanvas({ x: -5000, y: -5000 }, !USE_CANVAS_SCALE);
+        var vrb = this.viewport.fromRealToCanvas({ x: 5000, y: 5000 }, !USE_CANVAS_SCALE);
         ctx.rect(vlt.x, vlt.y, vrb.x - vlt.x, vrb.y - vlt.y);
         ctx.stroke();
         // ctx.globalAlpha = 0.6;
@@ -170,7 +175,7 @@ var Drawer = /** @class */ (function () {
     };
     Drawer.rectContainsPoint = function (rect, point, radius) {
         return rect.left <= (point.x + radius) && point.x - radius <= rect.right &&
-            rect.top <= (point.y + radius) && (point.y - radius) <= rect.bottom;
+            rect.bottom <= (point.y + radius) && (point.y - radius) <= rect.top;
     };
     return Drawer;
 }());

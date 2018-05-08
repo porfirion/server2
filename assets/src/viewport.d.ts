@@ -21,6 +21,9 @@ declare class Viewport {
 
     realXToCanvasWithScale(x: number): number;
     realYToCanvasWithScale(y: number): number;
+    fromRealToCanvasX(x: number, applyScale: boolean): number;
+    fromRealToCanvasY(y: number, applyScale: boolean): number;
+
 
     fromRealToCanvas(position: Point2D, applyScale: boolean): Point2D;
 }
