@@ -1,9 +1,11 @@
 "use strict";
 
 const
-    MAIN_AXIS_COLOR = '#333',
-    SECONDARY_AXIS_COLOR = '#ccc',
-    USE_CANVAS_SCALE = false;
+    MAIN_AXIS_COLOR = 'rgba(0, 0, 0, 0.055)',
+    SECONDARY_AXIS_COLOR = 'rgba(0, 0, 0, 0.055)',
+    BG_COLOR = "#3fba54",
+    GRID_SIZE = 50,
+    USE_CANVAS_SCALE = true;
 
 interface Rectangle {
     left: number
@@ -41,7 +43,7 @@ class Drawer {
 
         this.objects = [];
         this.objectsById = new Map<number, DrawableObject>();
-        this.gridSize = 100;
+        this.gridSize = GRID_SIZE;
         this.nextObjectId = 1;
 
         this.viewport = new Viewport(0, 0, 1, width, height);
@@ -75,11 +77,27 @@ class Drawer {
 
     public draw() {
         this.ctx.clearRect(0, 0, this.canvasSize.width, this.canvasSize.height);
+        this.ctx.save();
 
+        if (typeof BG_COLOR != "undefined") {
+            this.ctx.save();
+            this.ctx.fillStyle = BG_COLOR;
+            this.ctx.fillRect(0, 0, this.canvasSize.width, this.canvasSize.height);
+            this.ctx.restore();
+        }
+
+
+        this.ctx.save();
         this.drawGrid();
+        this.ctx.restore();
+
+        this.ctx.save();
         this.drawObjects();
+        this.ctx.restore();
+
         // this.drawAnchors();
 
+        this.ctx.save();
         let now = Date.now();
         if (this.prevAnimationTime !== null) {
             this.timeDrawer.addAnimationTime(now - this.prevAnimationTime);
@@ -87,6 +105,9 @@ class Drawer {
         this.prevAnimationTime = now;
 
         this.drawTime();
+        this.ctx.restore();
+
+        this.ctx.restore()
     }
 
     private drawObjects() {

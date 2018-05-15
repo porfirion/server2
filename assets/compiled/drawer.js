@@ -1,5 +1,5 @@
 "use strict";
-var MAIN_AXIS_COLOR = '#333', SECONDARY_AXIS_COLOR = '#ccc', USE_CANVAS_SCALE = false;
+var MAIN_AXIS_COLOR = 'rgba(0, 0, 0, 0.055)', SECONDARY_AXIS_COLOR = 'rgba(0, 0, 0, 0.055)', BG_COLOR = "#3fba54", GRID_SIZE = 50, USE_CANVAS_SCALE = true;
 /**
  * Class for holding and drawing list of map objects (including players)
  * Can be a wrapper to some framework
@@ -13,7 +13,7 @@ var Drawer = /** @class */ (function () {
         this.ctx = ctx;
         this.objects = [];
         this.objectsById = new Map();
-        this.gridSize = 100;
+        this.gridSize = GRID_SIZE;
         this.nextObjectId = 1;
         this.viewport = new Viewport(0, 0, 1, width, height);
         this.canvasSize = { width: width, height: height };
@@ -40,15 +40,29 @@ var Drawer = /** @class */ (function () {
     };
     Drawer.prototype.draw = function () {
         this.ctx.clearRect(0, 0, this.canvasSize.width, this.canvasSize.height);
+        this.ctx.save();
+        if (typeof BG_COLOR != "undefined") {
+            this.ctx.save();
+            this.ctx.fillStyle = BG_COLOR;
+            this.ctx.fillRect(0, 0, this.canvasSize.width, this.canvasSize.height);
+            this.ctx.restore();
+        }
+        this.ctx.save();
         this.drawGrid();
+        this.ctx.restore();
+        this.ctx.save();
         this.drawObjects();
+        this.ctx.restore();
         // this.drawAnchors();
+        this.ctx.save();
         var now = Date.now();
         if (this.prevAnimationTime !== null) {
             this.timeDrawer.addAnimationTime(now - this.prevAnimationTime);
         }
         this.prevAnimationTime = now;
         this.drawTime();
+        this.ctx.restore();
+        this.ctx.restore();
     };
     Drawer.prototype.drawObjects = function () {
         var ctx = this.ctx;
