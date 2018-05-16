@@ -1,7 +1,8 @@
 "use strict";
 
-const OBJECTS_DISTANCE = 400;
-const OBJECTS_COUNT = 100;
+const OBJECTS_DISTANCE = 0;
+const OBJECTS_COUNT = 10000;
+const BOUND = 5000;
 
 function onLoad() {
     window.elem = window.document.getElementById('map');
@@ -18,12 +19,70 @@ function onLoad() {
         let obj = drawer.createObject();
         obj.setSize(Math.random() * 30 + 8);
         obj.setPosition({x: Math.random() * OBJECTS_DISTANCE * 2 - OBJECTS_DISTANCE, y: Math.random() * OBJECTS_DISTANCE * 2 - OBJECTS_DISTANCE});
-        obj.addLayer("circle", new CircleLayer(obj, randomColor(), Math.random() > 0.5 ? randomColor() : null));
-        obj.addLayer("id", new IdLayer(obj));
-        objects.push(obj);
+        // obj.addLayer("circle", new CircleLayer(obj, /*randomColor()*/null, Math.random() > 0.1 ? randomColor() : null));
+        obj.addLayer("rect", new RectLayer(obj, randomColor()));
+        // obj.addLayer("id", new IdLayer(obj));
+
+        let x = Math.random() * 1 - 0.5;
+        let y = Math.random() * 1 - 0.5;
+
+        // square
+        // let abs = Math.abs(x) + Math.abs(y);
+        // let speed = {x: x / abs, y: y / abs};
+
+        // circle
+        // let abs = Math.sqrt(x * x + y * y);
+        // let speed = {x: x / abs, y: y / abs};
+
+        let speed = {x: x, y: y};
+
+        objects.push({
+            obj: obj,
+            start: obj.getPosition(),
+            speed: speed,
+            startTime: Date.now(),
+        });
     }
 
+    drawer.viewport.setScale(0.095);
+
     drawer.draw();
+
+    function move() {
+        let now = Date.now();
+        for (let i= 0; i < OBJECTS_COUNT; i++) {
+            let obj = objects[i];
+
+            let delta = (now - obj.startTime);
+
+            let current = {
+                x: objects[i].start.x + objects[i].speed.x * delta,
+                y: objects[i].start.y + objects[i].speed.y * delta,
+            };
+
+            if (Math.abs(current.x) > BOUND) {
+                obj.start = current;
+                obj.startTime = now;
+
+                current.x = Math.min(Math.max(-BOUND, current.x), BOUND);
+                obj.speed.x = -obj.speed.x;
+            }
+            if (Math.abs(current.y) > BOUND) {
+                obj.start = current;
+                obj.startTime = now;
+
+                current.y = Math.min(Math.max(-BOUND, current.y), BOUND);
+                obj.speed.y = -obj.speed.y;
+            }
+            objects[i].obj.setPosition(current);
+        }
+
+        drawer.draw();
+
+        requestAnimationFrame(move);
+    }
+
+    requestAnimationFrame(move);
 
     function updateViewportSize() {
         elem.width = elem.clientWidth;
@@ -45,14 +104,14 @@ function onLoad() {
         let params = normalizeWheel(ev);
         if (params.spinY > 0) {
             // на себя
-            drawer.viewport.scaleBy(0.97);
+            drawer.viewport.scaleBy(0.96);
         } else {
             // от себя
             drawer.viewport.scaleBy(1.05);
-
         }
+
+        requestAnimationFrame(drawer.draw.bind(drawer));
         updateViewportInfo();
-        drawer.draw();
 
         // capture all scrolling over map
         return false;

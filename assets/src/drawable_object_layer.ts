@@ -80,3 +80,21 @@ class CircleLayer extends DrawableObjectLayer {
     }
 }
 
+class RectLayer extends DrawableObjectLayer {
+    private color: string;
+
+    constructor(obj: DrawableObject, color: string) {
+        super(obj);
+        this.color = color;
+    }
+
+    draw(ctx: CanvasRenderingContext2D, viewport: Viewport, useScale: boolean): void {
+        ctx.fillStyle = this.color;
+        let size: number = this.obj.getBoundingCircle();
+        if (useScale) {
+            size *= viewport.getScale();
+        }
+        ctx.fillRect(-size, -size, size * 2, size * 2);
+    }
+}
+

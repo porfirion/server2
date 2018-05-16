@@ -82,7 +82,7 @@ function randomColor() {
 
 function numberPrecisionLimiter(key, value) {
     if (typeof value === 'number') {
-        return parseFloat(value.toFixed(1));
+        return parseFloat(value.toFixed(3));
     }
     return value;
 }

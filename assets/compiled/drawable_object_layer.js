@@ -91,4 +91,21 @@ var CircleLayer = /** @class */ (function (_super) {
     };
     return CircleLayer;
 }(DrawableObjectLayer));
+var RectLayer = /** @class */ (function (_super) {
+    __extends(RectLayer, _super);
+    function RectLayer(obj, color) {
+        var _this = _super.call(this, obj) || this;
+        _this.color = color;
+        return _this;
+    }
+    RectLayer.prototype.draw = function (ctx, viewport, useScale) {
+        ctx.fillStyle = this.color;
+        var size = this.obj.getBoundingCircle();
+        if (useScale) {
+            size *= viewport.getScale();
+        }
+        ctx.fillRect(-size, -size, size * 2, size * 2);
+    };
+    return RectLayer;
+}(DrawableObjectLayer));
 //# sourceMappingURL=drawable_object_layer.js.map

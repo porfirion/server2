@@ -117,7 +117,7 @@ class Drawer {
         ctx.save();
 
         if (USE_CANVAS_SCALE) {
-            console.log("using canvas scale");
+            // console.log("using canvas scale");
             // применяем скейл ко всему канвасу, чтобы работал аппаратный зум
             ctx.scale(this.viewport.getScale(), this.viewport.getScale());
         }
