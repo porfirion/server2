@@ -9,6 +9,7 @@ var DrawableObject = /** @class */ (function () {
          */
         this.size = 10;
         this.position = { x: 0, y: 0 };
+        this.rotation = 0;
         /**
          * список слоёв для отрисовки
          */
@@ -24,6 +25,12 @@ var DrawableObject = /** @class */ (function () {
     };
     DrawableObject.prototype.getPosition = function () {
         return this.position;
+    };
+    DrawableObject.prototype.setRotation = function (rotation) {
+        this.rotation = rotation;
+    };
+    DrawableObject.prototype.getRotation = function () {
+        return this.rotation;
     };
     DrawableObject.prototype.setSize = function (size) {
         this.size = size;

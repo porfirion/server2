@@ -5,7 +5,8 @@ var TimeDrawer = /** @class */ (function () {
          * List of animations time (for diagram)
          */
         this.animations = [];
-        this.timeCanvas = document.createElement("canvas");
+        this.timeCanvas = document.createElement("CANVAS");
+        this.ctx = this.timeCanvas.getContext("2d");
         this.timeCanvas.width = 300;
         this.timeCanvas.height = 100;
     }
@@ -16,6 +17,12 @@ var TimeDrawer = /** @class */ (function () {
         this.animations.push(time);
         if (this.animations.length > 100) {
             this.animations.shift();
+        }
+        if (this.ctx != null) {
+            this.drawTime(this.ctx);
+        }
+        else {
+            console.log("CTX IS NULL");
         }
     };
     TimeDrawer.prototype.drawTime = function (ctx) {

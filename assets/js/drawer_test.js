@@ -1,7 +1,7 @@
 "use strict";
 
 const OBJECTS_DISTANCE = 0;
-const OBJECTS_COUNT = 10000;
+const OBJECTS_COUNT = 1000;
 const BOUND = 5000;
 
 function onLoad() {
@@ -13,14 +13,25 @@ function onLoad() {
     updateViewportSize();
     updateViewportInfo();
 
+    var img = new Image();
+    img.onload = function () {
+        console.log("IMAGE LOADED");
+        for (let i= 0; i < OBJECTS_COUNT; i++) {
+            objects[i].obj.addLayer("image", new ImageLayer(objects[i].obj, img));
+            // objects[i].obj.addLayer("circle", new CircleLayer(objects[i].obj, null, randomColor()));
+        }
+        // context.drawImage(img, 0, 0);
+    };
+    img.src = "/assets/img/pig.png";
+
 
     let objects = [];
     for (let i = 0; i < OBJECTS_COUNT; i++) {
         let obj = drawer.createObject();
         obj.setSize(Math.random() * 30 + 8);
         obj.setPosition({x: Math.random() * OBJECTS_DISTANCE * 2 - OBJECTS_DISTANCE, y: Math.random() * OBJECTS_DISTANCE * 2 - OBJECTS_DISTANCE});
-        // obj.addLayer("circle", new CircleLayer(obj, /*randomColor()*/null, Math.random() > 0.1 ? randomColor() : null));
-        obj.addLayer("rect", new RectLayer(obj, randomColor()));
+        // obj.addLayer("circle", new CircleLayer(obj, /*randomColor()*/null, randomColor()));
+        // obj.addLayer("rect", new RectLayer(obj, randomColor()));
         // obj.addLayer("id", new IdLayer(obj));
 
         let x = Math.random() * 1 - 0.5;
@@ -75,6 +86,9 @@ function onLoad() {
                 obj.speed.y = -obj.speed.y;
             }
             objects[i].obj.setPosition(current);
+            let x = objects[i].speed.x;
+            let y = objects[i].speed.y;
+            objects[i].obj.setRotation(Math.PI + Math.atan2(x, y));
         }
 
         drawer.draw();

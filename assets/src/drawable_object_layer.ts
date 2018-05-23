@@ -98,3 +98,35 @@ class RectLayer extends DrawableObjectLayer {
     }
 }
 
+class ImageLayer extends DrawableObjectLayer {
+    private image: HTMLImageElement;
+    private btm: ImageBitmap | null = null;
+    constructor(obj: DrawableObject, image: HTMLImageElement) {
+        super(obj);
+        this.image = image;
+        createImageBitmap(this.image).then((btm) => {
+            this.btm = btm;
+        });
+    }
+
+    draw(ctx: CanvasRenderingContext2D, viewport: Viewport, useScale: boolean): void {
+
+        if (this.btm != null) {
+            let width = this.btm.width;
+            let height = this.btm.height;
+
+            let size = this.obj.getBoundingCircle() / 30;
+
+            width *= size;
+            height *= size;
+
+            if (useScale) {
+                width *= viewport.getScale();
+                height *= viewport.getScale();
+            }
+
+            ctx.drawImage(this.btm, -width / 2, -height / 2, width, height);
+        }
+    }
+}
+

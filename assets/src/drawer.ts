@@ -104,7 +104,10 @@ class Drawer {
         }
         this.prevAnimationTime = now;
 
-        this.drawTime();
+        this.ctx.globalAlpha = 0.6;
+        this.ctx.translate(0, 0);
+        this.ctx.scale(1, 1);
+        this.ctx.drawImage(this.timeDrawer.getTimeCanvas(), 0, 0, 300, 100);
         this.ctx.restore();
 
         this.ctx.restore()
@@ -115,6 +118,7 @@ class Drawer {
         const realViewport = this.viewport.getRealDimensions(); // real position and size of viewport
 
         ctx.save();
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
 
         if (USE_CANVAS_SCALE) {
             // console.log("using canvas scale");
@@ -132,8 +136,8 @@ class Drawer {
                 // если мы до этого уже применили скейл ко всему канвасу,
                 // то здесь его применять уже не нужны и наоборот
                 let canvasPos = this.viewport.fromRealToCanvas(obj.getPosition(), !USE_CANVAS_SCALE);
-
                 ctx.translate(canvasPos.x, canvasPos.y);
+                ctx.rotate(obj.getRotation());
                 obj.draw(ctx, this.viewport, !USE_CANVAS_SCALE);
 
                 ctx.restore();
@@ -251,13 +255,6 @@ class Drawer {
         ctx.fillText(b, this.canvasSize.width / 2 - ctx.measureText(b).width / 2, this.canvasSize.height);
         ctx.fillText(l, 0, this.canvasSize.height / 2 + 3);
         ctx.fillText(r, this.canvasSize.width - ctx.measureText(r).width, this.canvasSize.height / 2 + 3);
-    }
-
-    private drawTime(): void {
-        this.ctx.save();
-        this.ctx.globalAlpha = 0.7;
-        this.ctx.drawImage(this.timeDrawer.getTimeCanvas(), 0, 0, 300, 100);
-        this.ctx.restore();
     }
 
     private static rectContainsPoint(rect: Rectangle, point: Point2D, radius: number): boolean {

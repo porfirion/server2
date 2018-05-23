@@ -108,4 +108,31 @@ var RectLayer = /** @class */ (function (_super) {
     };
     return RectLayer;
 }(DrawableObjectLayer));
+var ImageLayer = /** @class */ (function (_super) {
+    __extends(ImageLayer, _super);
+    function ImageLayer(obj, image) {
+        var _this = _super.call(this, obj) || this;
+        _this.btm = null;
+        _this.image = image;
+        createImageBitmap(_this.image).then(function (btm) {
+            _this.btm = btm;
+        });
+        return _this;
+    }
+    ImageLayer.prototype.draw = function (ctx, viewport, useScale) {
+        if (this.btm != null) {
+            var width = this.btm.width;
+            var height = this.btm.height;
+            var size = this.obj.getBoundingCircle() / 30;
+            width *= size;
+            height *= size;
+            if (useScale) {
+                width *= viewport.getScale();
+                height *= viewport.getScale();
+            }
+            ctx.drawImage(this.btm, -width / 2, -height / 2, width, height);
+        }
+    };
+    return ImageLayer;
+}(DrawableObjectLayer));
 //# sourceMappingURL=drawable_object_layer.js.map

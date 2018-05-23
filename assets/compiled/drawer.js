@@ -60,7 +60,10 @@ var Drawer = /** @class */ (function () {
             this.timeDrawer.addAnimationTime(now - this.prevAnimationTime);
         }
         this.prevAnimationTime = now;
-        this.drawTime();
+        this.ctx.globalAlpha = 0.6;
+        this.ctx.translate(0, 0);
+        this.ctx.scale(1, 1);
+        this.ctx.drawImage(this.timeDrawer.getTimeCanvas(), 0, 0, 300, 100);
         this.ctx.restore();
         this.ctx.restore();
     };
@@ -68,6 +71,7 @@ var Drawer = /** @class */ (function () {
         var ctx = this.ctx;
         var realViewport = this.viewport.getRealDimensions(); // real position and size of viewport
         ctx.save();
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
         if (USE_CANVAS_SCALE) {
             // console.log("using canvas scale");
             // применяем скейл ко всему канвасу, чтобы работал аппаратный зум
@@ -83,6 +87,7 @@ var Drawer = /** @class */ (function () {
                 // то здесь его применять уже не нужны и наоборот
                 var canvasPos = this.viewport.fromRealToCanvas(obj.getPosition(), !USE_CANVAS_SCALE);
                 ctx.translate(canvasPos.x, canvasPos.y);
+                ctx.rotate(obj.getRotation());
                 obj.draw(ctx, this.viewport, !USE_CANVAS_SCALE);
                 ctx.restore();
             }
@@ -180,12 +185,6 @@ var Drawer = /** @class */ (function () {
         ctx.fillText(b, this.canvasSize.width / 2 - ctx.measureText(b).width / 2, this.canvasSize.height);
         ctx.fillText(l, 0, this.canvasSize.height / 2 + 3);
         ctx.fillText(r, this.canvasSize.width - ctx.measureText(r).width, this.canvasSize.height / 2 + 3);
-    };
-    Drawer.prototype.drawTime = function () {
-        this.ctx.save();
-        this.ctx.globalAlpha = 0.7;
-        this.ctx.drawImage(this.timeDrawer.getTimeCanvas(), 0, 0, 300, 100);
-        this.ctx.restore();
     };
     Drawer.rectContainsPoint = function (rect, point, radius) {
         return rect.left <= (point.x + radius) && point.x - radius <= rect.right &&

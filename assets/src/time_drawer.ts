@@ -6,9 +6,11 @@ class TimeDrawer {
      */
     private animations: Array<number> = [];
     private timeCanvas: HTMLCanvasElement;
+    private ctx: CanvasRenderingContext2D | null;
 
     constructor() {
-        this.timeCanvas = document.createElement("canvas");
+        this.timeCanvas = document.createElement("CANVAS") as HTMLCanvasElement;
+        this.ctx = this.timeCanvas.getContext("2d");
         this.timeCanvas.width = 300;
         this.timeCanvas.height = 100;
     }
@@ -22,6 +24,12 @@ class TimeDrawer {
 
         if (this.animations.length > 100) {
             this.animations.shift();
+        }
+
+        if (this.ctx != null) {
+            this.drawTime(this.ctx);
+        } else {
+            console.log("CTX IS NULL")
         }
     }
 

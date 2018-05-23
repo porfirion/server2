@@ -11,6 +11,7 @@ class DrawableObject {
      */
 	protected size: number = 10;
 	protected position: Point2D = {x: 0, y: 0};
+	protected rotation: number = 0;
 
     /**
      * список слоёв для отрисовки
@@ -32,6 +33,14 @@ class DrawableObject {
 
     getPosition(): Point2D {
         return this.position;
+    }
+
+    setRotation(rotation: number) {
+        this.rotation = rotation;
+    }
+
+    getRotation(): number {
+        return this.rotation;
     }
 
     setSize(size: number): DrawableObject {
