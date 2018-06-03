@@ -17,8 +17,8 @@ function onLoad() {
     img.onload = function () {
         console.log("IMAGE LOADED");
         for (let i= 0; i < OBJECTS_COUNT; i++) {
+            // objects[i].obj.addLayer("circle", new CircleLayer(objects[i].obj, randomColor()));
             objects[i].obj.addLayer("image", new ImageLayer(objects[i].obj, img));
-            // objects[i].obj.addLayer("circle", new CircleLayer(objects[i].obj, null, randomColor()));
         }
         // context.drawImage(img, 0, 0);
     };
@@ -28,10 +28,10 @@ function onLoad() {
     let objects = [];
     for (let i = 0; i < OBJECTS_COUNT; i++) {
         let obj = drawer.createObject();
-        obj.setSize(Math.random() * 30 + 8);
+        obj.setSize(Math.random() * 5 + 10);
         obj.setPosition({x: Math.random() * OBJECTS_DISTANCE * 2 - OBJECTS_DISTANCE, y: Math.random() * OBJECTS_DISTANCE * 2 - OBJECTS_DISTANCE});
-        // obj.addLayer("circle", new CircleLayer(obj, /*randomColor()*/null, randomColor()));
-        // obj.addLayer("rect", new RectLayer(obj, randomColor()));
+        obj.addLayer("rect", new RectLayer(obj, randomColor()/*, randomColor()*/));
+        obj.addLayer("circle", new CircleLayer(obj, randomColor()/*, randomColor()*/));
         // obj.addLayer("id", new IdLayer(obj));
 
         let x = Math.random() * 1 - 0.5;
@@ -45,7 +45,7 @@ function onLoad() {
         // let abs = Math.sqrt(x * x + y * y);
         // let speed = {x: x / abs, y: y / abs};
 
-        let speed = {x: x, y: y};
+        let speed = i === 0 ? {x: 0, y: 0} : {x: x, y: y};
 
         objects.push({
             obj: obj,
@@ -61,7 +61,7 @@ function onLoad() {
 
     function move() {
         let now = Date.now();
-        for (let i= 0; i < OBJECTS_COUNT; i++) {
+        for (let i= 1; i < OBJECTS_COUNT; i++) {
             let obj = objects[i];
 
             let delta = (now - obj.startTime);

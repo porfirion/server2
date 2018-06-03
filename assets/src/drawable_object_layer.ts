@@ -49,16 +49,14 @@ class CoordsLayer extends DrawableObjectLayer {
 }
 
 class CircleLayer extends DrawableObjectLayer {
-    private strokeColor: string | null = "black";
     private fillColor: string | null = null;
+    private strokeColor: string | null = null;
 
-    constructor(obj: DrawableObject, strokeColor: string | null = "black", fillColor: string | null = null) {
+    constructor(obj: DrawableObject, fillColor: string | null = null, strokeColor: string | null | undefined) {
         super(obj);
-        this.strokeColor = strokeColor;
         this.fillColor = fillColor;
-
-        if (this.strokeColor == null && this.fillColor == null) {
-            console.warn("no colors specified for circle");
+        if (typeof strokeColor != "undefined") {
+            this.strokeColor = strokeColor;
         }
     }
 
@@ -69,10 +67,12 @@ class CircleLayer extends DrawableObjectLayer {
         let radius = useScale ? this.obj.getBoundingCircle() * viewport.getScale() : this.obj.getBoundingCircle();
         ctx.arc(0, 0, radius, 0, Math.PI * 2);
         ctx.closePath();
+
         if (this.fillColor != null) {
             ctx.fillStyle = this.fillColor;
             ctx.fill();
         }
+
         if (this.strokeColor != null) {
             ctx.strokeStyle = this.strokeColor;
             ctx.stroke();
@@ -81,20 +81,33 @@ class CircleLayer extends DrawableObjectLayer {
 }
 
 class RectLayer extends DrawableObjectLayer {
-    private color: string;
+    private fillColor: string | null = null;
+    private borderColor: string | null = null;
 
-    constructor(obj: DrawableObject, color: string) {
+    constructor(obj: DrawableObject, fillColor: string | null, borderColor: string | null | undefined) {
         super(obj);
-        this.color = color;
+        this.fillColor = fillColor;
+
+        if (typeof borderColor != "undefined") {
+            this.borderColor = borderColor;
+        }
     }
 
     draw(ctx: CanvasRenderingContext2D, viewport: Viewport, useScale: boolean): void {
-        ctx.fillStyle = this.color;
         let size: number = this.obj.getBoundingCircle();
         if (useScale) {
             size *= viewport.getScale();
         }
-        ctx.fillRect(-size, -size, size * 2, size * 2);
+
+        if (this.fillColor != null) {
+            ctx.fillStyle = this.fillColor;
+            ctx.fillRect(-size, -size, size * 2, size * 2);
+        }
+
+        if (this.borderColor != null) {
+            ctx.strokeStyle = this.borderColor;
+            ctx.rect(-size, -size, size * 2, size * 2);
+        }
     }
 }
 
@@ -115,15 +128,16 @@ class ImageLayer extends DrawableObjectLayer {
             let width = this.btm.width;
             let height = this.btm.height;
 
-            let size = this.obj.getBoundingCircle() / 30;
+            let max = Math.max(width, height);
 
-            width *= size;
-            height *= size;
+            let coeff = this.obj.getBoundingCircle() * 2 / max;
 
             if (useScale) {
-                width *= viewport.getScale();
-                height *= viewport.getScale();
+                coeff *= viewport.getScale();
             }
+
+            width *= coeff;
+            height *= coeff;
 
             ctx.drawImage(this.btm, -width / 2, -height / 2, width, height);
         }
