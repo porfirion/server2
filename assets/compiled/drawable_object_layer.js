@@ -61,16 +61,14 @@ var CoordsLayer = /** @class */ (function (_super) {
 }(DrawableObjectLayer));
 var CircleLayer = /** @class */ (function (_super) {
     __extends(CircleLayer, _super);
-    function CircleLayer(obj, strokeColor, fillColor) {
-        if (strokeColor === void 0) { strokeColor = "black"; }
+    function CircleLayer(obj, fillColor, strokeColor) {
         if (fillColor === void 0) { fillColor = null; }
         var _this = _super.call(this, obj) || this;
-        _this.strokeColor = "black";
         _this.fillColor = null;
-        _this.strokeColor = strokeColor;
+        _this.strokeColor = null;
         _this.fillColor = fillColor;
-        if (_this.strokeColor == null && _this.fillColor == null) {
-            console.warn("no colors specified for circle");
+        if (typeof strokeColor != "undefined") {
+            _this.strokeColor = strokeColor;
         }
         return _this;
     }
@@ -93,18 +91,29 @@ var CircleLayer = /** @class */ (function (_super) {
 }(DrawableObjectLayer));
 var RectLayer = /** @class */ (function (_super) {
     __extends(RectLayer, _super);
-    function RectLayer(obj, color) {
+    function RectLayer(obj, fillColor, borderColor) {
         var _this = _super.call(this, obj) || this;
-        _this.color = color;
+        _this.fillColor = null;
+        _this.borderColor = null;
+        _this.fillColor = fillColor;
+        if (typeof borderColor != "undefined") {
+            _this.borderColor = borderColor;
+        }
         return _this;
     }
     RectLayer.prototype.draw = function (ctx, viewport, useScale) {
-        ctx.fillStyle = this.color;
         var size = this.obj.getBoundingCircle();
         if (useScale) {
             size *= viewport.getScale();
         }
-        ctx.fillRect(-size, -size, size * 2, size * 2);
+        if (this.fillColor != null) {
+            ctx.fillStyle = this.fillColor;
+            ctx.fillRect(-size, -size, size * 2, size * 2);
+        }
+        if (this.borderColor != null) {
+            ctx.strokeStyle = this.borderColor;
+            ctx.rect(-size, -size, size * 2, size * 2);
+        }
     };
     return RectLayer;
 }(DrawableObjectLayer));
@@ -112,25 +121,21 @@ var ImageLayer = /** @class */ (function (_super) {
     __extends(ImageLayer, _super);
     function ImageLayer(obj, image) {
         var _this = _super.call(this, obj) || this;
-        _this.btm = null;
         _this.image = image;
-        createImageBitmap(_this.image).then(function (btm) {
-            _this.btm = btm;
-        });
         return _this;
     }
     ImageLayer.prototype.draw = function (ctx, viewport, useScale) {
-        if (this.btm != null) {
-            var width = this.btm.width;
-            var height = this.btm.height;
-            var size = this.obj.getBoundingCircle() / 30;
-            width *= size;
-            height *= size;
+        if (this.image.data != null) {
+            var width = this.image.data.width;
+            var height = this.image.data.height;
+            var max = Math.max(width, height);
+            var coeff = this.obj.getBoundingCircle() * 2 / max;
             if (useScale) {
-                width *= viewport.getScale();
-                height *= viewport.getScale();
+                coeff *= viewport.getScale();
             }
-            ctx.drawImage(this.btm, -width / 2, -height / 2, width, height);
+            width *= coeff;
+            height *= coeff;
+            ctx.drawImage(this.image.data, -width / 2, -height / 2, width, height);
         }
     };
     return ImageLayer;

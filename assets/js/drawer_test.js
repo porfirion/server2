@@ -5,6 +5,8 @@ const OBJECTS_COUNT = 1000;
 const BOUND = 5000;
 
 function onLoad() {
+    let spriteFactory = new SpriteFactory();
+
     window.elem = window.document.getElementById('map');
     let drawer = new Drawer(elem.getContext("2d"), elem.clientWidth, elem.clientHeight);
     let clickPos = null;
@@ -13,29 +15,21 @@ function onLoad() {
     updateViewportSize();
     updateViewportInfo();
 
-    var img = new Image();
-    img.onload = function () {
-        console.log("IMAGE LOADED");
-        for (let i= 0; i < OBJECTS_COUNT; i++) {
-            // objects[i].obj.addLayer("circle", new CircleLayer(objects[i].obj, randomColor()));
-            objects[i].obj.addLayer("image", new ImageLayer(objects[i].obj, img));
-        }
-        // context.drawImage(img, 0, 0);
-    };
-    img.src = "/assets/img/pig.png";
-
-
     let objects = [];
     for (let i = 0; i < OBJECTS_COUNT; i++) {
         let obj = drawer.createObject();
         obj.setSize(Math.random() * 5 + 10);
-        obj.setPosition({x: Math.random() * OBJECTS_DISTANCE * 2 - OBJECTS_DISTANCE, y: Math.random() * OBJECTS_DISTANCE * 2 - OBJECTS_DISTANCE});
-        obj.addLayer("rect", new RectLayer(obj, randomColor()/*, randomColor()*/));
-        obj.addLayer("circle", new CircleLayer(obj, randomColor()/*, randomColor()*/));
+        obj.setPosition({
+            x: Math.random() * OBJECTS_DISTANCE * 2 - OBJECTS_DISTANCE,
+            y: Math.random() * OBJECTS_DISTANCE * 2 - OBJECTS_DISTANCE
+        });
+        // obj.addLayer("rect", new RectLayer(obj, randomColor()/*, randomColor()*/));
+        // obj.addLayer("circle", new CircleLayer(obj, randomColor()/*, randomColor()*/));
         // obj.addLayer("id", new IdLayer(obj));
+        obj.addLayer("image", new ImageLayer(obj, spriteFactory.getSprite("/assets/img/pig.png")));
 
-        let x = Math.random() * 1 - 0.5;
-        let y = Math.random() * 1 - 0.5;
+        let x = Math.random() - 0.5;
+        let y = Math.random() - 0.5;
 
         // square
         // let abs = Math.abs(x) + Math.abs(y);
@@ -45,7 +39,24 @@ function onLoad() {
         // let abs = Math.sqrt(x * x + y * y);
         // let speed = {x: x / abs, y: y / abs};
 
-        let speed = i === 0 ? {x: 0, y: 0} : {x: x, y: y};
+        let speed = {x: x, y: y};
+
+        if (i < 10) {
+            speed = {x: 0, y: 0};
+            obj.setSize(20);
+            obj.addLayer("id", new IdLayer(obj));
+            obj.setPosition({x: i * 45 - 205, y: 0});
+        }
+
+        if (i === 0) {
+            obj.addLayer("particle", new ParticleLayer(obj, {
+                emit: () => {
+                    return new Particle(randomColor(), 10);
+                }
+            }));
+        } else if (i === 1) {
+
+        }
 
         objects.push({
             obj: obj,
@@ -55,13 +66,14 @@ function onLoad() {
         });
     }
 
-    drawer.viewport.setScale(0.095);
+    // drawer.viewport.setScale(0.095); // for global view
+    drawer.viewport.setScale(3.500);// for detailed view
 
     drawer.draw();
 
     function move() {
         let now = Date.now();
-        for (let i= 1; i < OBJECTS_COUNT; i++) {
+        for (let i = 10; i < OBJECTS_COUNT; i++) {
             let obj = objects[i];
 
             let delta = (now - obj.startTime);
@@ -114,7 +126,7 @@ function onLoad() {
         drawer.draw();
     });
 
-    elem.addEventListener('mousewheel', function (ev) {
+    elem.addEventListener('mousewheel', function(ev) {
         let params = normalizeWheel(ev);
         if (params.spinY > 0) {
             // на себя
@@ -131,12 +143,12 @@ function onLoad() {
         return false;
     });
 
-    elem.addEventListener('contextmenu', function (event) {
+    elem.addEventListener('contextmenu', function(event) {
         event.preventDefault();
         return false;
     });
 
-    elem.addEventListener('mousedown', function (event) {
+    elem.addEventListener('mousedown', function(event) {
         let canvasCoords = new Point2D(event.offsetX, event.offsetY);
         let viewportCoords = drawer.viewport.fromCanvas(canvasCoords);
         let realCoords = drawer.viewport.toReal(viewportCoords);
@@ -163,16 +175,16 @@ function onLoad() {
         return false;
     });
 
-    elem.addEventListener('mouseup', function () {
+    elem.addEventListener('mouseup', function() {
         clickPos = null;
         clickViewportPos = null;
     });
-    elem.addEventListener('mouseout', function () {
+    elem.addEventListener('mouseout', function() {
         clickPos = null;
         clickViewportPos = null;
     });
 
-    elem.addEventListener('mousemove', function (event) {
+    elem.addEventListener('mousemove', function(event) {
         let canvasCoords = new Point2D(event.offsetX, event.offsetY),
             viewportCoords = drawer.viewport.fromCanvas(canvasCoords),
             realCoords = drawer.viewport.toReal(viewportCoords);

@@ -3,7 +3,7 @@
 /**
  * Representation of any visible object
  */
-class DrawableObject {
+class DrawableObject implements Drawable {
     protected id: number;
 
 	/**

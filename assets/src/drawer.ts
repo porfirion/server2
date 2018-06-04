@@ -1,12 +1,5 @@
 "use strict";
 
-const
-    MAIN_AXIS_COLOR = 'rgba(0, 0, 0, 0.055)',
-    SECONDARY_AXIS_COLOR = 'rgba(0, 0, 0, 0.055)',
-    BG_COLOR = "#3fba54",
-    GRID_SIZE = 50,
-    USE_CANVAS_SCALE = true;
-
 interface Rectangle {
     left: number
     top: number
@@ -22,8 +15,6 @@ interface Point2D {
 /**
  * Class for holding and drawing list of map objects (including players)
  * Can be a wrapper to some framework
- * @param {HTMLCanvasElement} elem
- * @constructor
  */
 class Drawer {
     private ctx: CanvasRenderingContext2D;
@@ -32,18 +23,22 @@ class Drawer {
     private objects: DrawableObject[];
     private objectsById: Map<number, DrawableObject>;
 
-    private gridSize: number;
     private nextObjectId: number;
     private timeDrawer: TimeDrawer = new TimeDrawer();
     private prevAnimationTime: number | null = null;
     private canvasSize: { width: number, height: number };
+
+    private useCanvasScale: boolean = true;
+    private gridSize: number = 50;
+    private bgColor: string | undefined = "#3fba54";
+    private mainAxisColor: string = 'rgba(0, 0, 0, 0.055)';
+    private secondaryAxisColor: string = 'rgba(0, 0, 0, 0.055)';
 
     constructor(ctx: CanvasRenderingContext2D, width: number, height: number) {
         this.ctx = ctx;
 
         this.objects = [];
         this.objectsById = new Map<number, DrawableObject>();
-        this.gridSize = GRID_SIZE;
         this.nextObjectId = 1;
 
         this.viewport = new Viewport(0, 0, 1, width, height);
@@ -79,9 +74,9 @@ class Drawer {
         this.ctx.clearRect(0, 0, this.canvasSize.width, this.canvasSize.height);
         this.ctx.save();
 
-        if (typeof BG_COLOR != "undefined") {
+        if (typeof this.bgColor != "undefined") {
             this.ctx.save();
-            this.ctx.fillStyle = BG_COLOR;
+            this.ctx.fillStyle = this.bgColor;
             this.ctx.fillRect(0, 0, this.canvasSize.width, this.canvasSize.height);
             this.ctx.restore();
         }
@@ -120,7 +115,7 @@ class Drawer {
         ctx.save();
         ctx.setTransform(1, 0, 0, 1, 0, 0);
 
-        if (USE_CANVAS_SCALE) {
+        if (this.useCanvasScale) {
             // console.log("using canvas scale");
             // применяем скейл ко всему канвасу, чтобы работал аппаратный зум
             ctx.scale(this.viewport.getScale(), this.viewport.getScale());
@@ -135,10 +130,10 @@ class Drawer {
 
                 // если мы до этого уже применили скейл ко всему канвасу,
                 // то здесь его применять уже не нужны и наоборот
-                let canvasPos = this.viewport.fromRealToCanvas(obj.getPosition(), !USE_CANVAS_SCALE);
+                let canvasPos = this.viewport.fromRealToCanvas(obj.getPosition(), !this.useCanvasScale);
                 ctx.translate(canvasPos.x, canvasPos.y);
                 ctx.rotate(obj.getRotation());
-                obj.draw(ctx, this.viewport, !USE_CANVAS_SCALE);
+                obj.draw(ctx, this.viewport, !this.useCanvasScale);
 
                 ctx.restore();
             }
@@ -161,22 +156,22 @@ class Drawer {
         const rowCount = Math.max(Math.ceil(realViewport.height / this.gridSize), 1);
 
         ctx.save();
-        if (USE_CANVAS_SCALE) {
+        if (this.useCanvasScale) {
             ctx.scale(this.viewport.getScale(), this.viewport.getScale());
         }
 
         ctx.strokeStyle = '#ccc';
 
         // рисуем вертикали
-        let height = USE_CANVAS_SCALE ? viewportRealHeight : viewportRealHeight * this.viewport.getScale();
+        let height = this.useCanvasScale ? viewportRealHeight : viewportRealHeight * this.viewport.getScale();
         for (let i = 0; i < colCount; i++) {
             let rx = leftColReal + i * this.gridSize,
-                x = this.viewport.fromRealToCanvasX(rx, !USE_CANVAS_SCALE);
+                x = this.viewport.fromRealToCanvasX(rx, !this.useCanvasScale);
 
             if (rx === 0) {
-                ctx.strokeStyle = MAIN_AXIS_COLOR;
+                ctx.strokeStyle = this.mainAxisColor;
             } else {
-                ctx.strokeStyle = SECONDARY_AXIS_COLOR;
+                ctx.strokeStyle = this.secondaryAxisColor;
             }
             ctx.beginPath();
             ctx.moveTo(x, 0);
@@ -185,15 +180,15 @@ class Drawer {
         }
 
         // рисуем горизонтали
-        let width = USE_CANVAS_SCALE ? viewportRealWidth : viewportRealWidth * this.viewport.getScale();
+        let width = this.useCanvasScale ? viewportRealWidth : viewportRealWidth * this.viewport.getScale();
         for (let j = 0; j < rowCount; j++) {
             let ry = topRowReal - j * this.gridSize,
-                y = this.viewport.fromRealToCanvasY(ry, !USE_CANVAS_SCALE);
+                y = this.viewport.fromRealToCanvasY(ry, !this.useCanvasScale);
 
             if (ry === 0) {
-                ctx.strokeStyle = MAIN_AXIS_COLOR;
+                ctx.strokeStyle = this.mainAxisColor;
             } else {
-                ctx.strokeStyle = SECONDARY_AXIS_COLOR;
+                ctx.strokeStyle = this.secondaryAxisColor;
             }
 
             ctx.beginPath();
@@ -223,7 +218,7 @@ class Drawer {
 
         // рисуем центр
         ctx.strokeStyle = 'lime';
-        let centerCanvasPos = this.viewport.fromRealToCanvas(this.viewport.getRealDimensions(), !USE_CANVAS_SCALE);
+        let centerCanvasPos = this.viewport.fromRealToCanvas(this.viewport.getRealDimensions(), !this.useCanvasScale);
         ctx.beginPath();
         ctx.moveTo(centerCanvasPos.x - 15, centerCanvasPos.y);
         ctx.lineTo(centerCanvasPos.x + 15, centerCanvasPos.y);
@@ -232,10 +227,10 @@ class Drawer {
         ctx.stroke();
 
         // рисуем границы области
-        ctx.lineWidth = USE_CANVAS_SCALE ? 10 : 10 * this.viewport.getScale();
+        ctx.lineWidth = this.useCanvasScale ? 10 : 10 * this.viewport.getScale();
         ctx.beginPath();
-        let vlt = this.viewport.fromRealToCanvas({x: -5000, y: -5000}, !USE_CANVAS_SCALE);
-        let vrb = this.viewport.fromRealToCanvas({x: 5000, y: 5000}, !USE_CANVAS_SCALE);
+        let vlt = this.viewport.fromRealToCanvas({x: -5000, y: -5000}, !this.useCanvasScale);
+        let vrb = this.viewport.fromRealToCanvas({x: 5000, y: 5000}, !this.useCanvasScale);
         ctx.rect(vlt.x, vlt.y, vrb.x - vlt.x, vrb.y - vlt.y);
         ctx.stroke();
 

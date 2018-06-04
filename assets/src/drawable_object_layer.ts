@@ -4,7 +4,7 @@
  * @constructor
  * @param {DrawableObject} obj
  */
-abstract class DrawableObjectLayer {
+abstract class DrawableObjectLayer implements Drawable {
     protected obj: DrawableObject;
 
     constructor(obj: DrawableObject) {
@@ -112,21 +112,18 @@ class RectLayer extends DrawableObjectLayer {
 }
 
 class ImageLayer extends DrawableObjectLayer {
-    private image: HTMLImageElement;
-    private btm: ImageBitmap | null = null;
-    constructor(obj: DrawableObject, image: HTMLImageElement) {
+    private image: Sprite;
+
+    constructor(obj: DrawableObject, image: Sprite) {
         super(obj);
         this.image = image;
-        createImageBitmap(this.image).then((btm) => {
-            this.btm = btm;
-        });
     }
 
     draw(ctx: CanvasRenderingContext2D, viewport: Viewport, useScale: boolean): void {
 
-        if (this.btm != null) {
-            let width = this.btm.width;
-            let height = this.btm.height;
+        if (this.image.data != null) {
+            let width = this.image.data.width;
+            let height = this.image.data.height;
 
             let max = Math.max(width, height);
 
@@ -139,7 +136,7 @@ class ImageLayer extends DrawableObjectLayer {
             width *= coeff;
             height *= coeff;
 
-            ctx.drawImage(this.btm, -width / 2, -height / 2, width, height);
+            ctx.drawImage(this.image.data, -width / 2, -height / 2, width, height);
         }
     }
 }
