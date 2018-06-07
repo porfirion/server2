@@ -1,35 +1,5 @@
 "use strict";
 
-function generateUUID() {
-    var d = new Date().getTime();
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-        var r = (d + Math.random() * 16) % 16 | 0;
-        d = Math.floor(d / 16);
-        return (c === 'x' ? r : (r & 0x7 | 0x8)).toString(16);
-    });
-}
-
-/**
- *
- * @returns {string}
- */
-function getName() {
-    var names = [
-        "Ivan", "Mikhail", "Ilya", "Sergey", "Alexander", "Egor", "Diman", "Alexey"
-    ];
-    var suffix = [
-        "Eagle eye", "Morning star", "Black hoof", "Three finger", "Yellow wolf", "Wasp nest", "Short bull", "Hard needle", "Fetid datura", "Curved horn"
-    ];
-
-    var rndNameId = Math.round(Math.random() * (names.length - 1));
-    var rndSuffixId = Math.round(Math.random() * (suffix.length - 1));
-    // var rndNum = Math.round(Math.random() * 1000000);
-
-    // console.log(rndNameId, rndNum, names[rndNameId]);
-
-    return names[rndNameId] + " " + suffix[rndSuffixId];
-}
-
 var members = {};
 /**
  * Random name, generated on client start
@@ -200,7 +170,7 @@ var Player = function (id, name) {
 };
 
 jQuery(document).ready(function () {
-    myName = getName();
+    myName = randomName();
     $('.playerName').html(myName);
     client = new WsClient("ws://" + window.location.host + "/ws", myName);
     client.on('message', onmessage);

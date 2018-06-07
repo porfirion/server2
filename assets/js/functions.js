@@ -3,6 +3,15 @@ var PIXEL_STEP = 10;
 var LINE_HEIGHT = 40;
 var PAGE_HEIGHT = 800;
 
+function generateUUID() {
+    var d = new Date().getTime();
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+        var r = (d + Math.random() * 16) % 16 | 0;
+        d = Math.floor(d / 16);
+        return (c === 'x' ? r : (r & 0x7 | 0x8)).toString(16);
+    });
+}
+
 /**
  *
  * @param event
@@ -78,6 +87,23 @@ function randomColorComponent() {
  */
 function randomColor() {
     return '#' + randomColorComponent() + randomColorComponent() + randomColorComponent();
+}
+
+function randomName() {
+    var names = [
+        "Ivan", "Mikhail", "Ilya", "Sergey", "Alexander", "Egor", "Diman", "Alexey"
+    ];
+    var suffix = [
+        "Eagle eye", "Morning star", "Black hoof", "Three finger", "Yellow wolf", "Wasp nest", "Short bull", "Hard needle", "Fetid datura", "Curved horn"
+    ];
+
+    var rndNameId = Math.round(Math.random() * (names.length - 1));
+    var rndSuffixId = Math.round(Math.random() * (suffix.length - 1));
+    // var rndNum = Math.round(Math.random() * 1000000);
+
+    // console.log(rndNameId, rndNum, names[rndNameId]);
+
+    return names[rndNameId] + " " + suffix[rndSuffixId];
 }
 
 function numberPrecisionLimiter(key, value) {
