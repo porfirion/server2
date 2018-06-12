@@ -296,7 +296,7 @@ Map.prototype.distance = function (a, b) {
 Map.prototype.setSimulationMode = function (mode) {
     if (this.simulationMode !== mode) {
         this.simulationMode = mode;
-        var modeName = (this.simulationMode === SimulationMode.STEP_BY_STEP ? "StepByStep" : "Continious");
+        var modeName = (this.simulationMode === SimulationMode.STEP_BY_STEP ? "StepByStep" : "Continuous");
         $('.simulationMode .value').html(modeName);
     } else {
 

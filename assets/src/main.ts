@@ -1,22 +1,28 @@
-const SERVER_ADDR = "localhost:8080";
+const SERVER_ADDR = "ws://localhost:8080/ws";
 
-class ServerMessage {}
+class ServerMessage {
+}
 
 enum SimulationMode {
-    Continious,
+    Continuous,
     StepByStep
 }
 
 class Application {
+    private canvas: HTMLCanvasElement;
     private client: WsClient;
     private gameState: GameState;
-    private drawer: Drawer;
-    private simulationMode: SimulationMode = SimulationMode.Continious;
+    private drawer: Drawer | null = null;
+    private simulationMode: SimulationMode = SimulationMode.Continuous;
+    private input: CanvasInputController;
 
-    constructor(ctx: CanvasRenderingContext2D) {
-        this.drawer = new Drawer(ctx, 0, 0);
+    constructor(canvas: HTMLCanvasElement) {
+        this.gameState = new GameState();
+
+        this.canvas = canvas;
+        this.drawer = new Drawer(canvas.getContext("2d"), 0, 0);
+        this.input = new CanvasInputController(this.canvas, this.drawer, this.gameState);
         this.client = new WsClient(SERVER_ADDR, randomName());
-        this.gameState = new GameState(this.drawer);
     }
 
     start() {
@@ -26,11 +32,10 @@ class Application {
         this.client.connect();
 
 
-        if (this.simulationMode == SimulationMode.Continious) {
-            requestAnimationFrame(this.onAnimationFrame);
+        if (this.simulationMode == SimulationMode.Continuous) {
+            requestAnimationFrame(this.onAnimationFrame.bind(this));
         }
     }
-
 
 
     processControlMessage(): void {
@@ -40,12 +45,12 @@ class Application {
     onAnimationFrame() {
         this.do();
 
-        if (this.simulationMode = SimulationMode.Continious) {
-            requestAnimationFrame(this.onAnimationFrame);
+        if (this.simulationMode == SimulationMode.Continuous) {
+            requestAnimationFrame(this.onAnimationFrame.bind(this));
         }
     }
 
-    do():void {
+    do(): void {
         // get current game time
         let now = this.getCurrentGameTime();
 
@@ -57,31 +62,27 @@ class Application {
         this.draw();
     }
 
-    getCurrentGameTime(): number { return 0; }
-
-    simulateToTime(time: number) {}
-
-    draw(): void {}
-}
-
-class GameObject {}
-
-// decribes visible game region and whole game state
-class GameState {
-    visibleObjects: GameObject[] = [];
-    private drawer: Drawer;
-
-    constructor(drawer: Drawer) {
-        this.drawer = drawer;
+    getCurrentGameTime(): number {
+        return 0;
     }
 
-    processMessage(msg: ServerMessage): void{
-        // add/remove/update visible objects (work with drawer)
-        // adjust whole game state (day/night, victory, ...)
+    simulateToTime(time: number) {
+    }
+
+    draw(): void {
+        if (this.drawer != null) {
+            this.drawer.setCanvasSize(this.canvas.width, this.canvas.height);
+            this.drawer.draw();
+        }
     }
 }
 
-let app:Application = new Application(new CanvasRenderingContext2D());
-app.start();
-
-
+window.addEventListener('load', function (ev: Event) {
+    let canvas = window.document.getElementById("canvas") as HTMLCanvasElement;
+    if (canvas != null) {
+        let app: Application = new Application(canvas);
+        app.start();
+    } else {
+        console.error("Can't find canvas");
+    }
+});

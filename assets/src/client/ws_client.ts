@@ -37,13 +37,13 @@ class WsClient implements EventEmitter<WsClientEvent> {
             clearTimeout(this.reconnectTimer);
             this.reconnectTimer = 0;
         }
-        if (this.websocket === null) {
+        if (this.websocket === null || this.websocket.readyState === WebSocket.CLOSED) {
             console.log('Connecting...');
             this.websocket = new WebSocket(this.addr);
-            this.websocket.onopen = this.onopenHandler;
-            this.websocket.onclose = this.oncloseHandler;
-            this.websocket.onmessage = this.onmessageHandler;
-            this.websocket.onerror = this.onerrorHandler;
+            this.websocket.onopen = this.onopenHandler.bind(this);
+            this.websocket.onclose = this.oncloseHandler.bind(this);
+            this.websocket.onmessage = this.onmessageHandler.bind(this);
+            this.websocket.onerror = this.onerrorHandler.bind(this);
         } else {
             console.log('we are already connected to server');
         }
@@ -98,7 +98,7 @@ class WsClient implements EventEmitter<WsClientEvent> {
         return this;
     }
 
-    trigger(eventType: string, data?: any) {
+    trigger(eventType: string, data?: any): void {
         let handlers = this.handlers.get(eventType);
         if (typeof handlers != 'undefined') {
             handlers.forEach((handler) => {
@@ -126,7 +126,7 @@ class WsClient implements EventEmitter<WsClientEvent> {
             this.requestTimeTimer = 0;
         }
         if (this.reconnectTimer === 0) {
-            this.reconnectTimer = setTimeout(this.connect, this.reconnectTimeout);
+            this.reconnectTimer = setTimeout(this.connect.bind(this), this.reconnectTimeout);
         }
         this.trigger(WsClientEvent.NotificationClose);
     }
@@ -142,7 +142,7 @@ class WsClient implements EventEmitter<WsClientEvent> {
 
         this.trigger(WsClientEvent.NotificationError);
         if (this.reconnectTimer === 0) {
-            this.reconnectTimer = setTimeout(this.connect, this.reconnectTimeout);
+            this.reconnectTimer = setTimeout(this.connect.bind(this), this.reconnectTimeout);
         }
     }
 

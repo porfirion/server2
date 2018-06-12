@@ -17,7 +17,7 @@ interface Point2D {
  * Can be a wrapper to some framework
  */
 class Drawer {
-    private ctx: CanvasRenderingContext2D;
+    private ctx: CanvasRenderingContext2D | null;
     private viewport: Viewport;
 
     private objects: DrawableObject[];
@@ -34,8 +34,9 @@ class Drawer {
     private mainAxisColor: string = 'rgba(0, 0, 0, 0.055)';
     private secondaryAxisColor: string = 'rgba(0, 0, 0, 0.055)';
 
-    constructor(ctx: CanvasRenderingContext2D, width: number, height: number) {
+    constructor(ctx: CanvasRenderingContext2D | null, width: number, height: number) {
         this.ctx = ctx;
+
 
         this.objects = [];
         this.objectsById = new Map<number, DrawableObject>();
@@ -43,6 +44,10 @@ class Drawer {
 
         this.viewport = new Viewport(0, 0, 1, width, height);
         this.canvasSize = {width: width, height: height};
+    }
+
+    public getViewport(): Viewport {
+        return this.viewport;
     }
 
     /**
@@ -71,6 +76,8 @@ class Drawer {
     }
 
     public draw() {
+        if (this.ctx == null) return;
+
         this.ctx.clearRect(0, 0, this.canvasSize.width, this.canvasSize.height);
         this.ctx.save();
 
@@ -109,6 +116,8 @@ class Drawer {
     }
 
     private drawObjects() {
+        if (this.ctx == null) return;
+
         const ctx = this.ctx;
         const realViewport = this.viewport.getRealDimensions(); // real position and size of viewport
 
@@ -143,6 +152,8 @@ class Drawer {
     }
 
     private drawGrid() {
+        if (this.ctx == null) return;
+
         const realViewport = this.viewport.getRealDimensions();
 
         const viewportRealWidth = realViewport.width;

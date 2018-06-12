@@ -1,5 +1,5 @@
 "use strict";
-var SERVER_ADDR = "localhost:8080";
+var SERVER_ADDR = "ws://localhost:8080/ws";
 var ServerMessage = /** @class */ (function () {
     function ServerMessage() {
     }
@@ -7,23 +7,26 @@ var ServerMessage = /** @class */ (function () {
 }());
 var SimulationMode;
 (function (SimulationMode) {
-    SimulationMode[SimulationMode["Continious"] = 0] = "Continious";
+    SimulationMode[SimulationMode["Continuous"] = 0] = "Continuous";
     SimulationMode[SimulationMode["StepByStep"] = 1] = "StepByStep";
 })(SimulationMode || (SimulationMode = {}));
 var Application = /** @class */ (function () {
-    function Application(ctx) {
-        this.simulationMode = SimulationMode.Continious;
-        this.drawer = new Drawer(ctx, 0, 0);
+    function Application(canvas) {
+        this.drawer = null;
+        this.simulationMode = SimulationMode.Continuous;
+        this.gameState = new GameState();
+        this.canvas = canvas;
+        this.drawer = new Drawer(canvas.getContext("2d"), 0, 0);
+        this.input = new CanvasInputController(this.canvas, this.drawer, this.gameState);
         this.client = new WsClient(SERVER_ADDR, randomName());
-        this.gameState = new GameState(this.drawer);
     }
     Application.prototype.start = function () {
         this.client.on("partial_state_sync", this.gameState.processMessage);
         this.client.on("full_state_sync", this.gameState.processMessage);
         this.client.on("control_message", this.processControlMessage);
         this.client.connect();
-        if (this.simulationMode == SimulationMode.Continious) {
-            requestAnimationFrame(this.onAnimationFrame);
+        if (this.simulationMode == SimulationMode.Continuous) {
+            requestAnimationFrame(this.onAnimationFrame.bind(this));
         }
     };
     Application.prototype.processControlMessage = function () {
@@ -31,8 +34,8 @@ var Application = /** @class */ (function () {
     };
     Application.prototype.onAnimationFrame = function () {
         this.do();
-        if (this.simulationMode = SimulationMode.Continious) {
-            requestAnimationFrame(this.onAnimationFrame);
+        if (this.simulationMode == SimulationMode.Continuous) {
+            requestAnimationFrame(this.onAnimationFrame.bind(this));
         }
     };
     Application.prototype.do = function () {
@@ -44,28 +47,27 @@ var Application = /** @class */ (function () {
         // just show what we have on screen
         this.draw();
     };
-    Application.prototype.getCurrentGameTime = function () { return 0; };
-    Application.prototype.simulateToTime = function (time) { };
-    Application.prototype.draw = function () { };
+    Application.prototype.getCurrentGameTime = function () {
+        return 0;
+    };
+    Application.prototype.simulateToTime = function (time) {
+    };
+    Application.prototype.draw = function () {
+        if (this.drawer != null) {
+            this.drawer.setCanvasSize(this.canvas.width, this.canvas.height);
+            this.drawer.draw();
+        }
+    };
     return Application;
 }());
-var GameObject = /** @class */ (function () {
-    function GameObject() {
+window.addEventListener('load', function (ev) {
+    var canvas = window.document.getElementById("canvas");
+    if (canvas != null) {
+        var app = new Application(canvas);
+        app.start();
     }
-    return GameObject;
-}());
-// decribes visible game region and whole game state
-var GameState = /** @class */ (function () {
-    function GameState(drawer) {
-        this.visibleObjects = [];
-        this.drawer = drawer;
+    else {
+        console.error("Can't find canvas");
     }
-    GameState.prototype.processMessage = function (msg) {
-        // add/remove/update visible objects (work with drawer)
-        // adjust whole game state (day/night, victory, ...)
-    };
-    return GameState;
-}());
-var app = new Application(new CanvasRenderingContext2D());
-app.start();
+});
 //# sourceMappingURL=main.js.map

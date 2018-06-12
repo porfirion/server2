@@ -1,11 +1,23 @@
 <!DOCTYPE html>
 <html>
 	<head>
-		<script src="/assets/compiled/client/ws_client.js"></script>
-        <script src="/assets/js/drawer.ts"></script>
-        <script src="/assets/js/drawable_object.ts"></script>
-		<script src="/assets/js/map.js"></script>
-		<script src="/assets/js/script.js"></script>
+        <script
+                src="/assets/js/jquery-3.3.1.slim.min.js"
+                integrity="sha256-3edrmyuQ0w65f8gfBsqowzjJe2iM6n0nKciPUp8y+7E="
+                crossorigin="anonymous"></script>
+        <script src="/assets/js/functions.js"></script>
+        <script src="/assets/compiled/client/ws_client.js"></script>
+        <script src="/assets/compiled/game_state.js"></script>
+        <script src="/assets/compiled/input_controller.js"></script>
+        <script src="/assets/compiled/drawables/sprite.js"></script>
+        <script src="/assets/compiled/drawables/drawable_object_layer.js"></script>
+        <script src="/assets/compiled/drawables/particle_layer.js"></script>
+        <script src="/assets/compiled/drawables/drawable_object.js"></script>
+        <script src="/assets/compiled/drawables/time_drawer.js"></script>
+        <script src="/assets/compiled/drawables/drawer.js"></script>
+        <script src="/assets/js/viewport.js"></script>
+        <script src="/assets/compiled/main.js"></script>
+
 		<link rel="stylesheet" href="/assets/css/bootstrap.min.css">
 		<link rel="stylesheet" href="/assets/css/bootstrap-theme.min.css">
 		<link rel="stylesheet" href="/assets/css/style.css">
@@ -44,7 +56,7 @@
 
 		<div class="main-wrapper">
 			<div id="map-wrapper">
-				<canvas id="map" width="600" height="500"></canvas>
+				<canvas id="canvas" width="600" height="500"></canvas>
 			</div>
 
 			<!--<div class="widthSeparator"></div>-->

@@ -19,6 +19,9 @@ var Drawer = /** @class */ (function () {
         this.viewport = new Viewport(0, 0, 1, width, height);
         this.canvasSize = { width: width, height: height };
     }
+    Drawer.prototype.getViewport = function () {
+        return this.viewport;
+    };
     /**
      * Создаёт новый объект и возвращает его
      * @return {DrawableObject}
@@ -40,6 +43,8 @@ var Drawer = /** @class */ (function () {
         this.canvasSize = { width: width, height: height };
     };
     Drawer.prototype.draw = function () {
+        if (this.ctx == null)
+            return;
         this.ctx.clearRect(0, 0, this.canvasSize.width, this.canvasSize.height);
         this.ctx.save();
         if (typeof this.bgColor != "undefined") {
@@ -69,6 +74,8 @@ var Drawer = /** @class */ (function () {
         this.ctx.restore();
     };
     Drawer.prototype.drawObjects = function () {
+        if (this.ctx == null)
+            return;
         var ctx = this.ctx;
         var realViewport = this.viewport.getRealDimensions(); // real position and size of viewport
         ctx.save();
@@ -96,6 +103,8 @@ var Drawer = /** @class */ (function () {
         ctx.restore();
     };
     Drawer.prototype.drawGrid = function () {
+        if (this.ctx == null)
+            return;
         var realViewport = this.viewport.getRealDimensions();
         var viewportRealWidth = realViewport.width;
         var viewportRealHeight = realViewport.height;
