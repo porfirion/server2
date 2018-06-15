@@ -181,7 +181,7 @@ jQuery(document).ready(function () {
             //console.log('sent');
         }, 10000);
     });
-    client.on(WsClient.NotificationTimeSynced, function (latency, timeCorrection) {
+    client.on(WsClient.TimeSynced, function (latency, timeCorrection) {
         $('.latency .value').html(client.latencies[client.latencies.length - 1]);
         // Коррекцию выбираем как среднее из последних полученных
         var currentCorrection = client.timeCorrections.reduce(function (sum, a) {

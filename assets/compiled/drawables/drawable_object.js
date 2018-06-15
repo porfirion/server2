@@ -61,10 +61,10 @@ var DrawableObject = /** @class */ (function () {
             console.warn("no layer with name " + name);
         }
     };
-    DrawableObject.prototype.draw = function (ctx, viewport, useScale) {
+    DrawableObject.prototype.draw = function (ctx, viewport, useManualScale) {
         for (var i = 0; i < this.layers.length; i++) {
             ctx.save();
-            this.layers[i].draw(ctx, viewport, useScale);
+            this.layers[i].draw(ctx, viewport, useManualScale);
             ctx.restore();
         }
     };

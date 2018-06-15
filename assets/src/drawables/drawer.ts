@@ -37,7 +37,6 @@ class Drawer {
     constructor(ctx: CanvasRenderingContext2D | null, width: number, height: number) {
         this.ctx = ctx;
 
-
         this.objects = [];
         this.objectsById = new Map<number, DrawableObject>();
         this.nextObjectId = 1;

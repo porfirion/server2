@@ -10,41 +10,35 @@ import (
 )
 
 var (
-	ControlChannel chan int = make(chan int, 10)
+	ControlChannel = make(chan int, 10)
 	logic          *Logic
 )
-
-const format = "%T(%v)\n"
 
 func main() {
 	// log.SetFlags(log.Ltime | log.Lshortfile) - may be very useful to know where print was called
 	log.SetFlags(log.Lmicroseconds)
 
-	var incomingConnections network.ConnectionsChannel = make(network.ConnectionsChannel)
-
-	var incomingMessages network.UserMessagesChannel = make(network.UserMessagesChannel, 10)
-	var outgoingMessages network.ServerMessagesChannel = make(network.ServerMessagesChannel, 10)
-
 	// стартуем логику. она готова, чтобы принимать и обрабатывать соощения
-	logic = &Logic{}
-	logic.SetParams(LogicParams{
-		SimulateByStep:           true,                  // если выставить этот флаг, то симуляция запускается не по таймеру, а по приходу события Simulate
-		SimulationStepTime:       500 * time.Millisecond, // сколько виртуального времени проходит за один шаг симуляции
-		SimulationStepRealTime:   500 * time.Millisecond, // сколько реального времени проходит за один шаг симуляции
-		SendObjectsTimeout:       time.Millisecond * 500,
-		MaxSimulationStepsAtOnce: 10,
-	})
-	logic.SetIncomingMessagesChannel(incomingMessages)
-	logic.SetOutgoingMessagesChannel(outgoingMessages)
+	logic = &Logic{
+		IncomingMessages: make(network.UserMessagesChannel, 10),
+		OutgoingMessages: make(network.ServerMessagesChannel, 10),
+		Params: LogicParams{
+			SimulateByStep:           true,                  // если выставить этот флаг, то симуляция запускается не по таймеру, а по приходу события Simulate
+			SimulationStepTime:       500 * time.Millisecond, // сколько виртуального времени проходит за один шаг симуляции
+			SimulationStepRealTime:   500 * time.Millisecond, // сколько реального времени проходит за один шаг симуляции
+			SendObjectsTimeout:       time.Millisecond * 500,
+			MaxSimulationStepsAtOnce: 10,
+		},
+	}
 	go logic.Start()
 
-	pool := &network.ConnectionsPool{Logic: logic, IncomingConnections: incomingConnections}
+	pool := &network.ConnectionsPool{Logic: logic, IncomingConnections: make(network.ConnectionsChannel)}
 	go pool.Start()
 
-	wsGate := &ws.WebSocketGate{Addr: &net.TCPAddr{IP: net.IPv4(0, 0, 0, 0), Port: 8080}, IncomingConnections: incomingConnections}
+	wsGate := &ws.WebSocketGate{Addr: &net.TCPAddr{IP: net.IPv4(0, 0, 0, 0), Port: 8080}, Pool: pool}
 	go wsGate.Start()
 
-	tcpGate := &tcp.TcpGate{Addr: &net.TCPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 25001}, IncomingConnections: incomingConnections}
+	tcpGate := &tcp.TcpGate{Addr: &net.TCPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 25001}, Pool: pool}
 	go tcpGate.Start()
 
 	log.Println("Running")

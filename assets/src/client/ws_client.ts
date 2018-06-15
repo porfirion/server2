@@ -1,19 +1,11 @@
 "use strict";
 
-type EventCallback = (eventType: string, data?: any) => void;
-
-interface EventEmitter<T> {
-    on(eventType: T, handler: EventCallback): void
-    off(eventType: T, handler: EventCallback): void
-}
-
 /**
  * Client for connecting to server
  * Auto correcting latency.
  */
-class WsClient implements EventEmitter<WsClientEvent> {
+class WsClient implements EventEmitter<ClientEvent> {
     private addr: string;
-    private name: string;
 
     private reconnectTimer: number = 0;
     private reconnectTimeout: number = 1000;
@@ -21,15 +13,10 @@ class WsClient implements EventEmitter<WsClientEvent> {
     private websocket: WebSocket | null = null;
     private handlers: Map<String, EventCallback[]> = new Map<String, EventCallback[]>();
 
-    private lastSyncTimeRequest: number = 0;
 
-    private latencies: number[] = [];
-    private timeCorrections: number[] = [];
-    private requestTimeTimer: number = 0;
 
-    constructor(wsAddr: string, name: string) {
+    constructor(wsAddr: string) {
         this.addr = wsAddr;
-        this.name = name;
     }
 
     connect(): void {
@@ -49,7 +36,7 @@ class WsClient implements EventEmitter<WsClientEvent> {
         }
     }
 
-    sendMessage(type: number, data?: object): void {
+    sendMessage(type: number, data?: any): void {
         if (this.websocket == null) {
             console.error('no websocket connection');
             return;
@@ -108,39 +95,25 @@ class WsClient implements EventEmitter<WsClientEvent> {
     }
 
     onopenHandler(): void {
-        console.log('on open');
-        this.sendMessage(MessageType.AUTH, {name: name});
+        console.info('on open');
 
-        this.requestTime();
-        this.requestTimeTimer = setInterval(this.requestTime.bind(this), 10000);
-
-        this.trigger(WsClientEvent.NotificationOpen);
+        this.trigger(ClientEvent.Open);
     }
 
     oncloseHandler(ev: CloseEvent): void {
-        console.log('on close');
+        console.info('on close');
         this.websocket = null;
-        this.id = null;
-        if (this.requestTimeTimer !== 0) {
-            clearInterval(this.requestTimeTimer);
-            this.requestTimeTimer = 0;
-        }
         if (this.reconnectTimer === 0) {
             this.reconnectTimer = setTimeout(this.connect.bind(this), this.reconnectTimeout);
         }
-        this.trigger(WsClientEvent.NotificationClose);
+        this.trigger(ClientEvent.Close);
     }
 
     onerrorHandler() {
-        console.log('WebSocket error:', arguments);
+        console.error('WebSocket error:', arguments);
         this.websocket = null;
-        this.id = null;
-        if (this.requestTimeTimer !== 0) {
-            clearInterval(this.requestTimeTimer);
-            this.requestTimeTimer = 0;
-        }
 
-        this.trigger(WsClientEvent.NotificationError);
+        this.trigger(ClientEvent.Error);
         if (this.reconnectTimer === 0) {
             this.reconnectTimer = setTimeout(this.connect.bind(this), this.reconnectTimeout);
         }
@@ -152,91 +125,12 @@ class WsClient implements EventEmitter<WsClientEvent> {
             let wrapper = JSON.parse(event.data);
             let data = JSON.parse(wrapper.data);
 
-
-            if (wrapper.type === MessageType.WELCOME) {
-                this.id = data.id;
-            }
-            if (wrapper.type === MessageType.SYNC_TIME) {
-                this.syncTime(data);
-                return;
-            }
-
             console.log('%c%d (%s): %o', 'color: green; font-weight: bold;', wrapper.type, MessageType[wrapper.type], data);
 
-            this.trigger(WsClientEvent.NotificationMessage, {type: wrapper.type, data:data});
+            this.trigger(ClientEvent.Message, {type: wrapper.type, data: data});
             // onmessage.call(this, wrapper.MessageType, data);
         } catch (err) {
             console.error(err);
         }
     }
-
-    requestTime(): void {
-        this.sendMessage(MessageType.SYNC_TIME, {});
-        this.lastSyncTimeRequest = Date.now();
-    }
-
-    syncTime(data: any): void {
-        let now = Date.now();
-
-        // время туда-обратно
-        let latency = now - this.lastSyncTimeRequest;
-
-        // предполагаемое текущее серверное время
-        // делим на 3, потому что пакет должен был 1) дойти 2) обработаться 3) вернуться
-        let assumingServerTime = (data.time + latency / 3);
-
-        // задержка между временем на клиенте и временем на сервере
-        let correction = Math.round(assumingServerTime - now);
-
-        // console.log('sync time!\n sent        : %d\n received    : %d\n latency     : %d\n server time : %d\n correction  : %d\n assuming server time: %f',
-        // 	this.lastSyncTimeRequest,
-        // 	now,
-        // 	latency,
-        // 	data.time,
-        // 	correction,
-        // 	assumingServerTime
-        // );
-        // console.log('time correction : ' + correction);
-
-        this.latencies.push(latency);
-        if (this.latencies.length > 10) {
-            this.latencies.shift();
-        }
-
-        this.timeCorrections.push(correction);
-        if (this.timeCorrections.length > 10) {
-            this.timeCorrections.shift();
-        }
-
-        this.trigger(WsClientEvent.NotificationTimeSynced, {latency: latency, correction: correction});
-    }
-}
-
-const enum WsClientEvent {
-    NotificationOpen = 'open',
-    NotificationClose = 'close',
-    NotificationError = 'error',
-    NotificationMessage = 'message',
-    NotificationTimeSynced = 'timeSynced'
-}
-
-enum MessageType {
-    AUTH = 1,
-    WELCOME = 2,
-    LOGIN = 10,
-    LOGOUT = 11,
-    ERROR = 100,
-    DATA = 1000,
-    TEXT = 1001,
-    USER_LIST = 10000,
-    USER_LOGGEDIN = 10001,
-    USER_LOGGEDOUT = 10002,
-    SYNC_OBJECTS_POSITIONS = 10003,
-    SYNC_TIME = 10004,
-    SERVER_STATE = 10005,
-
-    // special messages
-    ACTION_MESSAGE = 1000000,
-    SIMULATE_MESSAGE = 1000001,
-    CHANGE_SIMULATION_MODE = 1000002
 }

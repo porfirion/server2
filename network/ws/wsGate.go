@@ -12,8 +12,8 @@ import (
 )
 
 type WebSocketGate struct {
-	Addr                *net.TCPAddr
-	IncomingConnections network.ConnectionsChannel
+	Addr *net.TCPAddr
+	Pool *network.ConnectionsPool
 }
 
 var upgrader = websocket.Upgrader{
@@ -56,10 +56,16 @@ func (gate *WebSocketGate) wsHandler(rw http.ResponseWriter, request *http.Reque
 		return
 	}
 
-	conn := NewWebsocketConnection(webSocket)
+	conn := NewWebsocketConnection(
+		<-gate.Pool.ConnectionsEnumerator,
+		webSocket,
+		gate.Pool.Logic.GetIncomingMessagesChannel(),
+		gate.Pool.ClosingChannel,
+	)
 	log.Println("WSGate: new websocket connection", conn)
 
-	gate.IncomingConnections <- conn
+	// отправляем соединение в пул, пусть дальше он разбирается
+	gate.Pool.IncomingConnections <- conn
 }
 
 /**

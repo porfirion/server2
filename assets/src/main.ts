@@ -15,6 +15,7 @@ class Application {
     private drawer: Drawer | null = null;
     private simulationMode: SimulationMode = SimulationMode.Continuous;
     private input: CanvasInputController;
+    private protocol: Protocol;
 
     constructor(canvas: HTMLCanvasElement) {
         this.gameState = new GameState();
@@ -22,15 +23,13 @@ class Application {
         this.canvas = canvas;
         this.drawer = new Drawer(canvas.getContext("2d"), 0, 0);
         this.input = new CanvasInputController(this.canvas, this.drawer, this.gameState);
-        this.client = new WsClient(SERVER_ADDR, randomName());
+        this.client = new WsClient(SERVER_ADDR);
+
+        this.protocol = new Protocol(this.client, this.gameState);
     }
 
     start() {
-        this.client.on("partial_state_sync", this.gameState.processMessage);
-        this.client.on("full_state_sync", this.gameState.processMessage);
-        this.client.on("control_message", this.processControlMessage);
         this.client.connect();
-
 
         if (this.simulationMode == SimulationMode.Continuous) {
             requestAnimationFrame(this.onAnimationFrame.bind(this));

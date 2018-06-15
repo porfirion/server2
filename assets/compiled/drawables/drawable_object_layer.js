@@ -9,10 +9,6 @@ var __extends = (this && this.__extends) || (function () {
         d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
     };
 })();
-/**
- * @constructor
- * @param {DrawableObject} obj
- */
 var DrawableObjectLayer = /** @class */ (function () {
     function DrawableObjectLayer(obj) {
         this.obj = obj;
@@ -35,10 +31,10 @@ var IdLayer = /** @class */ (function (_super) {
     function IdLayer() {
         return _super !== null && _super.apply(this, arguments) || this;
     }
-    IdLayer.prototype.draw = function (ctx, viewport, useScale) {
+    IdLayer.prototype.draw = function (ctx, viewport, useManualScale) {
         ctx.save();
         try {
-            var size = Math.round(useScale ? 12 * viewport.getScale() : 12);
+            var size = Math.round(useManualScale ? 12 * viewport.getScale() : 12);
             ctx.font = size + "px serif";
             ctx.fillStyle = "black";
             DrawableObjectLayer.drawTextCentered(ctx, this.obj.getId().toString(), 0, size / 3);
@@ -54,7 +50,7 @@ var CoordsLayer = /** @class */ (function (_super) {
     function CoordsLayer() {
         return _super !== null && _super.apply(this, arguments) || this;
     }
-    CoordsLayer.prototype.draw = function (ctx, viewport, useScale) {
+    CoordsLayer.prototype.draw = function (ctx, viewport, useManualScale) {
         DrawableObjectLayer.drawTextCentered(ctx, this.obj.getPosition().toString(), 0, 0);
     };
     return CoordsLayer;
@@ -72,10 +68,10 @@ var CircleLayer = /** @class */ (function (_super) {
         }
         return _this;
     }
-    CircleLayer.prototype.draw = function (ctx, viewport, useScale) {
+    CircleLayer.prototype.draw = function (ctx, viewport, useManualScale) {
         ctx.lineWidth = 1;
         ctx.beginPath();
-        var radius = useScale ? this.obj.getBoundingCircle() * viewport.getScale() : this.obj.getBoundingCircle();
+        var radius = useManualScale ? this.obj.getBoundingCircle() * viewport.getScale() : this.obj.getBoundingCircle();
         ctx.arc(0, 0, radius, 0, Math.PI * 2);
         ctx.closePath();
         if (this.fillColor != null) {
@@ -101,9 +97,9 @@ var RectLayer = /** @class */ (function (_super) {
         }
         return _this;
     }
-    RectLayer.prototype.draw = function (ctx, viewport, useScale) {
+    RectLayer.prototype.draw = function (ctx, viewport, useManualScale) {
         var size = this.obj.getBoundingCircle();
-        if (useScale) {
+        if (useManualScale) {
             size *= viewport.getScale();
         }
         if (this.fillColor != null) {
@@ -124,13 +120,13 @@ var ImageLayer = /** @class */ (function (_super) {
         _this.image = image;
         return _this;
     }
-    ImageLayer.prototype.draw = function (ctx, viewport, useScale) {
+    ImageLayer.prototype.draw = function (ctx, viewport, useManualScale) {
         if (this.image.data != null) {
             var width = this.image.data.width;
             var height = this.image.data.height;
             var max = Math.max(width, height);
             var coeff = this.obj.getBoundingCircle() * 2 / max;
-            if (useScale) {
+            if (useManualScale) {
                 coeff *= viewport.getScale();
             }
             width *= coeff;

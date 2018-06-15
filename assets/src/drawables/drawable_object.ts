@@ -76,10 +76,10 @@ class DrawableObject implements Drawable {
         }
     }
 
-    draw(ctx: CanvasRenderingContext2D, viewport: Viewport, useScale: boolean) {
+    draw(ctx: CanvasRenderingContext2D, viewport: Viewport, useManualScale: boolean) {
         for (let i = 0; i < this.layers.length; i++) {
             ctx.save();
-            this.layers[i].draw(ctx, viewport, useScale);
+            this.layers[i].draw(ctx, viewport, useManualScale);
             ctx.restore();
         }
     }

@@ -35,22 +35,21 @@ func (pool *ConnectionsPool) processConnection(connection Connection) {
 			 * TODO по идее нужно прибить это соединение, а то оно так и будет крутиться
 			 * Также неплохо бы отправить ответ в соединение, что не прошла авторизация по таким-то причинам
 			 */
-			connection.GetResponseChannel() <- ErrorMessage{Code: 0, Description: "Authorization failed"}
+			connection.WriteMessage(ErrorMessage{Code: 0, Description: "Authorization failed"})
 		} else {
 			//log.Println("Authorization successful: ", authMessage)
 
-			var connectionId uint64 = <-pool.ConnectionsEnumerator
-
-			connection.SetId(connectionId)
-			connection.SetClosingChannel(pool.ClosingChannel)
-
 			// извещаем клиента о том, что он подключился
-			connection.GetResponseChannel() <- WelcomeMessage{Id: connectionId}
+			connection.WriteMessage(WelcomeMessage{Id: connection.GetId()})
 
-			pool.Connections[connectionId] = connection
-			pool.Logic.GetIncomingMessagesChannel() <- UserMessage{Data: &LoginMessage{Id: connectionId, Name: authMessage.Name}, Source: connectionId}
-
-			connection.StartReading(pool.Logic.GetIncomingMessagesChannel())
+			pool.Connections[connection.GetId()] = connection
+			pool.Logic.GetIncomingMessagesChannel() <- UserMessage{
+				Data: &LoginMessage{
+					Id:   connection.GetId(),
+					Name: authMessage.Name,
+				},
+				Source: connection.GetId(),
+			}
 		}
 	}()
 }
@@ -82,13 +81,13 @@ func (pool *ConnectionsPool) DispathMessage(msg ServerMessage) {
 	if len(msg.Targets) == 0 {
 		for _, conn := range pool.Connections {
 			if exists, _ := except.indexOf(conn.GetId()); !exists {
-				conn.GetResponseChannel() <- msg.Data
+				conn.WriteMessage(msg.Data)
 			}
 		}
 	} else {
 		for _, connectionId := range msg.Targets {
 			if exists, _ := except.indexOf(connectionId); !exists {
-				pool.Connections[connectionId].GetResponseChannel() <- msg.Data
+				pool.Connections[connectionId].WriteMessage(msg.Data)
 			}
 		}
 	}

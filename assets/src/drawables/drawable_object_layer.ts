@@ -1,9 +1,5 @@
 "use strict";
 
-/**
- * @constructor
- * @param {DrawableObject} obj
- */
 abstract class DrawableObjectLayer implements Drawable {
     protected obj: DrawableObject;
 
@@ -14,7 +10,7 @@ abstract class DrawableObjectLayer implements Drawable {
         }
     }
 
-    abstract draw(ctx: CanvasRenderingContext2D, viewport: Viewport, useScale: boolean): void;
+    abstract draw(ctx: CanvasRenderingContext2D, viewport: Viewport, useManualScale: boolean): void;
 
     public setObject(obj: DrawableObject): void {
         this.obj = obj;
@@ -26,12 +22,11 @@ abstract class DrawableObjectLayer implements Drawable {
     };
 }
 
-
 class IdLayer extends DrawableObjectLayer {
-    draw(ctx: CanvasRenderingContext2D, viewport: Viewport, useScale: boolean) {
+    draw(ctx: CanvasRenderingContext2D, viewport: Viewport, useManualScale: boolean) {
         ctx.save();
         try {
-            let size = Math.round(useScale ? 12 * viewport.getScale() : 12);
+            let size = Math.round(useManualScale ? 12 * viewport.getScale() : 12);
             ctx.font = size + "px serif";
             ctx.fillStyle = "black";
             DrawableObjectLayer.drawTextCentered(ctx, this.obj.getId().toString(), 0, size / 3);
@@ -43,7 +38,7 @@ class IdLayer extends DrawableObjectLayer {
 }
 
 class CoordsLayer extends DrawableObjectLayer {
-    draw(ctx: CanvasRenderingContext2D, viewport: Viewport, useScale: boolean) {
+    draw(ctx: CanvasRenderingContext2D, viewport: Viewport, useManualScale: boolean) {
         DrawableObjectLayer.drawTextCentered(ctx, this.obj.getPosition().toString(), 0, 0);
     }
 }
@@ -60,11 +55,11 @@ class CircleLayer extends DrawableObjectLayer {
         }
     }
 
-    draw(ctx: CanvasRenderingContext2D, viewport: Viewport, useScale: boolean) {
+    draw(ctx: CanvasRenderingContext2D, viewport: Viewport, useManualScale: boolean) {
         ctx.lineWidth = 1;
 
         ctx.beginPath();
-        let radius = useScale ? this.obj.getBoundingCircle() * viewport.getScale() : this.obj.getBoundingCircle();
+        let radius = useManualScale ? this.obj.getBoundingCircle() * viewport.getScale() : this.obj.getBoundingCircle();
         ctx.arc(0, 0, radius, 0, Math.PI * 2);
         ctx.closePath();
 
@@ -93,9 +88,9 @@ class RectLayer extends DrawableObjectLayer {
         }
     }
 
-    draw(ctx: CanvasRenderingContext2D, viewport: Viewport, useScale: boolean): void {
+    draw(ctx: CanvasRenderingContext2D, viewport: Viewport, useManualScale: boolean): void {
         let size: number = this.obj.getBoundingCircle();
-        if (useScale) {
+        if (useManualScale) {
             size *= viewport.getScale();
         }
 
@@ -119,7 +114,7 @@ class ImageLayer extends DrawableObjectLayer {
         this.image = image;
     }
 
-    draw(ctx: CanvasRenderingContext2D, viewport: Viewport, useScale: boolean): void {
+    draw(ctx: CanvasRenderingContext2D, viewport: Viewport, useManualScale: boolean): void {
 
         if (this.image.data != null) {
             let width = this.image.data.width;
@@ -129,7 +124,7 @@ class ImageLayer extends DrawableObjectLayer {
 
             let coeff = this.obj.getBoundingCircle() * 2 / max;
 
-            if (useScale) {
+            if (useManualScale) {
                 coeff *= viewport.getScale();
             }
 

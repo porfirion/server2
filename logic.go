@@ -24,7 +24,7 @@ type LogicParams struct {
 }
 
 type Logic struct {
-	params           LogicParams
+	Params           LogicParams
 	IncomingMessages network.UserMessagesChannel
 	OutgoingMessages network.ServerMessagesChannel
 	Users            map[uint64]*network.User
@@ -40,21 +40,12 @@ type Logic struct {
 	PrevStepTime time.Time // время, в которое произошёл предыдущий шаг симуляции
 }
 
-func (logic *Logic) SetParams(params LogicParams) {
-	logic.params = params
-}
-
 func (logic Logic) GetIncomingMessagesChannel() network.UserMessagesChannel {
 	return logic.IncomingMessages
 }
-func (logic *Logic) SetIncomingMessagesChannel(channel network.UserMessagesChannel) {
-	logic.IncomingMessages = channel
-}
+
 func (logic Logic) GetOutgoingMessagesChannel() network.ServerMessagesChannel {
 	return logic.OutgoingMessages
-}
-func (logic *Logic) SetOutgoingMessagesChannel(channel network.ServerMessagesChannel) {
-	logic.OutgoingMessages = channel
 }
 
 func (logic *Logic) GetUserList(exceptId uint64) []network.User {
@@ -189,7 +180,7 @@ func (logic *Logic) ProcessMessage(message network.UserMessage) (needSync bool) 
 	case *network.ActionMessage:
 		needSync = logic.ProcessActionMessage(message.Source, msg)
 	case *network.SimulateMessage:
-		if logic.params.SimulateByStep {
+		if logic.Params.SimulateByStep {
 			select {
 			case logic.forceSimulationChannel <- msg.Steps:
 			default:
@@ -200,7 +191,7 @@ func (logic *Logic) ProcessMessage(message network.UserMessage) (needSync bool) 
 		}
 	case *network.ChangeSimulationMode:
 		newValue := msg.StepByStep
-		if logic.params.SimulateByStep != newValue {
+		if logic.Params.SimulateByStep != newValue {
 			select {
 			case logic.changeSimulationModeChannel <- newValue:
 			default:
@@ -218,18 +209,18 @@ func (logic *Logic) ProcessMessage(message network.UserMessage) (needSync bool) 
 
 func (logic *Logic) getServerStateMessage() network.ServerStateMessage {
 	return network.ServerStateMessage{
-		SimulationByStep:       logic.params.SimulateByStep,
-		SimulationStepTime:     (uint64)(logic.params.SimulationStepTime / time.Millisecond),
-		SimulationStepRealTime: (uint64)(logic.params.SimulationStepRealTime / time.Millisecond),
+		SimulationByStep:       logic.Params.SimulateByStep,
+		SimulationStepTime:     (uint64)(logic.Params.SimulationStepTime / time.Millisecond),
+		SimulationStepRealTime: (uint64)(logic.Params.SimulationStepRealTime / time.Millisecond),
 		ServerTime:             (uint64)(time.Now().UnixNano() / int64(time.Millisecond)),
 		SimulationTime:         logic.mWorldMap.GetCurrentTimeMillis(),
 	}
 }
 
 func (logic *Logic) executeSimulation(dt time.Duration) (changed bool) {
-	changed = logic.mWorldMap.ProcessSimulationStep(logic.params.SimulationStepTime)
+	changed = logic.mWorldMap.ProcessSimulationStep(logic.Params.SimulationStepTime)
 	logic.PrevStepTime = time.Now()
-	logic.NextStepTime = logic.NextStepTime.Add(logic.params.SimulationStepRealTime)
+	logic.NextStepTime = logic.NextStepTime.Add(logic.Params.SimulationStepRealTime)
 	return
 }
 
@@ -247,7 +238,7 @@ func (logic *Logic) Start() {
 	// таймер, который инициализирует симуляцию
 	var simulationTimer = time.NewTimer(0)
 
-	if logic.params.SimulateByStep {
+	if logic.Params.SimulateByStep {
 		if !simulationTimer.Stop() {
 			<-simulationTimer.C
 		}
@@ -271,10 +262,10 @@ func (logic *Logic) Start() {
 		select {
 		case mode := <-logic.changeSimulationModeChannel:
 			// обработка смены режима симуляции
-			if logic.params.SimulateByStep != mode {
-				logic.params.SimulateByStep = mode
+			if logic.Params.SimulateByStep != mode {
+				logic.Params.SimulateByStep = mode
 
-				if logic.params.SimulateByStep {
+				if logic.Params.SimulateByStep {
 					log.Println("Simulation mode changed to STEP_BY_STEP")
 					// симуляция по шагам
 					if !simulationTimer.Stop() {
@@ -326,9 +317,9 @@ func (logic *Logic) Start() {
 			startTime := time.Now()
 
 			// если уже пора симулировать, то симулируем, н оне больше 10 шагов
-			for (logic.NextStepTime.Equal(time.Now()) || logic.NextStepTime.Before(time.Now())) && stepsCount < logic.params.MaxSimulationStepsAtOnce {
+			for (logic.NextStepTime.Equal(time.Now()) || logic.NextStepTime.Before(time.Now())) && stepsCount < logic.Params.MaxSimulationStepsAtOnce {
 				// если что-то изменилось - нужно разослать всем уведомления
-				changed := logic.executeSimulation(logic.params.SimulationStepTime)
+				changed := logic.executeSimulation(logic.Params.SimulationStepTime)
 				globallyChanged = globallyChanged || changed
 				stepsCount++
 
@@ -349,10 +340,10 @@ func (logic *Logic) Start() {
 			simulationTimer.Reset(timeToNextStep)
 		case _ = <-logic.forceSimulationChannel:
 			// нас попросили выполнить очередной шаг симуляции
-			if logic.params.SimulateByStep {
+			if logic.Params.SimulateByStep {
 				log.Println("Simulating!")
 				startTime := time.Now()
-				logic.executeSimulation(logic.params.SimulationStepTime)
+				logic.executeSimulation(logic.Params.SimulationStepTime)
 				passedTime := time.Now().Sub(startTime)
 				log.Printf("Simulated 1 step (%d mcs): world time %d ms", passedTime/time.Microsecond, logic.mWorldMap.GetCurrentTimeMillis())
 				logic.sendSyncPositionMessage()

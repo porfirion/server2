@@ -41,6 +41,10 @@ func (connection *TcpConnection) StartWriting() {
 	log.Println("Not implemented")
 }
 
+func (connection *TcpConnection) Write(msg interface{}) {
+	log.Println("Not implemented")
+}
+
 func (connection *TcpConnection) Close(code int, message string) {
 	connection.socket.Close()
 }
@@ -58,7 +62,7 @@ func NewTcpConnection(socket net.Conn) network.Connection {
 
 type TcpGate struct {
 	Addr                *net.TCPAddr
-	IncomingConnections network.ConnectionsChannel
+	Pool                *network.ConnectionsPool
 }
 
 func (gate *TcpGate) Start() error {
@@ -85,7 +89,7 @@ func (gate *TcpGate) Start() error {
 
 		log.Println("Connected tcp from ", socket.RemoteAddr())
 
-		gate.IncomingConnections <- connection
+		gate.Pool.IncomingConnections <- connection
 	}
 	log.Println("finished")
 
