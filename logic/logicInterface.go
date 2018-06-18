@@ -1,4 +1,4 @@
-package network
+package logic
 
 type LogicInterface interface {
 	GetIncomingMessagesChannel() UserMessagesChannel

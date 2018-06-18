@@ -1,4 +1,4 @@
-package main
+package logic
 
 import (
 	"github.com/porfirion/server2/network"
@@ -24,9 +24,10 @@ type LogicParams struct {
 }
 
 type Logic struct {
+	BasicService
 	Params           LogicParams
-	IncomingMessages network.UserMessagesChannel
-	OutgoingMessages network.ServerMessagesChannel
+	IncomingMessages UserMessagesChannel
+	OutgoingMessages ServerMessagesChannel
 	Users            map[uint64]*network.User
 
 	mWorldMap *world.WorldMap
@@ -40,11 +41,11 @@ type Logic struct {
 	PrevStepTime time.Time // время, в которое произошёл предыдущий шаг симуляции
 }
 
-func (logic Logic) GetIncomingMessagesChannel() network.UserMessagesChannel {
+func (logic Logic) GetIncomingMessagesChannel() UserMessagesChannel {
 	return logic.IncomingMessages
 }
 
-func (logic Logic) GetOutgoingMessagesChannel() network.ServerMessagesChannel {
+func (logic Logic) GetOutgoingMessagesChannel() ServerMessagesChannel {
 	return logic.OutgoingMessages
 }
 
@@ -59,40 +60,6 @@ func (logic *Logic) GetUserList(exceptId uint64) []network.User {
 	log.Printf("Userlist: %#v\n", userlist)
 
 	return userlist
-}
-
-/**
- * отправляет сообщение. Первый массив обозначает список целей кому передавать. Второй массив обозначает кому не передавать.
- * @param  {[type]} logic *Logic) SendMessage(msg Message, targets ...[]int [description]
- * @return {[type]} [description]
- */
-func (logic *Logic) SendMessage(msg interface{}, targets ...network.UsersList) {
-	serverMessage := network.ServerMessage{Data: msg}
-
-	// real targets
-	if len(targets) > 0 {
-		serverMessage.Targets = targets[0]
-	}
-
-	// except this users
-	if len(targets) > 1 {
-		serverMessage.Except = targets[1]
-	}
-
-	select {
-	case logic.OutgoingMessages <- serverMessage:
-	default:
-		log.Println("busy outgoing messages chan")
-	}
-
-}
-
-func (logic *Logic) SendTextMessage(text string, sender uint64) {
-	logic.SendMessage(network.TextMessage{Text: text, Sender: sender})
-}
-
-func (logic *Logic) SendTextMessageToUser(text string, sender uint64, userId uint64) {
-	logic.SendMessage(network.TextMessage{Text: text, Sender: sender}, network.UsersList{userId})
 }
 
 func (logic *Logic) AddUser(id uint64, name string) *network.User {
@@ -112,7 +79,7 @@ func (logic *Logic) RemoveUser(id uint64) {
 
 func (logic *Logic) sendSyncPositionMessage() {
 	logic.SendMessage(
-		network.SyncPositionsMessage{
+		SyncPositionsMessage{
 			logic.mWorldMap.GetObjectsPositions(),
 			logic.mWorldMap.GetCurrentTimeMillis(),
 		},
@@ -158,8 +125,6 @@ func (logic *Logic) ProcessMessage(message network.UserMessage) (needSync bool) 
 	needSync = false
 
 	switch msg := message.Data.(type) {
-	case *network.DataMessage:
-		log.Println("Logic: Data message received: ", message)
 	case *network.TextMessage:
 		// log.Println("Text message received: ", message)
 		logic.SendTextMessage(msg.Text, logic.Users[message.Source].Id)

@@ -47,21 +47,24 @@ func (gate *WebSocketGate) Start() error {
 func (gate *WebSocketGate) wsHandler(rw http.ResponseWriter, request *http.Request) {
 	webSocket, err := upgrader.Upgrade(rw, request, nil)
 
-	if _, ok := err.(websocket.HandshakeError); ok {
-		log.Println("WSGate: Not a websocket handshake")
-		http.Error(rw, "Not a websocket handshake", 400)
-		return
-	} else if err != nil {
-		log.Println("WSGate: Unknown error", err)
-		return
+	if err != nil {
+		if _, ok := err.(websocket.HandshakeError); ok {
+			log.Println("WSGate: Not a websocket handshake")
+			http.Error(rw, "Not a websocket handshake", 400)
+			return
+		} else {
+			log.Println("WSGate: Unknown error", err)
+			return
+		}
 	}
 
 	conn := NewWebsocketConnection(
 		<-gate.Pool.ConnectionsEnumerator,
-		webSocket,
-		gate.Pool.Logic.GetIncomingMessagesChannel(),
+		gate.Pool.IncomingMessages,
 		gate.Pool.ClosingChannel,
+		webSocket,
 	)
+
 	log.Println("WSGate: new websocket connection", conn)
 
 	// отправляем соединение в пул, пусть дальше он разбирается
@@ -78,17 +81,16 @@ func (gate *WebSocketGate) indexHandler(rw http.ResponseWriter, request *http.Re
 	if request.RequestURI == "/" {
 		path = "templates/index.html"
 	} else {
-		path = "templates/" + strings.Replace(request.RequestURI[1:], "..", "", -1);
+		path = "templates/" + strings.Replace(request.RequestURI[1:], "..", "", -1)
 	}
 	if _, err := os.Stat(path); err == nil {
 		indexTempl := template.Must(template.ParseFiles(path))
 		data := struct{}{}
 		indexTempl.Execute(rw, data)
 	} else {
-
-		rw.WriteHeader(404);
-		rw.Write([]byte(path));
-		rw.Write(([]byte)("404 Not Found"));
+		rw.WriteHeader(404)
+		rw.Write([]byte(path))
+		rw.Write([]byte("404 Not Found"))
 	}
 }
 

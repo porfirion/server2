@@ -70,12 +70,14 @@ func (world *WorldMap) AddObject(obj *MapObject) {
 	sort.Sort(ByLeft(world.Objects))
 }
 
-func (world *WorldMap) AddUser(userId uint64, pos Point2D) {
+func (world *WorldMap) AddUser(userId uint64, pos Point2D) *MapObject {
 	obj := world.NewObject(pos, MapObjectTypeUser)
 	world.AddObject(obj)
 	obj.UserId = userId
 
 	world.UsersObjects[userId] = obj
+
+	return obj
 }
 
 func (world *WorldMap) RemoveObject(obj *MapObject) {

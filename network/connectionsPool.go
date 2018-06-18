@@ -4,90 +4,57 @@ import (
 	"log"
 )
 
-type SearchableArray []uint64
+type MessageFromClient struct {
+	ClientId    uint64
+	MessageType uint64
+	Data        []byte
+}
 
-func (arr SearchableArray) indexOf(value uint64) (bool, int) {
-	if len(arr) == 0 {
-		return false, -1
-	}
-	for ind, val := range arr {
-		if val == value {
-			return true, ind
-		}
-	}
-	return false, -1
+type MessageForClient struct {
+	MessageType uint64
+	Data        []byte
+}
+
+type MessageForClientWrapper struct {
+	Targets []uint64 // send only to
+	Except  []uint64 // do not send to
+	Data    MessageForClient
 }
 
 type ConnectionsPool struct {
-	Logic                 LogicInterface
-	IncomingConnections   ConnectionsChannel // входящие соединения
+	IncomingConnections   chan Connection // входящие соединения
 	ConnectionsEnumerator chan uint64
 	Connections           map[uint64]Connection
-	ClosingChannel        chan uint64
+	ClosingChannel        chan uint64                  // в этот канал приходят id соединений, которые закрываются
+	IncomingMessages      chan MessageFromClient       // сюда приходят сообщения от клиентов
+	OutgoingMessages      chan MessageForClientWrapper // канал сообщений для клиентов
 }
 
 func (pool *ConnectionsPool) processConnection(connection Connection) {
 	go func() {
-		authMessage, err := connection.GetAuth()
-		if err != nil {
-			log.Println("Error authorization", err)
-			/**
-			 * TODO по идее нужно прибить это соединение, а то оно так и будет крутиться
-			 * Также неплохо бы отправить ответ в соединение, что не прошла авторизация по таким-то причинам
-			 */
-			connection.WriteMessage(ErrorMessage{Code: 0, Description: "Authorization failed"})
-		} else {
-			//log.Println("Authorization successful: ", authMessage)
-
-			// извещаем клиента о том, что он подключился
-			connection.WriteMessage(WelcomeMessage{Id: connection.GetId()})
-
-			pool.Connections[connection.GetId()] = connection
-			pool.Logic.GetIncomingMessagesChannel() <- UserMessage{
-				Data: &LoginMessage{
-					Id:   connection.GetId(),
-					Name: authMessage.Name,
-				},
-				Source: connection.GetId(),
-			}
-		}
-	}()
-}
-
-func (pool *ConnectionsPool) InitEnumerator() {
-	pool.ConnectionsEnumerator = make(chan uint64, 1)
-
-	go func() {
-		var connectionId uint64 = 1
-		for {
-			pool.ConnectionsEnumerator <- connectionId
-			connectionId++
-		}
+		pool.Connections[connection.GetId()] = connection
 	}()
 }
 
 func (pool *ConnectionsPool) RemoveConnection(connectionId uint64) {
 	log.Println("CPool: Removing connection", connectionId)
-
+	conn := pool.Connections[connectionId]
+	conn.Close("close reason not implemented")
 	delete(pool.Connections, connectionId)
-
-	log.Println("CPool: sending message to logic")
-	pool.Logic.GetIncomingMessagesChannel() <- UserMessage{Data: &LogoutMessage{connectionId}, Source: connectionId}
-	log.Println("CPool: message in sent to logic")
 }
 
-func (pool *ConnectionsPool) DispathMessage(msg ServerMessage) {
+func (pool *ConnectionsPool) DispatchMessage(msg MessageForClientWrapper) {
 	except := SearchableArray(msg.Except)
 	if len(msg.Targets) == 0 {
 		for _, conn := range pool.Connections {
 			if exists, _ := except.indexOf(conn.GetId()); !exists {
-				conn.WriteMessage(msg.Data)
+				conn.WriteMessage(msg.Data.MessageType, msg.Data.Data)
 			}
 		}
 	} else {
 		for _, connectionId := range msg.Targets {
 			if exists, _ := except.indexOf(connectionId); !exists {
-				pool.Connections[connectionId].WriteMessage(msg.Data)
+				pool.Connections[connectionId].WriteMessage(msg.Data.MessageType, msg.Data.Data)
 			}
 		}
 	}
@@ -96,20 +63,15 @@ func (pool *ConnectionsPool) DispathMessage(msg ServerMessage) {
 func (pool *ConnectionsPool) Start() {
 	log.Println("Connections pool started")
 
-	pool.InitEnumerator()
-
-	pool.Connections = make(map[uint64]Connection)
-	pool.ClosingChannel = make(chan uint64)
-
 	for {
 		select {
 		case connection := <-pool.IncomingConnections:
 			log.Println("CPool: connection received", connection)
 			pool.processConnection(connection)
 			log.Println("CPool connection processed")
-		case message := <-pool.Logic.GetOutgoingMessagesChannel():
+		case message := <-pool.OutgoingMessages:
 			//log.Printf("CPool: Outgoing message %T\n", message)
-			pool.DispathMessage(message)
+			pool.DispatchMessage(message)
 			//log.Println("CPool: Message is sent")
 		case connectionId := <-pool.ClosingChannel:
 			log.Println("CPool: Closing connection", connectionId)
@@ -119,4 +81,25 @@ func (pool *ConnectionsPool) Start() {
 	}
 
 	log.Println("Connections pool finished")
+}
+
+func NewConnectionsPool() *ConnectionsPool {
+	pool := &ConnectionsPool{
+		IncomingConnections:   make(chan Connection),
+		ConnectionsEnumerator: make(chan uint64),
+		Connections:           make(map[uint64]Connection),
+		ClosingChannel:        make(chan uint64),
+		IncomingMessages:      make(chan MessageFromClient),
+		OutgoingMessages:      make(chan MessageForClientWrapper),
+	}
+
+	go func() {
+		var connectionId uint64 = 1
+		for {
+			pool.ConnectionsEnumerator <- connectionId
+			connectionId++
+		}
+	}()
+
+	return pool
 }

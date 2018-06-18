@@ -7,6 +7,7 @@ import (
 	"log"
 	"net"
 	"github.com/porfirion/server2/network"
+	"encoding/binary"
 )
 
 type TcpConnection struct {
@@ -14,10 +15,20 @@ type TcpConnection struct {
 	socket net.Conn
 }
 
-func (connection *TcpConnection) StartReading(ch network.UserMessagesChannel) {
+func (connection *TcpConnection) Close(message string) {
+	panic("implement me")
+}
+
+func (connection *TcpConnection) WriteMessage(msg interface{}) {
+	panic("implement me")
+}
+
+func (connection *TcpConnection) StartReading(ch chan network.MessageFromClient) {
 	go func() {
 		log.Println("starting reading")
-		defer connection.Close(0, "Unimplemented")
+		defer func() {
+			connection.NotifyPoolWeAreClosing()
+		}()
 
 		var buffer []byte
 
@@ -29,9 +40,12 @@ func (connection *TcpConnection) StartReading(ch network.UserMessagesChannel) {
 				break
 			} else {
 				log.Println("read bytes: ", n)
+				ch <- network.MessageFromClient{
+					connection.Id,
+					binary.BigEndian.Uint64(buffer[:8]),
+					buffer[8:n],
+				}
 			}
-
-			ch <- network.UserMessage{connection.Id, network.DataMessage{buffer}}
 		}
 
 		log.Println("Reading finished")
@@ -49,20 +63,18 @@ func (connection *TcpConnection) Close(code int, message string) {
 	connection.socket.Close()
 }
 
-func (connection *TcpConnection) GetAuth() (*network.AuthMessage, error) {
-	log.Println("TcpConnection.GetAuth is not implemented")
-	return nil, errors.New("Not implemented")
-}
-
-func NewTcpConnection(socket net.Conn) network.Connection {
-	connection := &TcpConnection{socket: socket}
+func NewTcpConnection(id uint64, incoming chan network.MessageFromClient, closing chan uint64, socket net.Conn) network.Connection {
+	connection := &TcpConnection{
+		BasicConnection: network.NewBasicConnection(id, incoming, closing),
+		socket:          socket,
+	}
 	connection.StartWriting()
 	return connection
 }
 
 type TcpGate struct {
-	Addr                *net.TCPAddr
-	Pool                *network.ConnectionsPool
+	Addr *net.TCPAddr
+	Pool *network.ConnectionsPool
 }
 
 func (gate *TcpGate) Start() error {

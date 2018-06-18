@@ -5,29 +5,15 @@ import (
 	"errors"
 	"fmt"
 	"github.com/gorilla/websocket"
-	"io"
 	"log"
-	// "reflect"
-	"time"
+
 	"github.com/porfirion/server2/network"
+	"time"
 )
 
 type WebsocketMessageWrapper struct {
-	MessageType int    `json:"type"`
-	Data        string `json:"data"`
-}
-
-func (wrapper *WebsocketMessageWrapper) GetMessage() (msg interface{}, err error) {
-	res := network.GetValueByTypeId(wrapper.MessageType)
-
-	// fmt.Printf("Unmarshalling into %#v, (type %v)\n", res, reflect.TypeOf(res))
-	// fmt.Printf("Message body: %#v\n", wrapper.Data)
-
-	err = json.Unmarshal([]byte(wrapper.Data), res)
-
-	//fmt.Printf("unmarshalled: %#v error: %#v\n", res, err)
-
-	return res, err
+	MessageType uint64 `json:"type"`
+	Data        []byte `json:"data"`
 }
 
 type WebsocketConnection struct {
@@ -49,18 +35,11 @@ func (connection *WebsocketConnection) ParseWrapper(data []byte) (*WebsocketMess
 }
 
 /*WARNING! это можно вызывать только из того треда, который отправляет собщения в канал*/
-func (connection *WebsocketConnection) Close(code int, message string) {
+func (connection *WebsocketConnection) Close(message string) {
 	log.Println("WSCon: Closing websocket connection")
-	//	if (len(message) > 0) {
-	//		connection.responseChannel <-
-	//	}
-
 	close(connection.OutgoingChannel)
+	connection.ws.WriteControl(websocket.CloseMessage, []byte(message), time.Time{})
 	connection.ws.Close()
-}
-
-func (connection *WebsocketConnection) Write(msg interface{}) {
-	connection.OutgoingChannel <- msg
 }
 
 func (connection *WebsocketConnection) StartReading() {
@@ -70,7 +49,7 @@ func (connection *WebsocketConnection) StartReading() {
 			//connection.Close(0, "unimplemented")
 
 			connection.ws.Close()
-			connection.ClosingChannel <- connection.Id
+			connection.NotifyPoolWeAreClosing()
 		}()
 
 		for {
@@ -84,11 +63,7 @@ func (connection *WebsocketConnection) StartReading() {
 					if wrapper, err := connection.ParseWrapper(buffer); err != nil {
 						log.Println("Error parsing wrapper", err)
 					} else {
-						if msg, err := wrapper.GetMessage(); err == nil {
-							connection.IncomingChannel <- network.UserMessage{connection.Id, msg}
-						} else {
-							log.Println(err)
-						}
+						connection.Notify(wrapper.MessageType, wrapper.Data)
 
 						/*
 						case *network.SyncTimeMessage:
@@ -119,42 +94,26 @@ func (connection *WebsocketConnection) StartWriting() {
 
 		for message := range connection.OutgoingChannel {
 			//log.Println(fmt.Sprintf("WsCon. Sending message %T for %d", message, connection.id))
-			bytes, err := json.Marshal(message)
-			if err == nil {
-				connection.ws.WriteJSON(WebsocketMessageWrapper{network.GetMessageTypeId(message), string(bytes)})
-			} else {
-				log.Println("Error serializing message", message, err)
-			}
-
+			connection.ws.WriteJSON(WebsocketMessageWrapper{MessageType: message.MessageType, Data: message.Data})
 		}
 
 		log.Println("Writing finished for", connection.Id)
 	}()
 }
 
-func (connection *WebsocketConnection) GetAuth() (*network.AuthMessage, error) {
-	msg, err := connection.ReadMessage()
-	if err == nil {
-		if auth, ok := msg.(*network.AuthMessage); ok {
-			return auth, nil
-		} else {
-			fmt.Printf("Converted message %#v\n", msg)
-			return nil, errors.New("Wrong message type")
-		}
-	} else {
-		return nil, err
-	}
-}
-
-func NewWebsocketConnection(id uint64, ws *websocket.Conn, ch network.UserMessagesChannel, closingChannel chan uint64) network.Connection {
+func NewWebsocketConnection(
+	id uint64,
+	incoming chan network.MessageFromClient,
+	closingChannel chan uint64,
+	ws *websocket.Conn,
+) network.Connection {
 	connection := &WebsocketConnection{
 		ws: ws,
-		BasicConnection: &network.BasicConnection{
-			Id: id,
-			OutgoingChannel: make (chan interface{}),
-			IncomingChannel: make (chan interface{}),
-			ClosingChannel: closingChannel,
-		},
+		BasicConnection: NewBasicConnection(
+			id,
+			incoming,
+			closingChannel,
+		),
 	}
 
 	go connection.StartReading()
