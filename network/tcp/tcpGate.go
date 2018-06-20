@@ -1,7 +1,6 @@
 package tcp
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -15,11 +14,7 @@ type TcpConnection struct {
 	socket net.Conn
 }
 
-func (connection *TcpConnection) Close(message string) {
-	panic("implement me")
-}
-
-func (connection *TcpConnection) WriteMessage(msg interface{}) {
+func (connection *TcpConnection) WriteMessage(messageType uint64, messageData []byte) {
 	panic("implement me")
 }
 
@@ -59,11 +54,15 @@ func (connection *TcpConnection) Write(msg interface{}) {
 	log.Println("Not implemented")
 }
 
-func (connection *TcpConnection) Close(code int, message string) {
+func (connection *TcpConnection) Close(message string) {
 	connection.socket.Close()
 }
 
-func NewTcpConnection(id uint64, incoming chan network.MessageFromClient, closing chan uint64, socket net.Conn) network.Connection {
+func NewTcpConnection(
+	id uint64,
+	incoming chan network.MessageFromClient,
+	closing chan uint64,
+	socket net.Conn) network.Connection {
 	connection := &TcpConnection{
 		BasicConnection: network.NewBasicConnection(id, incoming, closing),
 		socket:          socket,
@@ -97,7 +96,12 @@ func (gate *TcpGate) Start() error {
 			log.Println("Error: ", err)
 		}
 
-		connection := NewTcpConnection(socket)
+		connection := NewTcpConnection(
+			<-gate.Pool.ConnectionsEnumerator,
+			gate.Pool.IncomingMessages,
+			gate.Pool.ClosingChannel,
+			socket,
+		)
 
 		log.Println("Connected tcp from ", socket.RemoteAddr())
 

@@ -1,7 +1,6 @@
 package logic
 
 import (
-	"github.com/porfirion/server2/network"
 	"github.com/porfirion/server2/world"
 	"log"
 	"math/rand"
@@ -23,12 +22,20 @@ type LogicParams struct {
 	MaxSimulationStepsAtOnce int           // максимальнео количество симуляций подряд.
 }
 
-type Logic struct {
-	BasicService
+type SendStub struct {
+}
+
+func (st *SendStub) SendMessage(args ...interface{})           {}
+func (st *SendStub) SendTextMessage(args ...interface{})       {}
+func (st *SendStub) SendTextMessageToUser(args ...interface{}) {}
+
+type GameLogic struct {
+	*BasicService
+	*SendStub
 	Params           LogicParams
 	IncomingMessages UserMessagesChannel
 	OutgoingMessages ServerMessagesChannel
-	Users            map[uint64]*network.User
+	Users            map[uint64]*User
 
 	mWorldMap *world.WorldMap
 
@@ -41,19 +48,19 @@ type Logic struct {
 	PrevStepTime time.Time // время, в которое произошёл предыдущий шаг симуляции
 }
 
-func (logic Logic) GetIncomingMessagesChannel() UserMessagesChannel {
+func (logic GameLogic) GetIncomingMessagesChannel() UserMessagesChannel {
 	return logic.IncomingMessages
 }
 
-func (logic Logic) GetOutgoingMessagesChannel() ServerMessagesChannel {
+func (logic GameLogic) GetOutgoingMessagesChannel() ServerMessagesChannel {
 	return logic.OutgoingMessages
 }
 
-func (logic *Logic) GetUserList(exceptId uint64) []network.User {
-	var userlist []network.User
+func (logic *GameLogic) GetUserList(exceptId uint64) []User {
+	var userlist []User
 	for userId, user := range logic.Users {
 		if userId != exceptId {
-			userlist = append(userlist, network.User{Id: user.Id, Name: user.Name})
+			userlist = append(userlist, User{Id: user.Id, Name: user.Name})
 		}
 	}
 
@@ -62,8 +69,8 @@ func (logic *Logic) GetUserList(exceptId uint64) []network.User {
 	return userlist
 }
 
-func (logic *Logic) AddUser(id uint64, name string) *network.User {
-	user := &network.User{Id: id, Name: name}
+func (logic *GameLogic) AddUser(id uint64, name string) *User {
+	user := &User{Id: id, Name: name}
 	logic.Users[id] = user
 
 	pos := world.Point2D{X: rand.Float64()*600 - 300, Y: rand.Float64()*600 - 300}
@@ -72,13 +79,13 @@ func (logic *Logic) AddUser(id uint64, name string) *network.User {
 	return user
 }
 
-func (logic *Logic) RemoveUser(id uint64) {
+func (logic *GameLogic) RemoveUser(id uint64) {
 	delete(logic.Users, id)
 	logic.mWorldMap.RemoveUser(id)
 }
 
-func (logic *Logic) sendSyncPositionMessage() {
-	logic.SendMessage(
+func (logic *GameLogic) sendSyncPositionMessage() {
+	logic.SendStub.SendMessage(
 		SyncPositionsMessage{
 			logic.mWorldMap.GetObjectsPositions(),
 			logic.mWorldMap.GetCurrentTimeMillis(),
@@ -88,7 +95,7 @@ func (logic *Logic) sendSyncPositionMessage() {
 }
 
 // Возвращает true, если нужно синхронизировать положение объектов заново
-func (logic *Logic) ProcessActionMessage(userId uint64, msg *network.ActionMessage) (needSync bool) {
+func (logic *GameLogic) ProcessActionMessage(userId uint64, msg *ActionMessage) (needSync bool) {
 	log.Println("UNIMPLEMENTED action message processing")
 	needSync = false
 	switch msg.ActionType {
@@ -115,7 +122,7 @@ func (logic *Logic) ProcessActionMessage(userId uint64, msg *network.ActionMessa
 	return
 }
 
-func (logic *Logic) ProcessMessage(message network.UserMessage) (needSync bool) {
+func (logic *GameLogic) ProcessMessage(message UserMessage) (needSync bool) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Printf("Recovered in %#v\n", r)
@@ -125,26 +132,26 @@ func (logic *Logic) ProcessMessage(message network.UserMessage) (needSync bool) 
 	needSync = false
 
 	switch msg := message.Data.(type) {
-	case *network.TextMessage:
+	case *TextMessage:
 		// log.Println("Text message received: ", message)
 		logic.SendTextMessage(msg.Text, logic.Users[message.Source].Id)
-	case *network.LoginMessage:
-		log.Println("Logic: Login message received")
+	case *LoginMessage:
+		log.Println("GameLogic: Login message received")
 
 		user := logic.AddUser(msg.Id, msg.Name)
-		logic.SendTextMessageToUser("Logic: Welcome, "+user.Name, 0, user.Id)
-		logic.SendMessage(logic.getServerStateMessage(), network.UsersList{user.Id})
-		logic.SendMessage(network.UserLoggedinMessage{Id: user.Id, Name: user.Name}, network.UsersList{}, network.UsersList{user.Id})
-		logic.SendMessage(network.UserListMessage{logic.GetUserList(user.Id)}, network.UsersList{user.Id})
+		logic.SendStub.SendTextMessageToUser("GameLogic: Welcome, "+user.Name, 0, user.Id)
+		logic.SendStub.SendMessage(logic.getServerStateMessage(), UsersList{user.Id})
+		logic.SendStub.SendMessage(UserLoggedinMessage{Id: user.Id, Name: user.Name}, UsersList{}, UsersList{user.Id})
+		logic.SendStub.SendMessage(UserListMessage{logic.GetUserList(user.Id)}, UsersList{user.Id})
 		log.Println("sent. sync next")
-		logic.SendMessage(network.SyncPositionsMessage{logic.mWorldMap.GetObjectsPositions(), logic.mWorldMap.GetCurrentTimeMillis()})
-	case *network.LogoutMessage:
-		log.Println("Logic: Logout message", msg.Id)
+		logic.SendStub.SendMessage(SyncPositionsMessage{logic.mWorldMap.GetObjectsPositions(), logic.mWorldMap.GetCurrentTimeMillis()})
+	case *LogoutMessage:
+		log.Println("GameLogic: Logout message", msg.Id)
 		logic.RemoveUser(msg.Id)
-		logic.SendMessage(network.UserLoggedoutMessage{Id: msg.Id})
-	case *network.ActionMessage:
+		logic.SendStub.SendMessage(UserLoggedoutMessage{Id: msg.Id})
+	case *ActionMessage:
 		needSync = logic.ProcessActionMessage(message.Source, msg)
-	case *network.SimulateMessage:
+	case *SimulateMessage:
 		if logic.Params.SimulateByStep {
 			select {
 			case logic.forceSimulationChannel <- msg.Steps:
@@ -154,7 +161,7 @@ func (logic *Logic) ProcessMessage(message network.UserMessage) (needSync bool) 
 		} else {
 			log.Println("We are not in step by step mode")
 		}
-	case *network.ChangeSimulationMode:
+	case *ChangeSimulationMode:
 		newValue := msg.StepByStep
 		if logic.Params.SimulateByStep != newValue {
 			select {
@@ -166,14 +173,14 @@ func (logic *Logic) ProcessMessage(message network.UserMessage) (needSync bool) 
 			log.Printf("Simulation already in mode %v\n", newValue)
 		}
 	default:
-		log.Printf("Logic: Unknown message type %#v from %d\n", message.Data, message.Source)
+		log.Printf("GameLogic: Unknown message type %#v from %d\n", message.Data, message.Source)
 	}
 
 	return
 }
 
-func (logic *Logic) getServerStateMessage() network.ServerStateMessage {
-	return network.ServerStateMessage{
+func (logic *GameLogic) getServerStateMessage() ServerStateMessage {
+	return ServerStateMessage{
 		SimulationByStep:       logic.Params.SimulateByStep,
 		SimulationStepTime:     (uint64)(logic.Params.SimulationStepTime / time.Millisecond),
 		SimulationStepRealTime: (uint64)(logic.Params.SimulationStepRealTime / time.Millisecond),
@@ -182,17 +189,17 @@ func (logic *Logic) getServerStateMessage() network.ServerStateMessage {
 	}
 }
 
-func (logic *Logic) executeSimulation(dt time.Duration) (changed bool) {
+func (logic *GameLogic) executeSimulation(dt time.Duration) (changed bool) {
 	changed = logic.mWorldMap.ProcessSimulationStep(logic.Params.SimulationStepTime)
 	logic.PrevStepTime = time.Now()
 	logic.NextStepTime = logic.NextStepTime.Add(logic.Params.SimulationStepRealTime)
 	return
 }
 
-func (logic *Logic) Start() {
+func (logic *GameLogic) Start() {
 	rand.Seed(int64(time.Now().Nanosecond()))
 
-	logic.Users = make(map[uint64]*network.User)
+	logic.Users = make(map[uint64]*User)
 	logic.changeSimulationModeChannel = make(chan bool, 2)
 	logic.forceSimulationChannel = make(chan int, 1)
 
@@ -209,19 +216,19 @@ func (logic *Logic) Start() {
 		}
 	}
 
-	log.Println("Logic: started")
+	log.Println("GameLogic: started")
 	for {
 		// сначала пытаемся вычитаь все входящие соединения.
 		// потом надо будет учесть вариант, что нас могут заспамить и симуляция вообще не произойдёт.
 		select {
-			case msg := <-logic.IncomingMessages:
-				//log.Println("Logic: message received")
-				if needSync := logic.ProcessMessage(msg); needSync {
-					logic.sendSyncPositionMessage()
-				}
-				//log.Println("Logic: message processed")
-				continue
-			default:
+		case msg := <-logic.IncomingMessages:
+			//log.Println("GameLogic: message received")
+			if needSync := logic.ProcessMessage(msg); needSync {
+				logic.sendSyncPositionMessage()
+			}
+			//log.Println("GameLogic: message processed")
+			continue
+		default:
 		}
 
 		select {
@@ -261,7 +268,7 @@ func (logic *Logic) Start() {
 
 				log.Println("sending server state message")
 				// а теперь уведомляем всех об изменившемся режиме
-				logic.SendMessage(logic.getServerStateMessage())
+				logic.SendStub.SendMessage(logic.getServerStateMessage())
 				logic.sendSyncPositionMessage()
 				log.Println("server state message sent")
 			} else {
@@ -316,13 +323,13 @@ func (logic *Logic) Start() {
 				log.Println("Not in step by step mode")
 			}
 		case msg := <-logic.IncomingMessages:
-			//log.Println("Logic: message received")
+			//log.Println("GameLogic: message received")
 			if needSync := logic.ProcessMessage(msg); needSync {
 				logic.sendSyncPositionMessage()
 			}
-			//log.Println("Logic: message processed")
+			//log.Println("GameLogic: message processed")
 		}
 	}
 
-	log.Println("Logic: finished")
+	log.Println("GameLogic: finished")
 }

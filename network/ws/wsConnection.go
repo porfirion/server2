@@ -109,7 +109,7 @@ func NewWebsocketConnection(
 ) network.Connection {
 	connection := &WebsocketConnection{
 		ws: ws,
-		BasicConnection: NewBasicConnection(
+		BasicConnection: network.NewBasicConnection(
 			id,
 			incoming,
 			closingChannel,

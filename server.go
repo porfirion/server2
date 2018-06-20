@@ -6,30 +6,48 @@ import (
 	"github.com/porfirion/server2/network"
 	"github.com/porfirion/server2/network/ws"
 	"github.com/porfirion/server2/network/tcp"
+	"github.com/porfirion/server2/logic"
+	"time"
 )
 
 var (
 	ControlChannel = make(chan int, 10)
-	//logic          *Logic
+	lg          *logic.GameLogic
 )
 
 func main() {
 	// log.SetFlags(log.Ltime | log.Lshortfile) - may be very useful to know where print was called
 	log.SetFlags(log.Lmicroseconds)
 
+	broker := logic.NewBroker()
+	broker.Start()
+
+	chat := logic.NewChat(logic.NewBasicService(1))
+	chat.Start()
+	broker.RegisterService(chat)
+
+	logicMessages := make(logic.ServerMessagesChannel, 10)
+
 	// стартуем логику. она готова, чтобы принимать и обрабатывать соощения
-	//logic = &Logic{
-	//	IncomingMessages: make(network.UserMessagesChannel, 10),
-	//	OutgoingMessages: make(network.ServerMessagesChannel, 10),
-	//	Params: LogicParams{
-	//		SimulateByStep:           true,                  // если выставить этот флаг, то симуляция запускается не по таймеру, а по приходу события Simulate
-	//		SimulationStepTime:       500 * time.Millisecond, // сколько виртуального времени проходит за один шаг симуляции
-	//		SimulationStepRealTime:   500 * time.Millisecond, // сколько реального времени проходит за один шаг симуляции
-	//		SendObjectsTimeout:       time.Millisecond * 500,
-	//		MaxSimulationStepsAtOnce: 10,
-	//	},
-	//}
-	//go logic.Start()
+	lg := &logic.GameLogic{
+		IncomingMessages: make(logic.UserMessagesChannel, 10),
+		OutgoingMessages: logicMessages,
+		Params: logic.LogicParams{
+			SimulateByStep:           true,                  // если выставить этот флаг, то симуляция запускается не по таймеру, а по приходу события Simulate
+			SimulationStepTime:       500 * time.Millisecond, // сколько виртуального времени проходит за один шаг симуляции
+			SimulationStepRealTime:   500 * time.Millisecond, // сколько реального времени проходит за один шаг симуляции
+			SendObjectsTimeout:       time.Millisecond * 500,
+			MaxSimulationStepsAtOnce: 10,
+		},
+	}
+	go lg.Start()
+
+	logicSvc := &logic.GameLogicService{
+		BasicService:          logic.NewBasicService(1),
+		Logic:                 lg,
+		LogicOutgoingMessages: logicMessages,
+	}
+	logicSvc.Start()
 
 	pool := network.NewConnectionsPool()
 	go pool.Start()
@@ -45,6 +63,7 @@ func main() {
 		Pool: pool,
 	}
 	go tcpGate.Start()
+
 
 	log.Println("Running")
 
