@@ -14,10 +14,7 @@ func (s *GameLogicService) Start() {
 
 func (s *GameLogicService) startReading() {
 	regMsg := <-s.IncomingMessages
-	dt := regMsg.MessageData.(struct {
-		Id uint64
-		Ch chan interface{}
-	})
+	dt := regMsg.MessageData.(BrokerRegisterServiceResponse)
 	s.Id = dt.Id
 	s.OutgoingMessages = dt.Ch
 
@@ -37,8 +34,10 @@ func (s *GameLogicService) startReading() {
 
 func (s *GameLogicService) startWriting() {
 	for msg := range s.LogicOutgoingMessages {
+		fmt.Println("Message from logic to pass to broker", msg)
 		// TODO переделать!
 		// пока тупо прокидываем сообщения из логики в брокер (но он их не поймёт)
-		s.OutgoingMessages <- msg
+		// TODO FORTEST ONLY
+		//s.OutgoingMessages <- msg
 	}
 }

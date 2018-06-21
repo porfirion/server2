@@ -12,7 +12,7 @@ import (
 
 var (
 	ControlChannel = make(chan int, 10)
-	lg          *logic.GameLogic
+	lg             *logic.GameLogic
 )
 
 func main() {
@@ -33,7 +33,7 @@ func main() {
 		IncomingMessages: make(logic.UserMessagesChannel, 10),
 		OutgoingMessages: logicMessages,
 		Params: logic.LogicParams{
-			SimulateByStep:           true,                  // если выставить этот флаг, то симуляция запускается не по таймеру, а по приходу события Simulate
+			SimulateByStep:           true,                   // если выставить этот флаг, то симуляция запускается не по таймеру, а по приходу события Simulate
 			SimulationStepTime:       500 * time.Millisecond, // сколько виртуального времени проходит за один шаг симуляции
 			SimulationStepRealTime:   500 * time.Millisecond, // сколько реального времени проходит за один шаг симуляции
 			SendObjectsTimeout:       time.Millisecond * 500,
@@ -43,14 +43,21 @@ func main() {
 	go lg.Start()
 
 	logicSvc := &logic.GameLogicService{
-		BasicService:          logic.NewBasicService(1),
+		BasicService:          logic.NewBasicService(logic.SERVICE_TYPE_LOGIC),
 		Logic:                 lg,
 		LogicOutgoingMessages: logicMessages,
 	}
 	logicSvc.Start()
 
-	pool := network.NewConnectionsPool()
+	networkSvc := &logic.NetworkService{
+		BasicService: logic.NewBasicService(logic.SERVICE_TYPE_NETWORK),
+	}
+	networkSvc.Start()
+	broker.RegisterService(networkSvc)
+
+	pool := network.NewConnectionsPool(make(chan network.MessageFromClient))
 	go pool.Start()
+	networkSvc.SetPool(pool)
 
 	wsGate := &ws.WebSocketGate{
 		Addr: &net.TCPAddr{IP: net.IPv4(0, 0, 0, 0), Port: 8080},
@@ -63,7 +70,6 @@ func main() {
 		Pool: pool,
 	}
 	go tcpGate.Start()
-
 
 	log.Println("Running")
 

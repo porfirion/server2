@@ -14,21 +14,18 @@ type MessageBroker interface {
 
 // IMPLEMENTATION
 
-type BrokerBroadcastMessage struct {
-	Data ServiceMessage
-}
-
-type BrokerTargetMessage struct {
-	Data ServiceMessage
-}
-
 type BrokerRegisterServiceMessage struct {
 	Service Service
 }
 
+type BrokerRegisterServiceResponse struct {
+	Id uint64
+	Ch chan ServiceMessage
+}
+
 type BrokerImplementation struct {
 	utils.IdGenerator
-	mainChan chan interface{}
+	mainChan chan ServiceMessage
 	services map[uint64]Service
 }
 
@@ -39,10 +36,7 @@ func (broker *BrokerImplementation) Start() {
 
 func (broker *BrokerImplementation) StartReading() {
 	for untypedMessage := range broker.mainChan {
-		switch msg := untypedMessage.(type) {
-		case BrokerTargetMessage:
-
-		case BrokerBroadcastMessage:
+		switch msg := untypedMessage.MessageData.(type) {
 
 		case BrokerRegisterServiceMessage:
 			nextId := broker.NextId()
@@ -69,7 +63,7 @@ func (broker *BrokerImplementation) RegisterService(svc Service) {
 func NewBroker() MessageBroker {
 	return &BrokerImplementation{
 		utils.NewIdGenerator(1),
-		make(chan interface{}),
+		make(chan ServiceMessage),
 		make(map[uint64]Service),
 	}
 }

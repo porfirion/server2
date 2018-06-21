@@ -2,22 +2,19 @@ package logic
 
 import "fmt"
 
-type Chat struct {
+type ChatService struct {
 	*BasicService
 }
 
 // async start method
-func (s *Chat) Start() {
+func (s *ChatService) Start() {
 	go s.StartReading()
 }
 
-func (s *Chat) StartReading() {
+func (s *ChatService) StartReading() {
 	// первое сообщение, которое должно придти в канал - это сообщение от брокера о регистрации сервиса
 	regMsg := <-s.IncomingMessages
-	dt := regMsg.MessageData.(struct {
-		Id uint64
-		Ch chan interface{}
-	})
+	dt := regMsg.MessageData.(BrokerRegisterServiceResponse)
 	s.Id = dt.Id
 	s.OutgoingMessages = dt.Ch
 
@@ -26,8 +23,8 @@ func (s *Chat) StartReading() {
 	}
 }
 
-func NewChat(bs *BasicService) *Chat {
-	return &Chat{
+func NewChat(bs *BasicService) *ChatService {
+	return &ChatService{
 		bs,
 	}
 }

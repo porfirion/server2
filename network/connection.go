@@ -1,5 +1,10 @@
 package network
 
+import (
+	"time"
+	"errors"
+)
+
 type Connection interface {
 	Close(message string)
 	WriteMessage(msgType uint64, data []byte)
@@ -21,11 +26,19 @@ func (connection *BasicConnection) WriteMessage(msgType uint64, data []byte) {
 	connection.OutgoingChannel <- MessageForClient{MessageType: msgType, Data: data}
 }
 
-func (connection *BasicConnection) Notify(msgType uint64, data []byte) {
-	connection.IncomingChannel <- MessageFromClient{
-		ClientId: connection.Id,
+// Отправляет сообщение "наверх" (в пул / сервис / брокер)
+func (connection *BasicConnection) Notify(msgType uint64, data []byte) error {
+	t := time.NewTimer(time.Millisecond * 100)
+	select {
+	case connection.IncomingChannel <- MessageFromClient{
+		ClientId:    connection.Id,
 		MessageType: msgType,
-		Data: data,
+		Data:        data,
+	}:
+		t.Stop()
+		return nil
+	case <-t.C:
+		return errors.New("notify message timeout exceeded")
 	}
 }
 
