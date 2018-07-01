@@ -17,7 +17,7 @@ func (s *NetworkService) Start() {
 
 func (s *NetworkService) SetPool(p *network.ConnectionsPool) {
 	s.pool = p
-	s.startReadingFromClients()
+	go s.startReadingFromClients()
 }
 
 func (s *NetworkService) startReceivingFromBroker() {

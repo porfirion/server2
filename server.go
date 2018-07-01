@@ -12,7 +12,6 @@ import (
 
 var (
 	ControlChannel = make(chan int, 10)
-	lg             *logic.GameLogic
 )
 
 func main() {
@@ -20,10 +19,10 @@ func main() {
 	log.SetFlags(log.Lmicroseconds)
 
 	broker := logic.NewBroker()
-	broker.Start()
+	go broker.Start()
 
 	chat := logic.NewChat(logic.NewBasicService(1))
-	chat.Start()
+	go chat.Start()
 	broker.RegisterService(chat)
 
 	logicMessages := make(logic.ServerMessagesChannel, 10)
@@ -41,22 +40,26 @@ func main() {
 		},
 	}
 	go lg.Start()
+	log.Println("GameLogic started")
 
 	logicSvc := &logic.GameLogicService{
 		BasicService:          logic.NewBasicService(logic.SERVICE_TYPE_LOGIC),
 		Logic:                 lg,
 		LogicOutgoingMessages: logicMessages,
 	}
-	logicSvc.Start()
+	go logicSvc.Start()
+	log.Println("LogicService started")
 
 	networkSvc := &logic.NetworkService{
 		BasicService: logic.NewBasicService(logic.SERVICE_TYPE_NETWORK),
 	}
-	networkSvc.Start()
+	go networkSvc.Start()
+	log.Println("Network started")
 	broker.RegisterService(networkSvc)
 
 	pool := network.NewConnectionsPool(make(chan network.MessageFromClient))
 	go pool.Start()
+	log.Println("Pool started")
 	networkSvc.SetPool(pool)
 
 	wsGate := &ws.WebSocketGate{
@@ -64,12 +67,15 @@ func main() {
 		Pool: pool,
 	}
 	go wsGate.Start()
+	log.Println("WsGate started")
 
 	tcpGate := &tcp.TcpGate{
 		Addr: &net.TCPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 25001},
 		Pool: pool,
 	}
 	go tcpGate.Start()
+	log.Println("TcpGate started")
+
 
 	log.Println("Running")
 
