@@ -1,6 +1,8 @@
-package logic
+package service
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type ChatService struct {
 	*BasicService
@@ -13,14 +15,15 @@ func (s *ChatService) Start() {
 
 func (s *ChatService) StartReading() {
 	// первое сообщение, которое должно придти в канал - это сообщение от брокера о регистрации сервиса
-	regMsg := <-s.IncomingMessages
-	dt := regMsg.MessageData.(BrokerRegisterServiceResponse)
-	s.Id = dt.Id
-	s.OutgoingMessages = dt.Ch
+	s.WaitForRegistration()
 
 	for msg := range s.IncomingMessages {
 		fmt.Println(msg)
 	}
+}
+
+func (s *ChatService) GetRequiredMessageTypes() []uint {
+	return []uint{}
 }
 
 func NewChat(bs *BasicService) *ChatService {

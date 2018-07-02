@@ -1,4 +1,4 @@
-package logic
+package service
 
 import (
 	"github.com/porfirion/server2/world"
@@ -277,7 +277,7 @@ func (logic *GameLogic) Start() {
 		case _ = <-simulationTimer.C:
 			// по идее уже пора выполнять очередной шаг симуляции
 			//log.Println("Timer fired!")
-			//log.Printf("Now %v next %v\n", time.Now(), logic.NextStepTime)
+			//log.Printf("Now %v next %v\n", time.Now(), service.NextStepTime)
 
 			stepsCount := 0
 			globallyChanged := false

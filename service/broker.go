@@ -1,6 +1,9 @@
-package logic
+package service
 
-import "github.com/porfirion/server2/utils"
+import (
+	"github.com/porfirion/server2/utils"
+	"log"
+)
 
 /**
  * Брокер, который разруливает в какой сервис отправлять сообщение
@@ -42,6 +45,10 @@ func (broker *BrokerImplementation) StartReading() {
 			nextId := broker.NextId()
 			broker.services[nextId] = msg.Service
 			msg.Service.Register(nextId, broker.mainChan)
+		case []byte:
+			log.Println("Broker: bytes received", string(msg))
+		default:
+			log.Printf("Broker: Unexpected message type %#v", msg)
 		}
 	}
 }

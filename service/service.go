@@ -1,19 +1,19 @@
-package logic
+package service
 
 import (
 	"errors"
 	"time"
 )
 
-/**
- * Начитавшись хабра (https://habrahabr.ru/company/mailru/blog/220359/)
- * пришёл к выводу, что чат с игровой механикой не стоит держать в одном месте
- * Более того - это скорее даже мешает - всё валится в одну кучу.
- * Также авторизация остаётся незакрытым вопросом. Пожалуй стоит оформить каждый из этих фрагментов как отдельный сервис.
- */
+
+// Начитавшись хабра (https://habrahabr.ru/company/mailru/blog/220359/)
+// пришёл к выводу, что чат с игровой механикой не стоит держать в одном месте
+// Более того - это скорее даже мешает - всё валится в одну кучу.
+// Также авторизация остаётся незакрытым вопросом.
 type Service interface {
 	Deliver(msg ServiceMessage)                 // через этот метод сообщения закидываются в сервис
 	Register(id uint64, ch chan ServiceMessage) // уведомляет сервис о том, что он был зарегистрирован
+	GetRequiredMessageTypes() []uint            // отдаёт список ожидаемых сообщений
 	Start()
 }
 
@@ -27,23 +27,26 @@ type ServiceMessage struct {
 	DestinationServiceId      uint64
 	DestinationServiceClients []uint64 // зато может быть много получателей
 
+	// ВАЖНО! это совсем не тот тип, который ходит по сети.
+	// Типы сообщений, используемые в сети, являются частью публичного API
+	// и могут вообще никак не пересекаться с внутренним обозначением типов
 	MessageType uint64
 	MessageData interface{}
 }
 
 const (
-	SERVICE_TYPE_LOGIC   uint64 = 1
-	SERVICE_TYPE_AUTH           = 2
-	SERVICE_TYPE_NETWORK        = 3
-	SERVICE_TYPE_CHAT           = 4
+	TypeLogic   uint64 = 1
+	TypeAuth           = 2
+	TypeNetwork        = 3
+	TypeChat           = 4
 )
 
 type BasicService struct {
 	Id   uint64
 	Type uint64
 
-	IncomingMessages chan ServiceMessage
-	OutgoingMessages chan ServiceMessage
+	IncomingMessages chan ServiceMessage // это канал для полечения сообщений от брокера
+	OutgoingMessages chan ServiceMessage // это канал для отправки и нам должен дать его сам брокер, когда зарегистрирует наш сервис
 }
 
 // Через этот метод брокер отправляет сообщения в сервис
@@ -97,12 +100,19 @@ func (service *BasicService) SendMessage(
 	}
 }
 
+// первое сообщение, которое должно придти в канал - это сообщение от брокера о регистрации сервиса
+func (service *BasicService) WaitForRegistration() {
+	dt := (<-service.IncomingMessages).MessageData.(BrokerRegisterServiceResponse)
+	service.Id = dt.Id
+	service.OutgoingMessages = dt.Ch
+}
+
 func NewBasicService(serviceType uint64) *BasicService {
 	return &BasicService{
 		Id:               0,
 		Type:             serviceType,
 		IncomingMessages: make(chan ServiceMessage),
-		OutgoingMessages: nil, // это канал для отправки и нам должен дать его сам брокер, когда зарегистрирует наш сервис
+		OutgoingMessages: nil,
 	}
 }
 

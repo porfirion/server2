@@ -13,7 +13,7 @@ import (
 
 type WebsocketMessageWrapper struct {
 	MessageType uint64 `json:"type"`
-	Data        []byte `json:"data"`
+	Data        json.RawMessage `json:"data"`
 }
 
 type WebsocketConnection struct {
@@ -27,7 +27,7 @@ func (connection *WebsocketConnection) ParseWrapper(data []byte) (*WebsocketMess
 	err := json.Unmarshal(data, wrapper)
 
 	if err != nil {
-		log.Println("error: ", err)
+		log.Println("error: ", err, string(data))
 		return nil, errors.New("Can't parse message")
 	}
 

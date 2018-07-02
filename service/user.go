@@ -1,4 +1,4 @@
-package logic
+package service
 
 type User struct {
 	Id   uint64 `json:"id"`

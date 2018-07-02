@@ -47,7 +47,7 @@ class WsClient implements EventEmitter<ClientEvent> {
         if (typeof data !== 'undefined' && data != null) {
             msg = {
                 type: type,
-                data: JSON.stringify(data)
+                data: data
             };
         } else {
             msg = {

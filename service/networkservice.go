@@ -1,9 +1,10 @@
-package logic
+package service
 
 import (
 	"github.com/porfirion/server2/network"
 	"fmt"
 	"encoding/json"
+	"context"
 )
 
 type NetworkService struct {
@@ -11,21 +12,21 @@ type NetworkService struct {
 	pool *network.ConnectionsPool
 }
 
+func (s *NetworkService) GetRequiredMessageTypes() []uint {
+	return []uint{}
+}
+
 func (s *NetworkService) Start() {
 	s.startReceivingFromBroker()
 }
 
-func (s *NetworkService) SetPool(p *network.ConnectionsPool) {
-	s.pool = p
+func (s *NetworkService) SetPool(pool *network.ConnectionsPool) {
+	s.pool = pool
 	go s.startReadingFromClients()
 }
 
 func (s *NetworkService) startReceivingFromBroker() {
-	// первое сообщение, которое должно придти в канал - это сообщение от брокера о регистрации сервиса
-	regMsg := <-s.IncomingMessages
-	dt := regMsg.MessageData.(BrokerRegisterServiceResponse)
-	s.Id = dt.Id
-	s.OutgoingMessages = dt.Ch
+	s.WaitForRegistration()
 
 	for msg := range s.IncomingMessages {
 		fmt.Println(msg)
@@ -44,7 +45,8 @@ func (s *NetworkService) startReceivingFromBroker() {
 func (s *NetworkService) startReadingFromClients() {
 	// TODO здесь ещё нужна проверка на то, зарегистрировали ли нас и есть ли нам куда писать
 	for msg := range s.pool.IncomingMessages {
-		fmt.Printf("Incoming message from pool %v\n", msg)
+		// TODO сейчас в пробкер отправляются сырые байты и никакого парсинга не происходит
+		// также не указывается целевой сервис, в который мы отправляем эти данные
 		s.SendMessage(msg.MessageType, msg.Data, msg.ClientId, 0, 0, nil)
 	}
 }

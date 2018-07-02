@@ -1,4 +1,4 @@
-package logic
+package service
 
 import "fmt"
 
@@ -8,15 +8,16 @@ type GameLogicService struct {
 	LogicOutgoingMessages ServerMessagesChannel
 }
 
+func (s *GameLogicService) GetRequiredMessageTypes() []uint {
+	return []uint{}
+}
+
 func (s *GameLogicService) Start() {
 	go s.startReading()
 }
 
 func (s *GameLogicService) startReading() {
-	regMsg := <-s.IncomingMessages
-	dt := regMsg.MessageData.(BrokerRegisterServiceResponse)
-	s.Id = dt.Id
-	s.OutgoingMessages = dt.Ch
+	s.WaitForRegistration()
 
 	// ура! теперь нам есть куда писать!!!
 	go s.startWriting()
@@ -34,7 +35,7 @@ func (s *GameLogicService) startReading() {
 
 func (s *GameLogicService) startWriting() {
 	for msg := range s.LogicOutgoingMessages {
-		fmt.Println("Message from logic to pass to broker", msg)
+		fmt.Println("Message from service to pass to broker", msg)
 		// TODO переделать!
 		// пока тупо прокидываем сообщения из логики в брокер (но он их не поймёт)
 		// TODO FORTEST ONLY
