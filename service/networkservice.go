@@ -4,7 +4,6 @@ import (
 	"github.com/porfirion/server2/network"
 	"fmt"
 	"encoding/json"
-	"context"
 )
 
 type NetworkService struct {

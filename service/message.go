@@ -11,9 +11,7 @@ type ErrorMessage struct {
 	Description string `json:"description"`
 }
 
-/**
- * При получении сервером ретранслируется всем адресатам
- */
+// При получении сервером ретранслируется всем адресатам
 type TextMessage struct {
 	Sender uint64 `json:"sender"`
 	Text   string `json:"text"`
@@ -23,38 +21,28 @@ type DataMessage struct {
 	Data []byte `json:"data"`
 }
 
-/**
- * Посылается пользователм на сервер для прохождения авторизации
- */
+// Посылается пользователм на сервер для прохождения авторизации
 type AuthMessage struct {
 	Name string `json:"name"`
 }
 
-/**
- * Посылается клиенту, чтобы сообщить, что он успешно подключился и сказать ему его id
- */
+// Посылается клиенту, чтобы сообщить, что он успешно подключился и сказать ему его id
 type WelcomeMessage struct {
 	Id uint64 `json:"id"`
 }
 
-/**
- * Посылается пулом соединений для извещения о входе
- */
+// Посылается пулом соединений для извещения о входе
 type LoginMessage struct {
 	Id   uint64 `json:"id"`
 	Name string `json:"name"`
 }
 
-/**
- * Посылается пулом сообщений для извещения о выходе
- */
+// Посылается пулом сообщений для извещения о выходе
 type LogoutMessage struct {
 	Id uint64 `json:"id"`
 }
 
-/**
- * Используется для синронизации списка пользователей с клиентом
- */
+// Используется для синронизации списка пользователей с клиентом
 type UserListMessage struct {
 	Users []User `json:"users"`
 }
@@ -68,9 +56,7 @@ type UserLoggedoutMessage struct {
 	Id uint64 `json:"id"`
 }
 
-/**
- * Отправляет на клиент список объектов с координатами
- */
+// Отправляет на клиент список объектов с координатами
 type SyncPositionsMessage struct {
 	Positions map[string]world.MapObjectDescription `json:"positions"` // список объектов
 	Time      uint64                                `json:"time"`      // время по серверу
@@ -84,31 +70,23 @@ type ServerStateMessage struct {
 	ServerTime             uint64 `json:"server_time"`               // мс, текущее серверное время
 }
 
-/**
- * Служебное сообщение для ыравнивания времени на сервере и клиенте
- */
+// Служебное сообщение для ыравнивания времени на сервере и клиенте
 type SyncTimeMessage struct {
 	Time int64 `json:"time"`
 }
 
-/**
- * Действие пользователя (двигаться, остановиться, ...)
- */
+// Действие пользователя (двигаться, остановиться, ...)
 type ActionMessage struct {
 	ActionType string                 `json:"action_type"`
 	ActionData map[string]interface{} `json:"action_data"`
 }
 
-/**
- * Выполнить симуляцию определённого количества шагов (для режима отладки)
- */
+// Выполнить симуляцию определённого количества шагов (для режима отладки)
 type SimulateMessage struct {
 	Steps int `json:"steps"`
 }
 
-/**
- * Сменить режим симуляции на пощаговый или непрерывный
- */
+// Сменить режим симуляции на пощаговый или непрерывный
 type ChangeSimulationMode struct {
 	StepByStep bool `json:"step_by_step"`
 }

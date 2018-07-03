@@ -11,9 +11,8 @@ const (
 	MAX_SYNC_TIMEOUT = 100 * time.Millisecond
 )
 
-/**
- * соотношением SimulationStepTime / SimulationStepRealTime можно регулировать скорость игрового сервера
- */
+
+// соотношением SimulationStepTime / SimulationStepRealTime можно регулировать скорость игрового сервера
 type LogicParams struct {
 	SimulateByStep           bool          // если выставить этот флаг, то симуляция запускается не по таймеру, а по приходу события Simulate
 	SimulationStepTime       time.Duration // сколько виртуального времени проходит за один шаг симуляции

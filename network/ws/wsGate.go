@@ -39,11 +39,10 @@ func (gate *WebSocketGate) Start() error {
 	}
 }
 
-/**
- * Обработчик входящих подключений по websocket
- * @param  {[type]} gate *WebSocketGate) wsHandler(rw http.ResponseWriter, request *http.Request [description]
- * @return {[type]} [description]
- */
+
+// Обработчик входящих подключений по websocket
+// @param  {[type]} gate *WebSocketGate) wsHandler(rw http.ResponseWriter, request *http.Request [description]
+// @return {[type]} [description]
 func (gate *WebSocketGate) wsHandler(rw http.ResponseWriter, request *http.Request) {
 	webSocket, err := upgrader.Upgrade(rw, request, nil)
 
@@ -71,11 +70,10 @@ func (gate *WebSocketGate) wsHandler(rw http.ResponseWriter, request *http.Reque
 	gate.Pool.IncomingConnections <- conn
 }
 
-/**
- * Отдаёт главную (и единственную) страницу
- * @param  {[type]} gate *WebSocketGate) indexHandler(rw http.ResponseWriter, request *http.Request [description]
- * @return {[type]} [description]
- */
+
+// Отдаёт главную (и единственную) страницу
+// @param  {[type]} gate *WebSocketGate) indexHandler(rw http.ResponseWriter, request *http.Request [description]
+// @return {[type]} [description]
 func (gate *WebSocketGate) indexHandler(rw http.ResponseWriter, request *http.Request) {
 	var path string
 	if request.RequestURI == "/" {
@@ -94,11 +92,10 @@ func (gate *WebSocketGate) indexHandler(rw http.ResponseWriter, request *http.Re
 	}
 }
 
-/**
- * Отвечает за отдачу статики
- * @param  {[type]} gate *WebSocketGate) assetsHandler(rw http.ResponseWriter, request *http.Request [description]
- * @return {[type]} [description]
- */
+
+// Отвечает за отдачу статики
+// @param  {[type]} gate *WebSocketGate) assetsHandler(rw http.ResponseWriter, request *http.Request [description]
+// @return {[type]} [description]
 func (gate *WebSocketGate) assetsHandler(rw http.ResponseWriter, request *http.Request) {
 	http.ServeFile(rw, request, request.URL.Path[1:])
 }

@@ -156,11 +156,10 @@ func (world *WorldMap) ProcessSimulationStep(passedTimeDur time.Duration) (somet
 	return
 }
 
-/**
- * Ищет возможные коллизии.
- * TODO здесь надо бы переделать на bounding box
- * Wide phase
- */
+
+// Ищет возможные коллизии.
+// TODO здесь надо бы переделать на bounding box
+// Wide phase
 func (world *WorldMap) detectPossibleCollisions() []MapObjectCollision {
 	collisions := make([]MapObjectCollision, 0)
 	for i := 0; i < len(world.Objects); i++ {

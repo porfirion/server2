@@ -8,10 +8,9 @@ import (
 	"github.com/porfirion/server2/network/tcp"
 	"github.com/porfirion/server2/service"
 	"time"
-)
-
-var (
-	ControlChannel = make(chan int, 10)
+	"os"
+	"os/signal"
+	"fmt"
 )
 
 func main() {
@@ -79,10 +78,13 @@ func main() {
 
 	log.Println("Running")
 
-	for {
-		signal := <-ControlChannel
-		log.Println("signal received ", signal)
+	interrupt := make(chan os.Signal, 1)
+	signal.Notify(interrupt, os.Interrupt, os.Kill)
+
+	select {
+	case sig := <-interrupt:
+		fmt.Printf("Got signal \"%s\"\n", sig.String())
 	}
 
-	log.Println("exit")
+	fmt.Println("FINISH MAIN LOOP")
 }
