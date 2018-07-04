@@ -11,6 +11,9 @@ import (
 	"os"
 	"os/signal"
 	"fmt"
+	"github.com/porfirion/server2/game"
+	"github.com/porfirion/server2/chat"
+	"github.com/porfirion/server2/messages"
 )
 
 func main() {
@@ -20,17 +23,17 @@ func main() {
 	broker := service.NewBroker()
 	go broker.Start()
 
-	chat := service.NewChat(service.NewBasicService(service.TypeChat))
+	chat := chat.NewChat(service.NewBasicService(service.TypeChat))
 	go chat.Start()
 	broker.RegisterService(chat)
 
-	logicMessages := make(service.ServerMessagesChannel, 10)
+	logicMessages := make(messages.ServerMessagesChannel, 10)
 
 	// стартуем логику. она готова, чтобы принимать и обрабатывать соощения
-	lg := &service.GameLogic{
-		IncomingMessages: make(service.UserMessagesChannel, 10),
+	lg := &game.GameLogic{
+		IncomingMessages: make(messages.UserMessagesChannel, 10),
 		OutgoingMessages: logicMessages,
-		Params: service.LogicParams{
+		Params: game.LogicParams{
 			SimulateByStep:           true,                   // если выставить этот флаг, то симуляция запускается не по таймеру, а по приходу события Simulate
 			SimulationStepTime:       500 * time.Millisecond, // сколько виртуального времени проходит за один шаг симуляции
 			SimulationStepRealTime:   500 * time.Millisecond, // сколько реального времени проходит за один шаг симуляции
@@ -41,7 +44,7 @@ func main() {
 	go lg.Start()
 	log.Println("GameLogic started")
 
-	logicSvc := &service.GameLogicService{
+	logicSvc := &game.GameLogicService{
 		BasicService:          service.NewBasicService(service.TypeLogic),
 		Logic:                 lg,
 		LogicOutgoingMessages: logicMessages,

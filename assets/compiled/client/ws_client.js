@@ -77,7 +77,12 @@ var WsClient = /** @class */ (function () {
         var handlers = this.handlers.get(eventType);
         if (typeof handlers != 'undefined') {
             handlers.forEach(function (handler) {
-                handler(eventType, data);
+                if (handler != null) {
+                    handler(eventType, data);
+                }
+                else {
+                    console.warn("handler is null");
+                }
             });
         }
     };
@@ -105,7 +110,8 @@ var WsClient = /** @class */ (function () {
         // console.log('on message');
         try {
             var wrapper = JSON.parse(event.data);
-            var data = JSON.parse(wrapper.data);
+            // let data = JSON.parse(wrapper.data);
+            var data = wrapper.data;
             console.log('%c%d (%s): %o', 'color: green; font-weight: bold;', wrapper.type, MessageType[wrapper.type], data);
             this.trigger("message" /* Message */, { type: wrapper.type, data: data });
             // onmessage.call(this, wrapper.MessageType, data);

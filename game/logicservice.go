@@ -1,11 +1,15 @@
-package service
+package game
 
-import "fmt"
+import (
+	"fmt"
+	"github.com/porfirion/server2/service"
+	"github.com/porfirion/server2/messages"
+)
 
 type GameLogicService struct {
-	*BasicService
+	*service.BasicService
 	Logic                 *GameLogic
-	LogicOutgoingMessages ServerMessagesChannel
+	LogicOutgoingMessages messages.ServerMessagesChannel
 }
 
 func (s *GameLogicService) GetRequiredMessageTypes() []uint {

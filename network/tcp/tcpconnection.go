@@ -7,6 +7,7 @@ import (
 	"net"
 	"log"
 	"github.com/porfirion/server2/service"
+	"github.com/porfirion/server2/messages"
 )
 
 type TcpConnection struct {
@@ -35,9 +36,13 @@ func (connection *TcpConnection) StartReading(ch chan network.MessageFromClient)
 				break
 			} else {
 				log.Println("read bytes: ", n)
-				ch <- network.MessageFromClient{
-					connection.Id,
-					network.TypedBytesMessage(buffer),
+				if msg, err := messages.DeserializeFromBinary(buffer); err == nil {
+					ch <- network.MessageFromClient{
+						connection.Id,
+						msg,
+					}
+				} else {
+					log.Println("Error parsing binary message", err)
 				}
 			}
 		}

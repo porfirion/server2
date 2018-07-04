@@ -1,4 +1,4 @@
-package service
+package messages
 
 type User struct {
 	Id   uint64 `json:"id"`

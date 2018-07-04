@@ -1,10 +1,13 @@
-package service
+package game
 
 import (
 	"github.com/porfirion/server2/world"
 	"log"
 	"math/rand"
 	"time"
+	"github.com/porfirion/server2/service"
+	. "github.com/porfirion/server2/messages"
+	"u2g/messages"
 )
 
 const (
@@ -29,7 +32,7 @@ func (st *SendStub) SendTextMessage(args ...interface{})       {}
 func (st *SendStub) SendTextMessageToUser(args ...interface{}) {}
 
 type GameLogic struct {
-	*BasicService
+	*service.BasicService
 	*SendStub
 	Params           LogicParams
 	IncomingMessages UserMessagesChannel
@@ -131,7 +134,7 @@ func (logic *GameLogic) ProcessMessage(message UserMessage) (needSync bool) {
 	needSync = false
 
 	switch msg := message.Data.(type) {
-	case *TextMessage:
+	case *messages.TextMessage:
 		// log.Println("Text message received: ", message)
 		logic.SendTextMessage(msg.Text, logic.Users[message.Source].Id)
 	case *LoginMessage:

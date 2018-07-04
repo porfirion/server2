@@ -1,11 +1,12 @@
-package service
+package chat
 
 import (
 	"fmt"
+	"github.com/porfirion/server2/service"
 )
 
 type ChatService struct {
-	*BasicService
+	*service.BasicService
 }
 
 // async start method
@@ -18,7 +19,8 @@ func (s *ChatService) StartReading() {
 	s.WaitForRegistration()
 
 	for msg := range s.IncomingMessages {
-		fmt.Println(msg)
+		fmt.Println("CHAT: ", msg)
+		s.SendMessage(msg.MessageData, 0, service.TypeNetwork, 0, nil)
 	}
 }
 
@@ -26,7 +28,7 @@ func (s *ChatService) GetRequiredMessageTypes() []uint {
 	return []uint{}
 }
 
-func NewChat(bs *BasicService) *ChatService {
+func NewChat(bs *service.BasicService) *ChatService {
 	return &ChatService{
 		bs,
 	}

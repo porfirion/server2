@@ -1,9 +1,10 @@
-package service
+package messages
 
 import (
 	"fmt"
 	"reflect"
 	"github.com/porfirion/server2/world"
+	"github.com/porfirion/server2/service"
 )
 
 type ErrorMessage struct {
@@ -13,6 +14,7 @@ type ErrorMessage struct {
 
 // При получении сервером ретранслируется всем адресатам
 type TextMessage struct {
+	service.TypedMessageStub
 	Sender uint64 `json:"sender"`
 	Text   string `json:"text"`
 }

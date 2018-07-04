@@ -89,7 +89,11 @@ class WsClient implements EventEmitter<ClientEvent> {
         let handlers = this.handlers.get(eventType);
         if (typeof handlers != 'undefined') {
             handlers.forEach((handler) => {
-                handler(eventType, data);
+                if (handler != null) {
+                    handler(eventType, data);
+                } else {
+                    console.warn("handler is null");
+                }
             });
         }
     }
@@ -123,7 +127,8 @@ class WsClient implements EventEmitter<ClientEvent> {
         // console.log('on message');
         try {
             let wrapper = JSON.parse(event.data);
-            let data = JSON.parse(wrapper.data);
+            // let data = JSON.parse(wrapper.data);
+            let data = wrapper.data;
 
             console.log('%c%d (%s): %o', 'color: green; font-weight: bold;', wrapper.type, MessageType[wrapper.type], data);
 

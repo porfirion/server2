@@ -1,41 +1,18 @@
 package ws
 
 import (
-	"encoding/json"
-	"errors"
 	"fmt"
-	"github.com/gorilla/websocket"
 	"log"
-
-	"github.com/porfirion/server2/network"
 	"time"
-	"github.com/porfirion/server2/service"
-)
 
-type WebsocketMessageWrapper struct {
-	MessageType uint64 `json:"type"`
-	Data        json.RawMessage `json:"data"`
-}
-func (w *WebsocketMessageWrapper) GetType() uint64 {
-	return w.MessageType
-}
+	"github.com/gorilla/websocket"
+	"github.com/porfirion/server2/network"
+	"github.com/porfirion/server2/messages"
+)
 
 type WebsocketConnection struct {
 	*network.BasicConnection
 	ws *websocket.Conn
-}
-
-func (connection *WebsocketConnection) ParseWrapper(data []byte) (service.TypedMessage, error) {
-	wrapper := new(WebsocketMessageWrapper)
-
-	err := json.Unmarshal(data, wrapper)
-
-	if err != nil {
-		log.Println("error: ", err, string(data))
-		return nil, errors.New("Can't parse message")
-	}
-
-	return wrapper, nil
 }
 
 /*WARNING! это можно вызывать только из того треда, который отправляет собщения в канал*/
@@ -64,15 +41,15 @@ func (connection *WebsocketConnection) StartReading() {
 				case websocket.PingMessage:
 					log.Println("Ping message received")
 				case websocket.TextMessage:
-					if msg, err := connection.ParseWrapper(buffer); err != nil {
+					if msg, err := messages.DeserializeFromJson(buffer); err != nil {
 						log.Println("Error parsing wrapper", err)
 					} else {
 						connection.Notify(msg)
 
 						/*
-						case *network.SyncTimeMessage:
-						// log.Println("Sync time message", time.Now().UnixNano()/int64(time.Millisecond), int64(time.Now().UnixNano()/int64(time.Millisecond)))
-						connection.OutgoingChannel <- network.SyncTimeMessage{Time: int64(time.Now().UnixNano() / int64(time.Millisecond))}
+							case *network.SyncTimeMessage:
+							// log.Println("Sync time message", time.Now().UnixNano()/int64(time.Millisecond), int64(time.Now().UnixNano()/int64(time.Millisecond)))
+							connection.OutgoingChannel <- network.SyncTimeMessage{Time: int64(time.Now().UnixNano() / int64(time.Millisecond))}
 						*/
 
 					}
@@ -98,8 +75,8 @@ func (connection *WebsocketConnection) StartWriting() {
 
 		for message := range connection.OutgoingChannel {
 			//log.Println(fmt.Sprintf("WsCon. Sending message %T for %d", message, connection.id))
-			if bytes, err := json.Marshal(message.Data); err == nil {
-				connection.ws.WriteJSON(WebsocketMessageWrapper{MessageType: message.Data.GetType(), Data: bytes})
+			if bytes, err := messages.SerializeToJson(message.Data); err == nil {
+				connection.ws.WriteMessage(websocket.TextMessage, bytes)
 			}
 		}
 

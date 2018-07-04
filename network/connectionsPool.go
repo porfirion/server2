@@ -3,23 +3,16 @@ package network
 import (
 	"log"
 	"github.com/porfirion/server2/service"
-	"encoding/binary"
 )
 
 type MessageFromClient struct {
-	ClientId    uint64
-	Data        service.TypedMessage
+	ClientId uint64
+	Data     service.TypedMessage
 }
 
 type MessageForClient struct {
-	Targets     []uint64 // send only to
-	Data        service.TypedMessage
-}
-
-type TypedBytesMessage []byte
-
-func (t TypedBytesMessage) GetType() uint64 {
-	return binary.BigEndian.Uint64(t[:8])
+	Targets []uint64 // send only to
+	Data    service.TypedMessage
 }
 
 type ConnectionsPool struct {
@@ -45,7 +38,7 @@ func (pool *ConnectionsPool) RemoveConnection(connectionId uint64) {
 }
 
 func (pool *ConnectionsPool) DispatchMessage(msg MessageForClient) {
-	if len(msg.Targets) == 0 {
+	if msg.Targets == nil || len(msg.Targets) == 0 {
 		for _, conn := range pool.Connections {
 			conn.WriteMessage(msg.Data)
 		}

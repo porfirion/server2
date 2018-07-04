@@ -131,13 +131,7 @@ func NewBasicService(serviceType uint64) *BasicService {
 //
 //func (s *Svc) Start() {
 //	// первое сообщение, которое должно придти в канал - это сообщение от брокера о регистрации сервиса
-//	regMsg := <-s.IncomingMessages
-//	dt := regMsg.MessageData.(struct {
-//		Id uint64
-//		Ch chan ServiceMessage
-//	})
-//	s.Id = dt.Id
-//	s.OutgoingMessages = dt.Ch
+//  s.WaitForRegistration()
 //
 //	for msg := range s.IncomingMessages {
 //		fmt.Println(msg)
@@ -145,8 +139,9 @@ func NewBasicService(serviceType uint64) *BasicService {
 //}
 //
 //func example() {
+//	var broker MessageBroker
+//  broker.Start()
 //	svc := &Svc{NewBasicService(1)}
 //	svc.Start()
-//	var broker MessageBroker
 //	broker.RegisterService(svc)
 //}

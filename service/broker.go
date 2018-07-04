@@ -78,6 +78,10 @@ func (broker *BrokerImplementation) StartReading() {
 				} else {
 					log.Printf("Broker: can't find any services with type %d\n", untypedMessage.DestinationServiceType)
 				}
+			} else {
+				for _, service := range broker.services {
+					service.Deliver(untypedMessage)
+				}
 			}
 		}
 	}
