@@ -1,14 +1,12 @@
-package service
+package network
 
 import (
-	"github.com/porfirion/server2/network"
-	"fmt"
-	"encoding/json"
+	"github.com/porfirion/server2/service"
 )
 
 type NetworkService struct {
-	*BasicService
-	pool *network.ConnectionsPool
+	*service.BasicService
+	pool *ConnectionsPool
 }
 
 func (s *NetworkService) GetRequiredMessageTypes() []uint {
@@ -19,7 +17,7 @@ func (s *NetworkService) Start() {
 	s.startReceivingFromBroker()
 }
 
-func (s *NetworkService) SetPool(pool *network.ConnectionsPool) {
+func (s *NetworkService) SetPool(pool *ConnectionsPool) {
 	s.pool = pool
 	go s.startReadingFromClients()
 }
@@ -28,15 +26,9 @@ func (s *NetworkService) startReceivingFromBroker() {
 	s.WaitForRegistration()
 
 	for msg := range s.IncomingMessages {
-		fmt.Println(msg)
-		if bytes, err := json.Marshal(msg.MessageData); err == nil {
-			s.pool.OutgoingMessages <- network.MessageForClient{
-				Targets:     msg.DestinationServiceClients,
-				MessageType: msg.MessageType,
-				Data:        bytes,
-			}
-		} else {
-			fmt.Printf("Error matshalling message %v\n", msg)
+		s.pool.OutgoingMessages <- MessageForClient{
+			Targets: msg.DestinationServiceClients,
+			Data:    msg.MessageData,
 		}
 	}
 }
@@ -46,6 +38,6 @@ func (s *NetworkService) startReadingFromClients() {
 	for msg := range s.pool.IncomingMessages {
 		// TODO сейчас в пробкер отправляются сырые байты и никакого парсинга не происходит
 		// также не указывается целевой сервис, в который мы отправляем эти данные
-		s.SendMessage(msg.MessageType, msg.Data, msg.ClientId, TypeLogic, 0, nil)
+		s.SendMessage(msg.Data, msg.ClientId, service.TypeLogic, 0, nil)
 	}
 }

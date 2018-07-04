@@ -28,11 +28,11 @@ type ServiceMessage struct {
 	DestinationServiceId      uint64
 	DestinationServiceClients []uint64 // зато может быть много получателей
 
-	// ВАЖНО! это совсем не тот тип, который ходит по сети.
-	// Типы сообщений, используемые в сети, являются частью публичного API
-	// и могут вообще никак не пересекаться с внутренним обозначением типов
-	MessageType uint64
-	MessageData interface{}
+	MessageData TypedMessage
+}
+
+type TypedMessage interface {
+	GetType() uint64
 }
 
 const (
@@ -66,16 +66,15 @@ func (service *BasicService) Deliver(msg ServiceMessage) {
 func (service *BasicService) Register(serviceId uint64, out chan ServiceMessage) {
 	service.IncomingMessages <- ServiceMessage{
 		MessageData: BrokerRegisterServiceResponse{
-			serviceId,
-			out,
+			Id: serviceId,
+			Ch: out,
 		},
 	}
 }
 
 // Отправляет сообщение брокеру
 func (service *BasicService) SendMessage(
-	msgType uint64,
-	msg interface{},
+	msg TypedMessage,
 	sourceClientId uint64,
 	targetServiceType uint64,
 	targetServiceId uint64,
@@ -91,7 +90,6 @@ func (service *BasicService) SendMessage(
 		SourceServiceClient:    sourceClientId,
 		DestinationServiceType: targetServiceType,
 		DestinationServiceId:   targetServiceId,
-		MessageType:            msgType,
 		MessageData:            msg,
 	}
 

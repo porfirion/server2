@@ -3,11 +3,12 @@ package network
 import (
 	"time"
 	"errors"
+	"github.com/porfirion/server2/service"
 )
 
 type Connection interface {
 	Close(message string)
-	WriteMessage(msgType uint64, data []byte)
+	WriteMessage(data service.TypedMessage)
 	GetId() uint64
 }
 
@@ -22,17 +23,16 @@ func (connection *BasicConnection) GetId() uint64 {
 	return connection.Id
 }
 
-func (connection *BasicConnection) WriteMessage(msgType uint64, data []byte) {
-	connection.OutgoingChannel <- MessageForClient{MessageType: msgType, Data: data}
+func (connection *BasicConnection) WriteMessage(data service.TypedMessage) {
+	connection.OutgoingChannel <- MessageForClient{Data: data}
 }
 
 // Отправляет сообщение "наверх" (в пул / сервис / брокер)
-func (connection *BasicConnection) Notify(msgType uint64, data []byte) error {
+func (connection *BasicConnection) Notify(data service.TypedMessage) error {
 	t := time.NewTimer(time.Millisecond * 100)
 	select {
 	case connection.IncomingChannel <- MessageFromClient{
 		ClientId:    connection.Id,
-		MessageType: msgType,
 		Data:        data,
 	}:
 		t.Stop()

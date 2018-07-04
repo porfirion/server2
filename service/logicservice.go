@@ -25,11 +25,8 @@ func (s *GameLogicService) startReading() {
 	for msg := range s.IncomingMessages {
 		// TODO переделать!
 		// пока просто прокидываем сообщения внутрь логики
-		if data, ok := msg.MessageData.(UserMessage); ok {
-			s.Logic.IncomingMessages <- data
-		} else {
-			fmt.Printf("Can't cast to UserMessage %#v\n", msg.MessageData)
-		}
+
+		fmt.Printf("Can't cast service message to UserMessage %v\n", msg.MessageData)
 	}
 }
 

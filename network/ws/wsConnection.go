@@ -9,11 +9,15 @@ import (
 
 	"github.com/porfirion/server2/network"
 	"time"
+	"github.com/porfirion/server2/service"
 )
 
 type WebsocketMessageWrapper struct {
 	MessageType uint64 `json:"type"`
 	Data        json.RawMessage `json:"data"`
+}
+func (w *WebsocketMessageWrapper) GetType() uint64 {
+	return w.MessageType
 }
 
 type WebsocketConnection struct {
@@ -21,7 +25,7 @@ type WebsocketConnection struct {
 	ws *websocket.Conn
 }
 
-func (connection *WebsocketConnection) ParseWrapper(data []byte) (*WebsocketMessageWrapper, error) {
+func (connection *WebsocketConnection) ParseWrapper(data []byte) (service.TypedMessage, error) {
 	wrapper := new(WebsocketMessageWrapper)
 
 	err := json.Unmarshal(data, wrapper)
@@ -60,10 +64,10 @@ func (connection *WebsocketConnection) StartReading() {
 				case websocket.PingMessage:
 					log.Println("Ping message received")
 				case websocket.TextMessage:
-					if wrapper, err := connection.ParseWrapper(buffer); err != nil {
+					if msg, err := connection.ParseWrapper(buffer); err != nil {
 						log.Println("Error parsing wrapper", err)
 					} else {
-						connection.Notify(wrapper.MessageType, wrapper.Data)
+						connection.Notify(msg)
 
 						/*
 						case *network.SyncTimeMessage:
@@ -94,7 +98,9 @@ func (connection *WebsocketConnection) StartWriting() {
 
 		for message := range connection.OutgoingChannel {
 			//log.Println(fmt.Sprintf("WsCon. Sending message %T for %d", message, connection.id))
-			connection.ws.WriteJSON(WebsocketMessageWrapper{MessageType: message.MessageType, Data: message.Data})
+			if bytes, err := json.Marshal(message.Data); err == nil {
+				connection.ws.WriteJSON(WebsocketMessageWrapper{MessageType: message.Data.GetType(), Data: bytes})
+			}
 		}
 
 		log.Println("Writing finished for", connection.Id)

@@ -4,9 +4,9 @@ import (
 	"io"
 	"fmt"
 	"github.com/porfirion/server2/network"
-	"encoding/binary"
 	"net"
 	"log"
+	"github.com/porfirion/server2/service"
 )
 
 type TcpConnection struct {
@@ -14,7 +14,7 @@ type TcpConnection struct {
 	socket net.Conn
 }
 
-func (connection *TcpConnection) WriteMessage(messageType uint64, messageData []byte) {
+func (connection *TcpConnection) WriteMessage(messageData service.TypedMessage) {
 	panic("implement me")
 }
 
@@ -37,8 +37,7 @@ func (connection *TcpConnection) StartReading(ch chan network.MessageFromClient)
 				log.Println("read bytes: ", n)
 				ch <- network.MessageFromClient{
 					connection.Id,
-					binary.BigEndian.Uint64(buffer[:8]),
-					buffer[8:n],
+					network.TypedBytesMessage(buffer),
 				}
 			}
 		}

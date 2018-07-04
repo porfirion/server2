@@ -16,12 +16,21 @@ type MessageBroker interface {
 // IMPLEMENTATION
 
 type BrokerRegisterServiceMessage struct {
+	TypedMessageStub
 	Service Service
 }
 
 type BrokerRegisterServiceResponse struct {
+	TypedMessageStub
 	Id uint64
 	Ch chan ServiceMessage
+}
+
+type TypedMessageStub struct {}
+
+func (m TypedMessageStub) GetType() uint64 {
+	log.Println("Warning! Using TypedMessageStub")
+	return 1
 }
 
 type BrokerImplementation struct {
@@ -54,10 +63,7 @@ func (broker *BrokerImplementation) StartReading() {
 
 			service.Register(nextId, broker.mainChan)
 		default:
-			log.Printf("Broker: Unexpected message type: %d (data: %T)\n", untypedMessage.MessageType, msg)
-			if bytes, ok := untypedMessage.MessageData.([]byte); ok {
-				log.Printf("Broker: bytes received %s\n", string(bytes))
-			}
+			log.Printf("Broker: Unexpected message %T\n", msg)
 			if untypedMessage.DestinationServiceId != 0 {
 				if dest := broker.services[untypedMessage.DestinationServiceId]; dest != nil {
 					dest.Deliver(untypedMessage)
@@ -89,8 +95,7 @@ func (broker *BrokerImplementation) RegisterService(svc Service) {
 		DestinationServiceType:    0,
 		DestinationServiceId:      0,
 		DestinationServiceClients: nil,
-		MessageType:               0,
-		MessageData:               BrokerRegisterServiceMessage{svc},
+		MessageData:               BrokerRegisterServiceMessage{Service: svc},
 	})
 }
 

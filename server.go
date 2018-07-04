@@ -50,7 +50,7 @@ func main() {
 	log.Println("LogicService started")
 	broker.RegisterService(logicSvc)
 
-	networkSvc := &service.NetworkService{
+	networkSvc := &network.NetworkService{
 		BasicService: service.NewBasicService(service.TypeNetwork),
 	}
 	go networkSvc.Start()

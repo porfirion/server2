@@ -2,18 +2,24 @@ package network
 
 import (
 	"log"
+	"github.com/porfirion/server2/service"
+	"encoding/binary"
 )
 
 type MessageFromClient struct {
 	ClientId    uint64
-	MessageType uint64
-	Data        []byte
+	Data        service.TypedMessage
 }
 
 type MessageForClient struct {
 	Targets     []uint64 // send only to
-	MessageType uint64
-	Data        []byte
+	Data        service.TypedMessage
+}
+
+type TypedBytesMessage []byte
+
+func (t TypedBytesMessage) GetType() uint64 {
+	return binary.BigEndian.Uint64(t[:8])
 }
 
 type ConnectionsPool struct {
@@ -21,7 +27,7 @@ type ConnectionsPool struct {
 	ConnectionsEnumerator chan uint64
 	Connections           map[uint64]Connection
 	ClosingChannel        chan uint64            // в этот канал приходят id соединений, которые закрываются
-	IncomingMessages      chan MessageFromClient // сюда приходят сообщения от клиентов
+	IncomingMessages      chan MessageFromClient // в этот канал мы пишем сообщения от клиентов
 	OutgoingMessages      chan MessageForClient  // канал сообщений для клиентов
 }
 
@@ -41,11 +47,11 @@ func (pool *ConnectionsPool) RemoveConnection(connectionId uint64) {
 func (pool *ConnectionsPool) DispatchMessage(msg MessageForClient) {
 	if len(msg.Targets) == 0 {
 		for _, conn := range pool.Connections {
-			conn.WriteMessage(msg.MessageType, msg.Data)
+			conn.WriteMessage(msg.Data)
 		}
 	} else {
 		for _, connectionId := range msg.Targets {
-			pool.Connections[connectionId].WriteMessage(msg.MessageType, msg.Data)
+			pool.Connections[connectionId].WriteMessage(msg.Data)
 		}
 	}
 }
