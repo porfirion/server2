@@ -46,6 +46,6 @@ func (s *NetworkService) startReadingFromClients() {
 	for msg := range s.pool.IncomingMessages {
 		// TODO сейчас в пробкер отправляются сырые байты и никакого парсинга не происходит
 		// также не указывается целевой сервис, в который мы отправляем эти данные
-		s.SendMessage(msg.MessageType, msg.Data, msg.ClientId, 0, 0, nil)
+		s.SendMessage(msg.MessageType, msg.Data, msg.ClientId, TypeLogic, 0, nil)
 	}
 }

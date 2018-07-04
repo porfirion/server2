@@ -19,6 +19,10 @@ type TestType2 struct {
 	TestType
 }
 
+func (tt TestType2) getType() int {
+	return 2
+}
+
 var (
 	result int
 
@@ -58,30 +62,47 @@ func BenchmarkSwitch_field(b *testing.B) {
 	result = res
 }
 
-func BenchmarkSwitch_typeof(b *testing.B) {
+func BenchmarkSwitch_field2(b *testing.B) {
 	var res int
 	for i := 0; i < b.N; i++ {
-		currentType := reflect.TypeOf(tt)
-		if currentType == tp {
+		switch tt2.getType() {
+		case 1:
 			res = 1
-		} else if currentType == tp2 {
+		case 2:
 			res = 2
-		} else {
+		default:
 			res = 3
 		}
 	}
 	result = res
 }
 
-func BenchmarkSwitch_bool(b *testing.B) {
+func BenchmarkSwitch_typeof(b *testing.B) {
+	var res int
+	for i := 0; i < b.N; i++ {
+		currentType := reflect.TypeOf(tt)
+		switch currentType {
+		case tp:
+			res = 1
+		case tp2:
+			res = 2
+		default:
+			res = 3
+		}
+	}
+	result = res
+}
+
+func BenchmarkSwitch_int(b *testing.B) {
 	var res int
 	v := 3
 	for i := 0; i < b.N; i++ {
-		if v == 1 {
+		switch v {
+		case 1:
 			res = 1
-		} else if v == 2 {
+		case 2:
 			res = 2
-		} else if v == 3 {
+		default:
 			res = 3
 		}
 	}

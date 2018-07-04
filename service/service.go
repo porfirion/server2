@@ -5,7 +5,6 @@ import (
 	"time"
 )
 
-
 // Начитавшись хабра (https://habrahabr.ru/company/mailru/blog/220359/)
 // пришёл к выводу, что чат с игровой механикой не стоит держать в одном месте
 // Более того - это скорее даже мешает - всё валится в одну кучу.
@@ -15,6 +14,8 @@ type Service interface {
 	Register(id uint64, ch chan ServiceMessage) // уведомляет сервис о том, что он был зарегистрирован
 	GetRequiredMessageTypes() []uint            // отдаёт список ожидаемых сообщений
 	Start()
+	GetType() uint64
+	GetId() uint64
 }
 
 // сообщение, которое ходит между сервисами
@@ -47,6 +48,14 @@ type BasicService struct {
 
 	IncomingMessages chan ServiceMessage // это канал для полечения сообщений от брокера
 	OutgoingMessages chan ServiceMessage // это канал для отправки и нам должен дать его сам брокер, когда зарегистрирует наш сервис
+}
+
+func (service *BasicService) GetType() uint64 {
+	return service.Type
+}
+
+func (service *BasicService) GetId() uint64 {
+	return service.Id
 }
 
 // Через этот метод брокер отправляет сообщения в сервис
