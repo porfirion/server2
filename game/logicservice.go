@@ -1,9 +1,9 @@
 package game
 
 import (
-	"fmt"
 	"github.com/porfirion/server2/service"
 	"github.com/porfirion/server2/messages"
+	"log"
 )
 
 type GameLogicService struct {
@@ -30,13 +30,13 @@ func (s *GameLogicService) startReading() {
 		// TODO переделать!
 		// пока просто прокидываем сообщения внутрь логики
 
-		fmt.Printf("Can't cast service message to UserMessage %v\n", msg.MessageData)
+		log.Printf("Logic: Can't cast service message to UserMessage %v\n", msg.MessageData)
 	}
 }
 
 func (s *GameLogicService) startWriting() {
 	for msg := range s.LogicOutgoingMessages {
-		fmt.Println("Message from service to pass to broker", msg)
+		log.Println("Message from service to pass to broker", msg)
 		// TODO переделать!
 		// пока тупо прокидываем сообщения из логики в брокер (но он их не поймёт)
 		// TODO FORTEST ONLY

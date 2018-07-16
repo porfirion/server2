@@ -33,11 +33,14 @@ func (m TypedMessageStub) GetType() uint64 {
 	return 1
 }
 
+type serviceTypeMatcher func(msg TypedMessage) uint64
+
 type BrokerImplementation struct {
 	utils.IdGenerator
 	mainChan chan ServiceMessage
 	services map[uint64]Service // each service has unique id
 	serviceByTypes map[uint64][]Service // many services of the same type can exist
+	messageMatcher serviceTypeMatcher
 }
 
 func (broker *BrokerImplementation) Start() {
@@ -46,8 +49,8 @@ func (broker *BrokerImplementation) Start() {
 }
 
 func (broker *BrokerImplementation) StartReading() {
-	for untypedMessage := range broker.mainChan {
-		switch msg := untypedMessage.MessageData.(type) {
+	for serviceMessage := range broker.mainChan {
+		switch msg := serviceMessage.MessageData.(type) {
 
 		case BrokerRegisterServiceMessage:
 			nextId := broker.NextId()
@@ -63,27 +66,38 @@ func (broker *BrokerImplementation) StartReading() {
 
 			service.Register(nextId, broker.mainChan)
 		default:
-			log.Printf("Broker: Unexpected message %T\n", msg)
-			if untypedMessage.DestinationServiceId != 0 {
-				if dest := broker.services[untypedMessage.DestinationServiceId]; dest != nil {
-					dest.Deliver(untypedMessage)
+			//log.Printf("Broker: Unexpected message type %T %#v\n", msg, msg)
+			if serviceMessage.DestinationServiceId != 0 {
+				if dest := broker.services[serviceMessage.DestinationServiceId]; dest != nil {
+					dest.Deliver(serviceMessage)
 				} else {
-					log.Printf("Broker: can't find destination service #%d\n", untypedMessage.DestinationServiceId)
+					log.Printf("Broker: can't find destination service #%d\n", serviceMessage.DestinationServiceId)
 				}
-			} else if untypedMessage.DestinationServiceType != 0 {
-				if dests := broker.serviceByTypes[untypedMessage.DestinationServiceType]; dests != nil && len(dests) > 0 {
-					for _, dest := range dests {
-						dest.Deliver(untypedMessage)
-					}
-				} else {
-					log.Printf("Broker: can't find any services with type %d\n", untypedMessage.DestinationServiceType)
-				}
+			} else if serviceMessage.DestinationServiceType != 0 {
+				broker.deliverByType(serviceMessage.DestinationServiceType, serviceMessage)
+			} else if destinationServiceType := broker.messageMatcher(serviceMessage.MessageData); destinationServiceType != 0 {
+				broker.deliverByType(destinationServiceType, serviceMessage)
 			} else {
-				for _, service := range broker.services {
-					service.Deliver(untypedMessage)
-				}
+				log.Printf("Don't know where to deliver mesage type %T\n", serviceMessage.MessageData);
+				//broker.deliverAll(serviceMessage)
 			}
 		}
+	}
+}
+
+func (broker *BrokerImplementation) deliverAll(msg ServiceMessage) {
+	for _, service := range broker.services {
+		service.Deliver(msg)
+	}
+}
+
+func (broker *BrokerImplementation) deliverByType(serviceType uint64, msg ServiceMessage) {
+	if dests := broker.serviceByTypes[serviceType]; dests != nil && len(dests) > 0 {
+		for _, dest := range dests {
+			dest.Deliver(msg)
+		}
+	} else {
+		log.Printf("Broker: can't find any services with type %d\n", serviceType)
 	}
 }
 
@@ -103,11 +117,13 @@ func (broker *BrokerImplementation) RegisterService(svc Service) {
 	})
 }
 
-func NewBroker() MessageBroker {
+func NewBroker(messageMatcher serviceTypeMatcher) MessageBroker {
+
 	return &BrokerImplementation{
 		IdGenerator:    utils.NewIdGenerator(1),
 		mainChan:       make(chan ServiceMessage),
 		services:       make(map[uint64]Service),
 		serviceByTypes: make(map[uint64][]Service),
+		messageMatcher: messageMatcher,
 	}
 }

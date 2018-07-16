@@ -20,7 +20,16 @@ func main() {
 	//log.SetFlags(log.Ltime | log.Lshortfile) //may be very useful to know where print was called
 	log.SetFlags(log.Lmicroseconds)
 
-	broker := service.NewBroker()
+	broker := service.NewBroker(func(message service.TypedMessage) uint64 {
+		switch message.(type) {
+		case *messages.TextMessage:
+			return service.TypeChat
+		case *messages.LoginMessage:
+			return service.TypeAuth
+		default:
+			return 0
+		}
+	})
 	go broker.Start()
 
 	chat := chat.NewChat(service.NewBasicService(service.TypeChat))

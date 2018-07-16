@@ -62,6 +62,7 @@ window.addEventListener('load', function (ev) {
     var canvas = window.document.getElementById("canvas");
     if (canvas != null) {
         var app = new Application(canvas);
+        window.app = app;
         app.start();
     }
     else {

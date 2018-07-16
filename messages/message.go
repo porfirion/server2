@@ -35,6 +35,7 @@ type WelcomeMessage struct {
 
 // Посылается пулом соединений для извещения о входе
 type LoginMessage struct {
+	service.TypedMessageStub
 	Id   uint64 `json:"id"`
 	Name string `json:"name"`
 }
@@ -76,6 +77,8 @@ type ServerStateMessage struct {
 type SyncTimeMessage struct {
 	Time int64 `json:"time"`
 }
+
+func (SyncTimeMessage) GetType() uint64 { return 20002 }
 
 // Действие пользователя (двигаться, остановиться, ...)
 type ActionMessage struct {

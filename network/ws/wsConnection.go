@@ -41,17 +41,17 @@ func (connection *WebsocketConnection) StartReading() {
 				case websocket.PingMessage:
 					log.Println("Ping message received")
 				case websocket.TextMessage:
-					if msg, err := messages.DeserializeFromJson(buffer); err != nil {
-						log.Println("Error parsing wrapper", err)
+					if msg, err := messages.DeserializeFromJson(buffer); err == nil {
+						switch msg.(type) {
+						case *messages.SyncTimeMessage:
+							connection.WriteMessage(messages.SyncTimeMessage{Time: (int64)(time.Now().UnixNano() / int64(time.Millisecond))})
+						default:
+							log.Printf("WsConnection: sending message %T to broker\n", msg)
+							connection.NotifyPoolMessage(msg)
+						}
+
 					} else {
-						connection.Notify(msg)
-
-						/*
-							case *network.SyncTimeMessage:
-							// log.Println("Sync time message", time.Now().UnixNano()/int64(time.Millisecond), int64(time.Now().UnixNano()/int64(time.Millisecond)))
-							connection.OutgoingChannel <- network.SyncTimeMessage{Time: int64(time.Now().UnixNano() / int64(time.Millisecond))}
-						*/
-
+						log.Println("Error parsing wrapper", err)
 					}
 				case websocket.BinaryMessage:
 					log.Println("Binary message!")

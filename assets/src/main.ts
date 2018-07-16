@@ -80,6 +80,7 @@ window.addEventListener('load', function (ev: Event) {
     let canvas = window.document.getElementById("canvas") as HTMLCanvasElement;
     if (canvas != null) {
         let app: Application = new Application(canvas);
+        window.app = app;
         app.start();
     } else {
         console.error("Can't find canvas");

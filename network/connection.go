@@ -13,10 +13,12 @@ type Connection interface {
 }
 
 type BasicConnection struct {
-	Id              uint64
+	Id uint64
+	// Сообщения, которые идут пользователям
 	OutgoingChannel chan MessageForClient
-	IncomingChannel chan MessageFromClient
-	ClosingChannel  chan uint64
+	// Сообщения, которые пришли от пользователей
+	PoolIncomingChannel chan MessageFromClient
+	ClosingChannel      chan uint64
 }
 
 func (connection *BasicConnection) GetId() uint64 {
@@ -28,12 +30,12 @@ func (connection *BasicConnection) WriteMessage(data service.TypedMessage) {
 }
 
 // Отправляет сообщение "наверх" (в пул / сервис / брокер)
-func (connection *BasicConnection) Notify(data service.TypedMessage) error {
+func (connection *BasicConnection) NotifyPoolMessage(data service.TypedMessage) error {
 	t := time.NewTimer(time.Millisecond * 100)
 	select {
-	case connection.IncomingChannel <- MessageFromClient{
-		ClientId:    connection.Id,
-		Data:        data,
+	case connection.PoolIncomingChannel <- MessageFromClient{
+		ClientId: connection.Id,
+		Data:     data,
 	}:
 		t.Stop()
 		return nil
@@ -48,9 +50,9 @@ func (connection *BasicConnection) NotifyPoolWeAreClosing() {
 
 func NewBasicConnection(id uint64, incoming chan MessageFromClient, closing chan uint64) *BasicConnection {
 	return &BasicConnection{
-		Id:              id,
-		OutgoingChannel: make(chan MessageForClient),
-		IncomingChannel: incoming,
-		ClosingChannel:  closing,
+		Id:                  id,
+		OutgoingChannel:     make(chan MessageForClient),
+		PoolIncomingChannel: incoming,
+		ClosingChannel:      closing,
 	}
 }

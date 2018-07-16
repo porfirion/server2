@@ -1,8 +1,9 @@
 package chat
 
 import (
-	"fmt"
 	"github.com/porfirion/server2/service"
+	"log"
+	"github.com/porfirion/server2/messages"
 )
 
 type ChatService struct {
@@ -19,8 +20,14 @@ func (s *ChatService) StartReading() {
 	s.WaitForRegistration()
 
 	for msg := range s.IncomingMessages {
-		fmt.Println("CHAT: ", msg)
-		s.SendMessage(msg.MessageData, 0, service.TypeNetwork, 0, nil)
+		log.Println("ChatService: ", msg.MessageData)
+		switch msg.MessageData.(type) {
+		case *messages.TextMessage:
+			s.SendMessage(msg.MessageData, 0, service.TypeNetwork, 0, nil)
+		default:
+			log.Printf("Chat: unexpected message type %T\n", msg.MessageData)
+		}
+
 	}
 }
 

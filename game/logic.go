@@ -7,7 +7,6 @@ import (
 	"time"
 	"github.com/porfirion/server2/service"
 	. "github.com/porfirion/server2/messages"
-	"u2g/messages"
 )
 
 const (
@@ -134,7 +133,7 @@ func (logic *GameLogic) ProcessMessage(message UserMessage) (needSync bool) {
 	needSync = false
 
 	switch msg := message.Data.(type) {
-	case *messages.TextMessage:
+	case *TextMessage:
 		// log.Println("Text message received: ", message)
 		logic.SendTextMessage(msg.Text, logic.Users[message.Source].Id)
 	case *LoginMessage:

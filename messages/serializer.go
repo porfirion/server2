@@ -4,6 +4,8 @@ import (
 	"github.com/porfirion/server2/service"
 	"encoding/json"
 	"encoding/binary"
+	"fmt"
+	"errors"
 )
 
 // когда мы читаем сообщение от клиента - мы никогда не знаем заранее что это будет
@@ -27,12 +29,23 @@ type jsonOutgoingMessageWrapper struct {
 func DeserializeFromJson(bytes []byte) (service.TypedMessage, error) {
 	msg := &jsonIncomingMessageWrapper{}
 	if err := json.Unmarshal(bytes, msg); err == nil {
+		var typedMessage service.TypedMessage
+
 		switch msg.GetType() {
+		case 1:
+			typedMessage = &LoginMessage{}
 		case 1001:
-			txt := &TextMessage{}
-			err := json.Unmarshal(msg.Data, txt)
-			return txt, err
+			typedMessage = &TextMessage{}
+		case 20002:
+			typedMessage = &SyncTimeMessage{}
 		default:
+			return nil, errors.New(fmt.Sprintf("Unknown message type %d", msg.GetType()))
+		}
+
+		if typedMessage != nil {
+			err := json.Unmarshal(msg.Data, typedMessage)
+			return typedMessage, err
+		} else {
 			return msg, err
 		}
 	} else {

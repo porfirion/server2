@@ -1,37 +1,38 @@
 jQuery(document).ready(function () {
-    myName = randomName();
-    $('.playerName').html(myName);
-    client = new WsClient("ws://" + window.location.host + "/ws", myName);
-    client.on('message', onmessage);
-    client.on('close', onclose);
-    client.on('open', function () {
-        syncTimeTimer = setInterval(function () {
-            //client.sendMessage(MessageType.SYNC_TIME, {time: 0});
-            //console.log('sent');
-        }, 10000);
-    });
-    client.on(WsClient.TimeSynced, function (latency, timeCorrection) {
-        $('.latency .value').html(client.latencies[client.latencies.length - 1]);
-        // Коррекцию выбираем как среднее из последних полученных
-        var currentCorrection = client.timeCorrections.reduce(function (sum, a) {
-            return sum + a
-        }, 0) / (client.timeCorrections.length || 1);
-        $('.timeCorrection .value').html(currentCorrection.toFixed(3));
-        map.latency = latency;
-        map.timeCorrection = currentCorrection;
-    });
-    client.connect();
-
+    // myName = randomName();
+    // $('.playerName').html(myName);
+    // client = new WsClient("ws://" + window.location.host + "/ws", myName);
+    // client.on('message', onmessage);
+    // client.on('close', onclose);
+    // client.on('open', function () {
+    //     syncTimeTimer = setInterval(function () {
+    //         //client.sendMessage(MessageType.SYNC_TIME, {time: 0});
+    //         //console.log('sent');
+    //     }, 10000);
+    // });
+    // client.on(WsClient.TimeSynced, function (latency, timeCorrection) {
+    //     $('.latency .value').html(client.latencies[client.latencies.length - 1]);
+    //     // Коррекцию выбираем как среднее из последних полученных
+    //     var currentCorrection = client.timeCorrections.reduce(function (sum, a) {
+    //         return sum + a
+    //     }, 0) / (client.timeCorrections.length || 1);
+    //     $('.timeCorrection .value').html(currentCorrection.toFixed(3));
+    //     map.latency = latency;
+    //     map.timeCorrection = currentCorrection;
+    // });
+    // client.connect();
     $('#chat_form').submit(function (event) {
         event.preventDefault();
 
         var inp = $('.chat_input');
         var text = inp.val();
-        try {
-            client.sendMessage(MessageType.TEXT, {Text: text});
-        } catch (err) {
-            showMessage("Unable to send " + text, "text-danger");
-            console.error(err);
+        if (text != '') {
+            try {
+                app.client.sendMessage(MessageType.TEXT, {Text: text});
+            } catch (err) {
+                showMessage("Unable to send " + text, "text-danger");
+                console.error(err);
+            }
         }
 
         inp.val('');
@@ -69,7 +70,7 @@ jQuery(document).ready(function () {
     });
 
     $(document.body).on('click', '.simulateButton', function () {
-        client.sendMessage(MessageType.SIMULATE_MESSAGE, {steps: 1});
+        app.client.sendMessage(MessageType.SIMULATE_MESSAGE, {steps: 1});
     });
 
     // перемещение вьюпорта при помощи кнопок навигации
@@ -96,7 +97,7 @@ jQuery(document).ready(function () {
     $(map).on('game:click', function (event, data) {
         console.log('clicked at ', data);
 
-        client.sendMessage(MessageType.ACTION_MESSAGE, {
+        app.client.sendMessage(MessageType.ACTION_MESSAGE, {
             action_type: 'move',
             action_data: data
         });
@@ -120,7 +121,7 @@ jQuery(document).ready(function () {
         switch (e.keyCode) {
             case 32:
                 // space
-                client.sendMessage(MessageType.SIMULATE_MESSAGE, {steps: 1});
+                app.client.sendMessage(MessageType.SIMULATE_MESSAGE, {steps: 1});
                 break;
             default:
                 console.log('Key pressed', e.keyCode);
@@ -137,7 +138,7 @@ jQuery(document).ready(function () {
     });
 
     $(document).on("click", ".changeSimulationMode", function() {
-        client.sendMessage(MessageType.CHANGE_SIMULATION_MODE, {step_by_step: !map.simulationMode});
+        app.client.sendMessage(MessageType.CHANGE_SIMULATION_MODE, {step_by_step: !map.simulationMode});
     });
 
     // map.toggleAutoDrawing();
