@@ -22,7 +22,7 @@ func (s *ChatService) StartReading() {
 	for msg := range s.IncomingMessages {
 		log.Println("ChatService: ", msg.MessageData)
 		switch msg.MessageData.(type) {
-		case *messages.TextMessage:
+		case *messages.TextMessage, messages.TextMessage:
 			s.SendMessage(msg.MessageData, 0, service.TypeNetwork, 0, nil)
 		default:
 			log.Printf("Chat: unexpected message type %T\n", msg.MessageData)
@@ -35,8 +35,8 @@ func (s *ChatService) GetRequiredMessageTypes() []uint {
 	return []uint{}
 }
 
-func NewChat(bs *service.BasicService) *ChatService {
+func NewService() *ChatService {
 	return &ChatService{
-		bs,
+		service.NewBasicService(service.TypeChat),
 	}
 }

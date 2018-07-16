@@ -4,6 +4,7 @@ import (
 	"github.com/porfirion/server2/service"
 	"github.com/porfirion/server2/messages"
 	"log"
+	"time"
 )
 
 type GameLogicService struct {
@@ -41,5 +42,29 @@ func (s *GameLogicService) startWriting() {
 		// пока тупо прокидываем сообщения из логики в брокер (но он их не поймёт)
 		// TODO FORTEST ONLY
 		//s.OutgoingMessages <- msg
+	}
+}
+
+func NewService() *GameLogicService {
+	logicMessages := make(messages.ServerMessagesChannel, 10)
+
+	// стартуем логику. она готова, чтобы принимать и обрабатывать соощения
+	lg := &GameLogic{
+		IncomingMessages: make(messages.UserMessagesChannel, 10),
+		OutgoingMessages: logicMessages,
+		Params: LogicParams{
+			SimulateByStep:           true,                   // если выставить этот флаг, то симуляция запускается не по таймеру, а по приходу события Simulate
+			SimulationStepTime:       500 * time.Millisecond, // сколько виртуального времени проходит за один шаг симуляции
+			SimulationStepRealTime:   500 * time.Millisecond, // сколько реального времени проходит за один шаг симуляции
+			SendObjectsTimeout:       time.Millisecond * 500,
+			MaxSimulationStepsAtOnce: 10,
+		},
+	}
+	go lg.Start()
+
+	return &GameLogicService{
+		BasicService:          service.NewBasicService(service.TypeLogic),
+		Logic:                 lg,
+		LogicOutgoingMessages: logicMessages,
 	}
 }

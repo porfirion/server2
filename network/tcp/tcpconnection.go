@@ -3,15 +3,15 @@ package tcp
 import (
 	"io"
 	"fmt"
-	"github.com/porfirion/server2/network"
 	"net"
 	"log"
-	"github.com/porfirion/server2/service"
 	"github.com/porfirion/server2/messages"
+	"github.com/porfirion/server2/network/pool"
+	"github.com/porfirion/server2/service"
 )
 
 type TcpConnection struct {
-	*network.BasicConnection
+	*pool.BasicConnection
 	socket net.Conn
 }
 
@@ -19,7 +19,7 @@ func (connection *TcpConnection) WriteMessage(messageData service.TypedMessage) 
 	panic("implement me")
 }
 
-func (connection *TcpConnection) StartReading(ch chan network.MessageFromClient) {
+func (connection *TcpConnection) StartReading(ch chan pool.MessageFromClient) {
 	go func() {
 		log.Println("starting reading")
 		defer func() {
@@ -37,7 +37,7 @@ func (connection *TcpConnection) StartReading(ch chan network.MessageFromClient)
 			} else {
 				log.Println("read bytes: ", n)
 				if msg, err := messages.DeserializeFromBinary(buffer); err == nil {
-					ch <- network.MessageFromClient{
+					ch <- pool.MessageFromClient{
 						connection.Id,
 						msg,
 					}
@@ -64,11 +64,11 @@ func (connection *TcpConnection) Close(message string) {
 
 func NewTcpConnection(
 	id uint64,
-	incoming chan network.MessageFromClient,
+	incoming chan pool.MessageFromClient,
 	closing chan uint64,
-	socket net.Conn) network.Connection {
+	socket net.Conn) pool.Connection {
 	connection := &TcpConnection{
-		BasicConnection: network.NewBasicConnection(
+		BasicConnection: pool.NewBasicConnection(
 			id,
 			incoming,
 			closing,

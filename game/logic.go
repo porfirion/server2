@@ -13,7 +13,6 @@ const (
 	MAX_SYNC_TIMEOUT = 100 * time.Millisecond
 )
 
-
 // соотношением SimulationStepTime / SimulationStepRealTime можно регулировать скорость игрового сервера
 type LogicParams struct {
 	SimulateByStep           bool          // если выставить этот флаг, то симуляция запускается не по таймеру, а по приходу события Simulate
@@ -26,9 +25,9 @@ type LogicParams struct {
 type SendStub struct {
 }
 
-func (st *SendStub) SendMessage(args ...interface{})           {}
-func (st *SendStub) SendTextMessage(args ...interface{})       {}
-func (st *SendStub) SendTextMessageToUser(args ...interface{}) {}
+func (st *SendStub) SendMessage(args ...interface{})           { log.Println("SEND STUB") }
+func (st *SendStub) SendTextMessage(args ...interface{})       { log.Println("SEND STUB") }
+func (st *SendStub) SendTextMessageToUser(args ...interface{}) { log.Println("SEND STUB") }
 
 type GameLogic struct {
 	*service.BasicService
@@ -133,17 +132,14 @@ func (logic *GameLogic) ProcessMessage(message UserMessage) (needSync bool) {
 	needSync = false
 
 	switch msg := message.Data.(type) {
-	case *TextMessage:
-		// log.Println("Text message received: ", message)
-		logic.SendTextMessage(msg.Text, logic.Users[message.Source].Id)
 	case *LoginMessage:
 		log.Println("GameLogic: Login message received")
 
 		user := logic.AddUser(msg.Id, msg.Name)
 		logic.SendStub.SendTextMessageToUser("GameLogic: Welcome, "+user.Name, 0, user.Id)
-		logic.SendStub.SendMessage(logic.getServerStateMessage(), UsersList{user.Id})
-		logic.SendStub.SendMessage(UserLoggedinMessage{Id: user.Id, Name: user.Name}, UsersList{}, UsersList{user.Id})
-		logic.SendStub.SendMessage(UserListMessage{logic.GetUserList(user.Id)}, UsersList{user.Id})
+		logic.SendStub.SendMessage(logic.getServerStateMessage(), []uint64{user.Id})
+		logic.SendStub.SendMessage(UserLoggedinMessage{Id: user.Id, Name: user.Name}, []uint64{}, []uint64{user.Id})
+		logic.SendStub.SendMessage(UserListMessage{logic.GetUserList(user.Id)}, []uint64{user.Id})
 		log.Println("sent. sync next")
 		logic.SendStub.SendMessage(SyncPositionsMessage{logic.mWorldMap.GetObjectsPositions(), logic.mWorldMap.GetCurrentTimeMillis()})
 	case *LogoutMessage:

@@ -33,14 +33,19 @@ func (m TypedMessageStub) GetType() uint64 {
 	return 1
 }
 
-type serviceTypeMatcher func(msg TypedMessage) uint64
+// фнукция, которая определяет куда направлять сообщение, если адресат не был задан
+// Вызывается только когда serviceId и serviceType не указаны
+// Если эта функция вернёт 0 - значит сообщение никуда не будет отправлено.
+//
+// Возвращает тип сервиса, в который нужно передать сообщение
+type MessageRouter func(msg ServiceMessage) uint64
 
 type BrokerImplementation struct {
 	utils.IdGenerator
-	mainChan chan ServiceMessage
-	services map[uint64]Service // each service has unique id
-	serviceByTypes map[uint64][]Service // many services of the same type can exist
-	messageMatcher serviceTypeMatcher
+	mainChan       chan ServiceMessage
+	services       map[uint64]Service // each service has unique id
+	serviceByTypes map[uint64]Service // пока упрощённое - по одному сервису каждого типа
+	messageRouter  MessageRouter
 }
 
 func (broker *BrokerImplementation) Start() {
@@ -58,15 +63,11 @@ func (broker *BrokerImplementation) StartReading() {
 			serviceType := service.GetType()
 
 			broker.services[nextId] = service
-			if broker.serviceByTypes[serviceType] == nil {
-				broker.serviceByTypes[serviceType] = []Service{service}
-			} else {
-				broker.serviceByTypes[serviceType] = append(broker.serviceByTypes[serviceType], service)
-			}
+			broker.serviceByTypes[serviceType] =  service
 
 			service.Register(nextId, broker.mainChan)
 		default:
-			//log.Printf("Broker: Unexpected message type %T %#v\n", msg, msg)
+			//log.Printf("Broker: Delivering message type %T\n", msg)
 			if serviceMessage.DestinationServiceId != 0 {
 				if dest := broker.services[serviceMessage.DestinationServiceId]; dest != nil {
 					dest.Deliver(serviceMessage)
@@ -74,30 +75,22 @@ func (broker *BrokerImplementation) StartReading() {
 					log.Printf("Broker: can't find destination service #%d\n", serviceMessage.DestinationServiceId)
 				}
 			} else if serviceMessage.DestinationServiceType != 0 {
-				broker.deliverByType(serviceMessage.DestinationServiceType, serviceMessage)
-			} else if destinationServiceType := broker.messageMatcher(serviceMessage.MessageData); destinationServiceType != 0 {
-				broker.deliverByType(destinationServiceType, serviceMessage)
+				if dest := broker.serviceByTypes[serviceMessage.DestinationServiceType]; dest != nil {
+					dest.Deliver(serviceMessage)
+				} else {
+					log.Printf("Broker: can't find service type %d\n", serviceMessage.DestinationServiceType)
+				}
+			} else if destinationServiceType := broker.messageRouter(serviceMessage); destinationServiceType != 0 {
+				if dest := broker.serviceByTypes[destinationServiceType]; dest != nil {
+					dest.Deliver(serviceMessage)
+				} else {
+					log.Printf("Broker: can't find service type %d\n", destinationServiceType)
+				}
 			} else {
-				log.Printf("Don't know where to deliver mesage type %T\n", serviceMessage.MessageData);
+				log.Printf("Don't know where to deliver mesage type %T\n", serviceMessage.MessageData)
 				//broker.deliverAll(serviceMessage)
 			}
 		}
-	}
-}
-
-func (broker *BrokerImplementation) deliverAll(msg ServiceMessage) {
-	for _, service := range broker.services {
-		service.Deliver(msg)
-	}
-}
-
-func (broker *BrokerImplementation) deliverByType(serviceType uint64, msg ServiceMessage) {
-	if dests := broker.serviceByTypes[serviceType]; dests != nil && len(dests) > 0 {
-		for _, dest := range dests {
-			dest.Deliver(msg)
-		}
-	} else {
-		log.Printf("Broker: can't find any services with type %d\n", serviceType)
 	}
 }
 
@@ -117,13 +110,13 @@ func (broker *BrokerImplementation) RegisterService(svc Service) {
 	})
 }
 
-func NewBroker(messageMatcher serviceTypeMatcher) MessageBroker {
+func NewBroker(messageRouter MessageRouter) MessageBroker {
 
 	return &BrokerImplementation{
 		IdGenerator:    utils.NewIdGenerator(1),
 		mainChan:       make(chan ServiceMessage),
 		services:       make(map[uint64]Service),
-		serviceByTypes: make(map[uint64][]Service),
-		messageMatcher: messageMatcher,
+		serviceByTypes: make(map[uint64]Service),
+		messageRouter:  messageRouter,
 	}
 }

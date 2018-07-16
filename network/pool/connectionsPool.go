@@ -1,4 +1,4 @@
-package network
+package pool
 
 import (
 	"log"
@@ -33,8 +33,8 @@ func (pool *ConnectionsPool) processConnection(connection Connection) {
 func (pool *ConnectionsPool) RemoveConnection(connectionId uint64) {
 	log.Println("CPool: Removing connection", connectionId)
 	conn := pool.Connections[connectionId]
-	conn.Close("close reason not implemented")
 	delete(pool.Connections, connectionId)
+	conn.Close("close reason not implemented")
 }
 
 func (pool *ConnectionsPool) DispatchMessage(msg MessageForClient) {
@@ -76,13 +76,13 @@ func (pool *ConnectionsPool) Start() {
 	log.Println("Connections pool finished")
 }
 
-func NewConnectionsPool(incoming chan MessageFromClient) *ConnectionsPool {
+func NewConnectionsPool() *ConnectionsPool {
 	pool := &ConnectionsPool{
 		IncomingConnections:   make(chan Connection),
 		ConnectionsEnumerator: make(chan uint64),
 		Connections:           make(map[uint64]Connection),
 		ClosingChannel:        make(chan uint64),
-		IncomingMessages:      incoming,
+		IncomingMessages:      make(chan MessageFromClient),
 		OutgoingMessages:      make(chan MessageForClient),
 	}
 

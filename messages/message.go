@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"reflect"
 	"github.com/porfirion/server2/world"
-	"github.com/porfirion/server2/service"
 )
 
 type ErrorMessage struct {
@@ -14,9 +13,12 @@ type ErrorMessage struct {
 
 // При получении сервером ретранслируется всем адресатам
 type TextMessage struct {
-	service.TypedMessageStub
 	Sender uint64 `json:"sender"`
 	Text   string `json:"text"`
+}
+
+func (TextMessage) GetType() uint64 {
+	return 1001
 }
 
 type DataMessage struct {
@@ -28,6 +30,10 @@ type AuthMessage struct {
 	Name string `json:"name"`
 }
 
+func (AuthMessage) GetType() uint64 {
+	return 1
+}
+
 // Посылается клиенту, чтобы сообщить, что он успешно подключился и сказать ему его id
 type WelcomeMessage struct {
 	Id uint64 `json:"id"`
@@ -35,9 +41,12 @@ type WelcomeMessage struct {
 
 // Посылается пулом соединений для извещения о входе
 type LoginMessage struct {
-	service.TypedMessageStub
 	Id   uint64 `json:"id"`
 	Name string `json:"name"`
+}
+
+func (LoginMessage) GetType() uint64 {
+	return 10
 }
 
 // Посылается пулом сообщений для извещения о выходе
@@ -91,10 +100,14 @@ type SimulateMessage struct {
 	Steps int `json:"steps"`
 }
 
+func (SimulateMessage) GetType() uint64 { return 1000001 }
+
 // Сменить режим симуляции на пощаговый или непрерывный
 type ChangeSimulationMode struct {
 	StepByStep bool `json:"step_by_step"`
 }
+
+func (ChangeSimulationMode) GetType() uint64 { return 1000002 }
 
 /* SPECIAL STRUCTURES */
 

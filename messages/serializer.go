@@ -33,11 +33,17 @@ func DeserializeFromJson(bytes []byte) (service.TypedMessage, error) {
 
 		switch msg.GetType() {
 		case 1:
+			typedMessage = &AuthMessage{}
+		case 10:
 			typedMessage = &LoginMessage{}
 		case 1001:
 			typedMessage = &TextMessage{}
 		case 20002:
 			typedMessage = &SyncTimeMessage{}
+		case 1000001:
+			typedMessage = &SimulateMessage{}
+		case 1000002:
+			typedMessage = &ChangeSimulationMode{}
 		default:
 			return nil, errors.New(fmt.Sprintf("Unknown message type %d", msg.GetType()))
 		}

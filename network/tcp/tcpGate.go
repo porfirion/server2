@@ -3,12 +3,12 @@ package tcp
 import (
 	"log"
 	"net"
-	"github.com/porfirion/server2/network"
+	"github.com/porfirion/server2/network/pool"
 )
 
 type TcpGate struct {
 	Addr *net.TCPAddr
-	Pool *network.ConnectionsPool
+	Pool *pool.ConnectionsPool
 }
 
 func (gate *TcpGate) Start() error {

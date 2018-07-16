@@ -6,14 +6,14 @@ import (
 	"log"
 	"net"
 	"net/http"
-	"github.com/porfirion/server2/network"
 	"strings"
 	"os"
+	"github.com/porfirion/server2/network/pool"
 )
 
 type WebSocketGate struct {
 	Addr *net.TCPAddr
-	Pool *network.ConnectionsPool
+	Pool *pool.ConnectionsPool
 }
 
 var upgrader = websocket.Upgrader{
@@ -38,7 +38,6 @@ func (gate *WebSocketGate) Start() error {
 		return nil
 	}
 }
-
 
 // Обработчик входящих подключений по websocket
 // @param  {[type]} gate *WebSocketGate) wsHandler(rw http.ResponseWriter, request *http.Request [description]
@@ -70,7 +69,6 @@ func (gate *WebSocketGate) wsHandler(rw http.ResponseWriter, request *http.Reque
 	gate.Pool.IncomingConnections <- conn
 }
 
-
 // Отдаёт главную (и единственную) страницу
 // @param  {[type]} gate *WebSocketGate) indexHandler(rw http.ResponseWriter, request *http.Request [description]
 // @return {[type]} [description]
@@ -91,7 +89,6 @@ func (gate *WebSocketGate) indexHandler(rw http.ResponseWriter, request *http.Re
 		rw.Write([]byte("404 Not Found"))
 	}
 }
-
 
 // Отвечает за отдачу статики
 // @param  {[type]} gate *WebSocketGate) assetsHandler(rw http.ResponseWriter, request *http.Request [description]
