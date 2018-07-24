@@ -3,6 +3,7 @@ package service
 import (
 	"errors"
 	"time"
+	"log"
 )
 
 // Начитавшись хабра (https://habrahabr.ru/company/mailru/blog/220359/)
@@ -10,9 +11,9 @@ import (
 // Более того - это скорее даже мешает - всё валится в одну кучу.
 // Также авторизация остаётся незакрытым вопросом.
 type Service interface {
-	Deliver(msg ServiceMessage)                 // через этот метод сообщения закидываются в сервис
-	Register(id uint64, ch chan ServiceMessage) // уведомляет сервис о том, что он был зарегистрирован
-	GetRequiredMessageTypes() []uint            // отдаёт список ожидаемых сообщений
+	Deliver(msg ServiceMessage)                           // через этот метод сообщения закидываются в сервис
+	StoreRegisteration(id uint64, ch chan ServiceMessage) // уведомляет сервис о том, что он был зарегистрирован
+	//GetRequiredMessageTypes() []uint            // отдаёт список ожидаемых сообщений
 	Start()
 	GetType() uint64
 	GetId() uint64
@@ -63,7 +64,10 @@ func (service *BasicService) Deliver(msg ServiceMessage) {
 	service.IncomingMessages <- msg
 }
 
-func (service *BasicService) Register(serviceId uint64, out chan ServiceMessage) {
+func (service *BasicService) StoreRegisteration(serviceId uint64, out chan ServiceMessage) {
+	if (service).IncomingMessages == nil {
+		log.Fatal("incoming messages chan is not initialized")
+	}
 	service.IncomingMessages <- ServiceMessage{
 		MessageData: BrokerRegisterServiceResponse{
 			Id: serviceId,
@@ -109,9 +113,11 @@ func (service *BasicService) SendMessage(
 
 // первое сообщение, которое должно придти в канал - это сообщение от брокера о регистрации сервиса
 func (service *BasicService) WaitForRegistration() {
+	//log.Println("BasicService: wating for registration")
 	dt := (<-service.IncomingMessages).MessageData.(BrokerRegisterServiceResponse)
 	service.Id = dt.Id
 	service.OutgoingMessages = dt.Ch
+	//log.Println("BasicService: Registration received")
 }
 
 func NewBasicService(serviceType uint64) *BasicService {

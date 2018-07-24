@@ -55,9 +55,13 @@ func (broker *BrokerImplementation) Start() {
 
 func (broker *BrokerImplementation) StartReading() {
 	for serviceMessage := range broker.mainChan {
+
+		//log.Println(serviceMessage)
+
 		switch msg := serviceMessage.MessageData.(type) {
 
 		case BrokerRegisterServiceMessage:
+			//log.Println("registering service")
 			nextId := broker.NextId()
 			service := msg.Service
 			serviceType := service.GetType()
@@ -65,7 +69,9 @@ func (broker *BrokerImplementation) StartReading() {
 			broker.services[nextId] = service
 			broker.serviceByTypes[serviceType] =  service
 
-			service.Register(nextId, broker.mainChan)
+			//log.Println("Broker: sending registration to service")
+			service.StoreRegisteration(nextId, broker.mainChan)
+			//log.Printf("Broker: registered service %d %s\n", service.GetId(), service.GetType())
 		default:
 			//log.Printf("Broker: Delivering message type %T\n", msg)
 			if serviceMessage.DestinationServiceId != 0 {
@@ -79,6 +85,7 @@ func (broker *BrokerImplementation) StartReading() {
 					dest.Deliver(serviceMessage)
 				} else {
 					log.Printf("Broker: can't find service type %d\n", serviceMessage.DestinationServiceType)
+					log.Fatal("Broker: can't find service type %d\n", serviceMessage.DestinationServiceType)
 				}
 			} else if destinationServiceType := broker.messageRouter(serviceMessage); destinationServiceType != 0 {
 				if dest := broker.serviceByTypes[destinationServiceType]; dest != nil {
@@ -88,6 +95,7 @@ func (broker *BrokerImplementation) StartReading() {
 				}
 			} else {
 				log.Printf("Don't know where to deliver mesage type %T\n", serviceMessage.MessageData)
+				log.Fatal("Don't know where to deliver mesage type %T\n", serviceMessage.MessageData)
 				//broker.deliverAll(serviceMessage)
 			}
 		}
@@ -114,7 +122,7 @@ func NewBroker(messageRouter MessageRouter) MessageBroker {
 
 	return &BrokerImplementation{
 		IdGenerator:    utils.NewIdGenerator(1),
-		mainChan:       make(chan ServiceMessage),
+		mainChan:       make(chan ServiceMessage, 100),
 		services:       make(map[uint64]Service),
 		serviceByTypes: make(map[uint64]Service),
 		messageRouter:  messageRouter,
