@@ -40,7 +40,7 @@ func (s *NetworkService) startReadingFromClients() {
 		//log.Printf("NetworkService: Received msg %T", msg)
 		// TODO сейчас в пробкер отправляются сырые байты и никакого парсинга не происходит
 		// также не указывается целевой сервис, в который мы отправляем эти данные
-		s.SendMessage(msg.Data, msg.ClientId, 0, 0, nil)
+		s.SendMessageToBroker(msg.Data, msg.ClientId, 0, 0, nil)
 	}
 
 }

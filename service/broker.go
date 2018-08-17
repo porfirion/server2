@@ -95,7 +95,7 @@ func (broker *BrokerImplementation) StartReading() {
 				}
 			} else {
 				log.Printf("Don't know where to deliver mesage type %T\n", serviceMessage.MessageData)
-				log.Fatal("Don't know where to deliver mesage type %T\n", serviceMessage.MessageData)
+				//log.Fatalf("Don't know where to deliver mesage type %T\n", serviceMessage.MessageData)
 				//broker.deliverAll(serviceMessage)
 			}
 		}

@@ -23,7 +23,7 @@ type Service interface {
 type ServiceMessage struct {
 	SourceServiceType   uint64
 	SourceServiceId     uint64
-	SourceServiceClient uint64 // по идее у нас не может быть только один отправитель
+	SourceServiceClient uint64 // по идее у нас не может быть только один отправитель или не быть его вообще
 
 	DestinationServiceType    uint64
 	DestinationServiceId      uint64
@@ -77,7 +77,7 @@ func (service *BasicService) StoreRegisteration(serviceId uint64, out chan Servi
 }
 
 // Отправляет сообщение брокеру
-func (service *BasicService) SendMessage(
+func (service *BasicService) SendMessageToBroker(
 	msg TypedMessage,
 	sourceClientId uint64,
 	targetServiceType uint64,

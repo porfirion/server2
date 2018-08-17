@@ -49,7 +49,7 @@ func (connection *WebsocketConnection) StartReading() {
 						case *messages.SyncTimeMessage:
 							connection.WriteMessage(messages.SyncTimeMessage{Time: (int64)(time.Now().UnixNano() / int64(time.Millisecond))})
 						default:
-							log.Printf("WsConnection: sending message %T to pool\n", msg)
+							//log.Printf("WsConnection: sending message %T to pool\n", msg)
 							connection.NotifyPoolMessage(msg)
 						}
 
@@ -89,7 +89,7 @@ func (connection *WebsocketConnection) StartWriting() {
 	}()
 }
 
-func NewWebsocketConnection(
+func NewWebSocketConnection(
 	id uint64,
 	incoming chan pool.MessageFromClient,
 	closingChannel chan uint64,

@@ -9,8 +9,7 @@ import (
 
 type GameLogicService struct {
 	*service.BasicService
-	Logic                 *GameLogic
-	LogicOutgoingMessages messages.ServerMessagesChannel
+	logic                 *GameLogic
 }
 
 func (s *GameLogicService) GetRequiredMessageTypes() []uint {
@@ -36,7 +35,7 @@ func (s *GameLogicService) startReading() {
 }
 
 func (s *GameLogicService) startWriting() {
-	for msg := range s.LogicOutgoingMessages {
+	for msg := range s.logic.OutgoingMessages {
 		log.Println("Message from service to pass to broker", msg)
 		// TODO переделать!
 		// пока тупо прокидываем сообщения из логики в брокер (но он их не поймёт)
@@ -46,12 +45,9 @@ func (s *GameLogicService) startWriting() {
 }
 
 func NewService() *GameLogicService {
-	logicMessages := make(messages.ServerMessagesChannel, 10)
-
-	// стартуем логику. она готова, чтобы принимать и обрабатывать соощения
-	lg := &GameLogic{
+	logic := &GameLogic{
 		IncomingMessages: make(messages.UserMessagesChannel, 10),
-		OutgoingMessages: logicMessages,
+		OutgoingMessages: make(messages.ServerMessagesChannel, 10),
 		Params: LogicParams{
 			SimulateByStep:           true,                   // если выставить этот флаг, то симуляция запускается не по таймеру, а по приходу события Simulate
 			SimulationStepTime:       500 * time.Millisecond, // сколько виртуального времени проходит за один шаг симуляции
@@ -60,11 +56,11 @@ func NewService() *GameLogicService {
 			MaxSimulationStepsAtOnce: 10,
 		},
 	}
-	go lg.Start()
+	// стартуем логику. она готова, чтобы принимать и обрабатывать соощения
+	go logic.Start()
 
 	return &GameLogicService{
-		BasicService:          service.NewBasicService(service.TypeLogic),
-		Logic:                 lg,
-		LogicOutgoingMessages: logicMessages,
+		BasicService: service.NewBasicService(service.TypeLogic),
+		logic:        logic,
 	}
 }

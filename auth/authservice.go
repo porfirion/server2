@@ -21,7 +21,7 @@ func (auth *AuthService) startReading() {
 	auth.WaitForRegistration()
 
 	for msg := range auth.IncomingMessages {
-		log.Printf("AuthService: %v\n", msg.MessageData)
+		log.Printf("AuthService: %#v\n", msg.MessageData)
 	}
 }
 

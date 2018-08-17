@@ -85,7 +85,7 @@ func (logic *GameLogic) RemoveUser(id uint64) {
 }
 
 func (logic *GameLogic) sendSyncPositionMessage() {
-	logic.SendStub.SendMessage(
+	logic.SendMessage(
 		SyncPositionsMessage{
 			logic.mWorldMap.GetObjectsPositions(),
 			logic.mWorldMap.GetCurrentTimeMillis(),
@@ -122,7 +122,7 @@ func (logic *GameLogic) ProcessActionMessage(userId uint64, msg *ActionMessage) 
 	return
 }
 
-func (logic *GameLogic) ProcessMessage(message UserMessage) (needSync bool) {
+func (logic *GameLogic) processUserMessage(message UserMessage) (needSync bool) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Printf("Recovered in %#v\n", r)
@@ -136,16 +136,16 @@ func (logic *GameLogic) ProcessMessage(message UserMessage) (needSync bool) {
 		log.Println("GameLogic: Login message received")
 
 		user := logic.AddUser(msg.Id, msg.Name)
-		logic.SendStub.SendTextMessageToUser("GameLogic: Welcome, "+user.Name, 0, user.Id)
-		logic.SendStub.SendMessage(logic.getServerStateMessage(), []uint64{user.Id})
-		logic.SendStub.SendMessage(UserLoggedinMessage{Id: user.Id, Name: user.Name}, []uint64{}, []uint64{user.Id})
-		logic.SendStub.SendMessage(UserListMessage{logic.GetUserList(user.Id)}, []uint64{user.Id})
+		logic.SendTextMessageToUser("GameLogic: Welcome, "+user.Name, 0, user.Id)
+		logic.SendMessage(logic.getServerStateMessage(), []uint64{user.Id})
+		logic.SendMessage(UserLoggedinMessage{Id: user.Id, Name: user.Name}, []uint64{}, []uint64{user.Id})
+		logic.SendMessage(UserListMessage{logic.GetUserList(user.Id)}, []uint64{user.Id})
 		log.Println("sent. sync next")
-		logic.SendStub.SendMessage(SyncPositionsMessage{logic.mWorldMap.GetObjectsPositions(), logic.mWorldMap.GetCurrentTimeMillis()})
+		logic.SendMessage(SyncPositionsMessage{logic.mWorldMap.GetObjectsPositions(), logic.mWorldMap.GetCurrentTimeMillis()})
 	case *LogoutMessage:
 		log.Println("GameLogic: Logout message", msg.Id)
 		logic.RemoveUser(msg.Id)
-		logic.SendStub.SendMessage(UserLoggedoutMessage{Id: msg.Id})
+		logic.SendMessage(UserLoggedoutMessage{Id: msg.Id})
 	case *ActionMessage:
 		needSync = logic.ProcessActionMessage(message.Source, msg)
 	case *SimulateMessage:
@@ -220,7 +220,7 @@ func (logic *GameLogic) Start() {
 		select {
 		case msg := <-logic.IncomingMessages:
 			//log.Println("GameLogic: message received")
-			if needSync := logic.ProcessMessage(msg); needSync {
+			if needSync := logic.processUserMessage(msg); needSync {
 				logic.sendSyncPositionMessage()
 			}
 			//log.Println("GameLogic: message processed")
@@ -265,7 +265,7 @@ func (logic *GameLogic) Start() {
 
 				log.Println("sending server state message")
 				// а теперь уведомляем всех об изменившемся режиме
-				logic.SendStub.SendMessage(logic.getServerStateMessage())
+				logic.SendMessage(logic.getServerStateMessage())
 				logic.sendSyncPositionMessage()
 				log.Println("server state message sent")
 			} else {
@@ -321,7 +321,7 @@ func (logic *GameLogic) Start() {
 			}
 		case msg := <-logic.IncomingMessages:
 			//log.Println("GameLogic: message received")
-			if needSync := logic.ProcessMessage(msg); needSync {
+			if needSync := logic.processUserMessage(msg); needSync {
 				logic.sendSyncPositionMessage()
 			}
 			//log.Println("GameLogic: message processed")

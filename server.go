@@ -14,8 +14,9 @@ import (
 )
 
 func main() {
-	//log.SetFlags(log.Ltime | log.Lshortfile) //may be very useful to know where print was called
+	log.SetFlags(log.Ltime | log.Lshortfile) //may be very useful to know where print was called
 	log.SetFlags(log.Lmicroseconds)
+	log.SetOutput(os.Stdout)
 
 	broker := service.NewBroker(func(message service.ServiceMessage) uint64 {
 		switch message.MessageData.(type) {
@@ -25,6 +26,9 @@ func main() {
 			}
 		case *messages.AuthMessage:
 			return service.TypeAuth
+		case *messages.SimulateMessage,
+		*messages.ChangeSimulationMode:
+			return service.TypeLogic
 		}
 
 		return 0

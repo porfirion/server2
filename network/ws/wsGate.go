@@ -56,7 +56,7 @@ func (gate *WebSocketGate) wsHandler(rw http.ResponseWriter, request *http.Reque
 		}
 	}
 
-	conn := NewWebsocketConnection(
+	conn := NewWebSocketConnection(
 		<-gate.Pool.ConnectionsEnumerator,
 		gate.Pool.IncomingMessages,
 		gate.Pool.ClosingChannel,

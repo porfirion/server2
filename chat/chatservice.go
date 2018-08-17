@@ -20,10 +20,10 @@ func (s *ChatService) StartReading() {
 	s.WaitForRegistration()
 
 	for msg := range s.IncomingMessages {
-		log.Println("ChatService: ", msg.MessageData)
+		log.Printf("ChatService: %#v", msg.MessageData)
 		switch msg.MessageData.(type) {
 		case *messages.TextMessage, messages.TextMessage:
-			s.SendMessage(msg.MessageData, 0, service.TypeNetwork, 0, nil)
+			s.SendMessageToBroker(msg.MessageData, 0, service.TypeNetwork, 0, nil)
 		default:
 			log.Printf("Chat: unexpected message type %T\n", msg.MessageData)
 		}
