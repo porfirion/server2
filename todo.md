@@ -44,3 +44,35 @@
   
    
 
+    MAIN STEP
+        get inputs from queue and apply to world objects
+        simulate N times
+            wide phase
+                foreach activeObject - find possible collisions (AABB)
+            foreach possiblyCollidingObject
+                check collision
+            before collision
+            resolve collisions
+            after collision?
+            update state
+            should we remember objects in viewport in that place? (possibly less checks for distance)
+    
+        foreach player: 
+            find objects in viewport (static objects are easy to find - in quadtree, what to do with active objects?)
+            count new state
+            count diff
+            send diff (or full state if old)
+    
+    
+    Logic main loop 
+        wait for inputs from players
+            put them into queue
+        wait for simulation time
+            MAIN STEP
+    
+    
+    sending info to client
+        add to send buffer
+        send averything from buffer
+        on received acknowledge - remove from buffer
+        on diff lifetime expire - remove old from buffer
