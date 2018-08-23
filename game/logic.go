@@ -13,6 +13,10 @@ const (
 	MAX_SYNC_TIMEOUT = 100 * time.Millisecond
 )
 
+type Logic interface {
+	service.Service
+}
+
 // соотношением SimulationStepTime / SimulationStepRealTime можно регулировать скорость игрового сервера
 type LogicParams struct {
 	SimulateByStep           bool          // если выставить этот флаг, то симуляция запускается не по таймеру, а по приходу события Simulate
