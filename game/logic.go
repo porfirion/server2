@@ -334,3 +334,21 @@ func (logic *GameLogic) Start() {
 
 	log.Println("GameLogic: finished")
 }
+
+func NewGameLogic() *GameLogic {
+	logic := &GameLogic{
+		IncomingMessages: make(UserMessagesChannel, 10),
+		OutgoingMessages: make(ServerMessagesChannel, 10),
+		Params: LogicParams{
+			SimulateByStep:           true,                   // если выставить этот флаг, то симуляция запускается не по таймеру, а по приходу события Simulate
+			SimulationStepTime:       500 * time.Millisecond, // сколько виртуального времени проходит за один шаг симуляции
+			SimulationStepRealTime:   500 * time.Millisecond, // сколько реального времени проходит за один шаг симуляции
+			SendObjectsTimeout:       time.Millisecond * 500,
+			MaxSimulationStepsAtOnce: 10,
+		},
+	}
+	// стартуем логику. она готова, чтобы принимать и обрабатывать соощения
+	go logic.Start()
+
+	return logic
+}

@@ -2,30 +2,29 @@ package game
 
 import (
 	"github.com/porfirion/server2/service"
-	"github.com/porfirion/server2/messages"
 	"log"
-	"time"
 )
 
-type GameLogicService struct {
+type LogicService struct {
 	*service.BasicService
-	logic                 *GameLogic
+	logic *GameLogic
 }
 
-func (s *GameLogicService) GetRequiredMessageTypes() []uint {
+func (s *LogicService) GetRequiredMessageTypes() []uint {
 	return []uint{}
 }
 
-func (s *GameLogicService) Start() {
-	go s.startReading()
+func (s *LogicService) Start() {
+	go func() {
+		// пока мы не зарегистрируемся в брокере - читать неоткуда и писать некуда
+		s.WaitForRegistration()
+
+		go s.startReading()
+		go s.startWriting()
+	}()
 }
 
-func (s *GameLogicService) startReading() {
-	s.WaitForRegistration()
-
-	// ура! теперь нам есть куда писать!!!
-	go s.startWriting()
-
+func (s *LogicService) startReading() {
 	for msg := range s.IncomingMessages {
 		// TODO переделать!
 		// пока просто прокидываем сообщения внутрь логики
@@ -34,7 +33,7 @@ func (s *GameLogicService) startReading() {
 	}
 }
 
-func (s *GameLogicService) startWriting() {
+func (s *LogicService) startWriting() {
 	for msg := range s.logic.OutgoingMessages {
 		log.Println("Message from service to pass to broker", msg)
 		// TODO переделать!
@@ -44,22 +43,10 @@ func (s *GameLogicService) startWriting() {
 	}
 }
 
-func NewService() *GameLogicService {
-	logic := &GameLogic{
-		IncomingMessages: make(messages.UserMessagesChannel, 10),
-		OutgoingMessages: make(messages.ServerMessagesChannel, 10),
-		Params: LogicParams{
-			SimulateByStep:           true,                   // если выставить этот флаг, то симуляция запускается не по таймеру, а по приходу события Simulate
-			SimulationStepTime:       500 * time.Millisecond, // сколько виртуального времени проходит за один шаг симуляции
-			SimulationStepRealTime:   500 * time.Millisecond, // сколько реального времени проходит за один шаг симуляции
-			SendObjectsTimeout:       time.Millisecond * 500,
-			MaxSimulationStepsAtOnce: 10,
-		},
-	}
-	// стартуем логику. она готова, чтобы принимать и обрабатывать соощения
-	go logic.Start()
+func NewService() *LogicService {
+	logic := NewGameLogic()
 
-	return &GameLogicService{
+	return &LogicService{
 		BasicService: service.NewBasicService(service.TypeLogic),
 		logic:        logic,
 	}

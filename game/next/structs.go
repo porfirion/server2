@@ -1,4 +1,4 @@
-package game
+package next
 
 type InputKey int
 
@@ -37,39 +37,3 @@ func (i PlayerInput) GetGameTick() uint {
 	return i.gameTick
 }
 
-type LogicImpl struct {
-	gameTick      uint
-	playersInputs []PlayerInput
-}
-
-func (l *LogicImpl) GetCurrentGameTick() uint {
-	return l.gameTick
-}
-
-func (l *LogicImpl) processPlayerInput(input PlayerInput) {}
-
-func (l LogicImpl) applyPlayersInputsUpTo(currentTick uint) {
-	var ind int
-	for ind = 0; ind < len(l.playersInputs) && l.playersInputs[ind].GetGameTick() <= currentTick; ind++ {
-		l.processPlayerInput(l.playersInputs[ind])
-	}
-
-	l.playersInputs = l.playersInputs[ind:]
-}
-
-func (l *LogicImpl) ShouldSimulate() bool {
-
-}
-
-func (l *LogicImpl) main() {
-	for l.ShouldSimulate() {
-		l.simulateStep()
-	}
-
-}
-func (l *LogicImpl) simulateStep() {
-	l.gameTick++
-
-	l.applyPlayersInputsUpTo(l.gameTick)
-
-}

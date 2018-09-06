@@ -1,4 +1,4 @@
-package game
+package next
 
 import (
 	"testing"
@@ -7,8 +7,8 @@ import (
 
 func TestLogicImpl(t *testing.T) {
 	l := &LogicImpl{
-		gameTick:      0,
-		playersInputs: []PlayerInput{{}, {}, {}, {gameTick:1}},
+		gameTick:             0,
+		pendingPlayersInputs: []PlayerInput{{}, {}, {}, {gameTick: 1}},
 	}
 
 	log.Println(l)
