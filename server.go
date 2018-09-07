@@ -1,16 +1,17 @@
 package main
 
 import (
+	"fmt"
 	"log"
-	"github.com/porfirion/server2/network"
-	"github.com/porfirion/server2/service"
 	"os"
 	"os/signal"
-	"fmt"
-	"github.com/porfirion/server2/game"
-	"github.com/porfirion/server2/chat"
-	"github.com/porfirion/server2/messages"
+
 	"github.com/porfirion/server2/auth"
+	"github.com/porfirion/server2/chat"
+	"github.com/porfirion/server2/game"
+	"github.com/porfirion/server2/messages"
+	"github.com/porfirion/server2/network"
+	"github.com/porfirion/server2/service"
 )
 
 func main() {
@@ -27,7 +28,7 @@ func main() {
 		case *messages.AuthMessage:
 			return service.TypeAuth
 		case *messages.SimulateMessage,
-		*messages.ChangeSimulationMode:
+			*messages.ChangeSimulationMode:
 			return service.TypeLogic
 		}
 

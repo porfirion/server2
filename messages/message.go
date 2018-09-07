@@ -2,8 +2,8 @@ package messages
 
 import (
 	"fmt"
-	"reflect"
 	"github.com/porfirion/server2/world"
+	"reflect"
 )
 
 type ErrorMessage struct {

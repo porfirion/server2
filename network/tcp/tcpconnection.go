@@ -1,13 +1,13 @@
 package tcp
 
 import (
-	"io"
 	"fmt"
-	"net"
-	"log"
 	"github.com/porfirion/server2/messages"
 	"github.com/porfirion/server2/network/pool"
 	"github.com/porfirion/server2/service"
+	"io"
+	"log"
+	"net"
 )
 
 type TcpConnection struct {

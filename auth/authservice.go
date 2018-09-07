@@ -25,7 +25,6 @@ func (auth *AuthService) startReading() {
 	}
 }
 
-
 func NewService() *AuthService {
 	return &AuthService{
 		service.NewBasicService(service.TypeAuth),

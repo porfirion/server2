@@ -2,13 +2,13 @@ package ws
 
 import (
 	"github.com/gorilla/websocket"
+	"github.com/porfirion/server2/network/pool"
 	"html/template"
 	"log"
 	"net"
 	"net/http"
-	"strings"
 	"os"
-	"github.com/porfirion/server2/network/pool"
+	"strings"
 )
 
 type WebSocketGate struct {

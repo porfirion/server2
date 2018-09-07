@@ -1,11 +1,11 @@
 package messages
 
 import (
-	"github.com/porfirion/server2/service"
-	"encoding/json"
 	"encoding/binary"
-	"fmt"
+	"encoding/json"
 	"errors"
+	"fmt"
+	"github.com/porfirion/server2/service"
 )
 
 // когда мы читаем сообщение от клиента - мы никогда не знаем заранее что это будет
@@ -63,7 +63,6 @@ func SerializeToJson(msg service.TypedMessage) ([]byte, error) {
 	return json.Marshal(jsonOutgoingMessageWrapper{MessageType: msg.GetType(), Data: msg})
 }
 
-
 type TypedBytesMessage []byte
 
 func (t TypedBytesMessage) GetType() uint64 {
@@ -76,7 +75,7 @@ func DeserializeFromBinary(bytes []byte) (msg service.TypedMessage, err error) {
 
 func SerializeToBinary(msg service.TypedMessage) ([]byte, error) {
 	if bytes, err := json.Marshal(msg); err == nil {
-		var res = make([]byte, 0, 8 + len(bytes))
+		var res = make([]byte, 0, 8+len(bytes))
 		binary.BigEndian.PutUint64(res, msg.GetType())
 		res = append(res, bytes...)
 		return res, nil

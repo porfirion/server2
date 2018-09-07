@@ -1,12 +1,12 @@
 package network
 
 import (
-	"github.com/porfirion/server2/service"
-	"github.com/porfirion/server2/network/ws"
-	"net"
-	"github.com/porfirion/server2/network/tcp"
-	"log"
 	"github.com/porfirion/server2/network/pool"
+	"github.com/porfirion/server2/network/tcp"
+	"github.com/porfirion/server2/network/ws"
+	"github.com/porfirion/server2/service"
+	"log"
+	"net"
 )
 
 type NetworkService struct {
@@ -66,6 +66,6 @@ func NewService() *NetworkService {
 
 	return &NetworkService{
 		BasicService: service.NewBasicService(service.TypeNetwork),
-		pool: pool,
+		pool:         pool,
 	}
 }

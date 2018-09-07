@@ -1,8 +1,8 @@
 package pool
 
 import (
-	"log"
 	"github.com/porfirion/server2/service"
+	"log"
 )
 
 type MessageFromClient struct {

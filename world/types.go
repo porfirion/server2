@@ -1,8 +1,8 @@
 package world
 
 import (
-	"math"
 	"fmt"
+	"math"
 )
 
 type Point2D struct {
@@ -13,7 +13,6 @@ type Point2D struct {
 var (
 	NilPosition = Point2D{X: math.MaxFloat64, Y: math.MaxFloat64}
 )
-
 
 // Расстояние между точками
 func (pos Point2D) DistanceTo(dest Point2D) float64 {
@@ -49,37 +48,43 @@ func (v Vector2D) Length() float64 {
 
 // приведение длины вектора
 func (v Vector2D) Modulus(base float64) Vector2D {
-	var sum float64 = 1 / math.Sqrt(v.X * v.X + v.Y * v.Y);
+	var sum float64 = 1 / math.Sqrt(v.X*v.X+v.Y*v.Y)
 	return Vector2D{v.X * sum * base, v.Y * sum * base}
 }
+
 // сложение векторов
 func (v Vector2D) Plus(v2 Vector2D) Vector2D {
 	return Vector2D{v.X + v2.X, v.Y + v2.Y}
 }
+
 // вычитание векторов
 func (v Vector2D) Minus(v2 Vector2D) Vector2D {
-	return Vector2D{v.X - v2.X, v.Y - v2.Y};
+	return Vector2D{v.X - v2.X, v.Y - v2.Y}
 }
+
 // деление вектора на число
 func (v Vector2D) Devide(devider float64) Vector2D {
 	return Vector2D{v.X / devider, v.Y / devider}
 }
+
 // умножение вектора на число
 func (v Vector2D) Mult(multiplier float64) Vector2D {
 	return Vector2D{v.X * multiplier, v.Y * multiplier}
 }
+
 // единичный вектор, колинеарный данному
 func (v Vector2D) Unit() Vector2D {
-	var sum float64 = 1 / math.Sqrt(v.X * v.X + v.Y * v.Y);
+	var sum float64 = 1 / math.Sqrt(v.X*v.X+v.Y*v.Y)
 	return Vector2D{v.X * sum, v.Y * sum}
 }
+
 // обратный вектор
 func (v Vector2D) Revers() Vector2D {
 	return Vector2D{-v.X, -v.Y}
 }
 
 func (v Vector2D) Limit(max float64) Vector2D {
-	if v.X * v.X + v.Y * v.Y > max * max {
+	if v.X*v.X+v.Y*v.Y > max*max {
 		return v.Modulus(max)
 	} else {
 		return v
@@ -94,17 +99,17 @@ type Line2D struct {
 	// Ax + By + C = 0
 	A, B, C float64
 
-    // (-B; A) - направляющий вектор
+	// (-B; A) - направляющий вектор
 	// (A; B) - нормаль
 }
 
 func LineByPoints(p1, p2 Point2D) Line2D {
 	// X(y1 - y2) + Y (x2 - x1) + x1y1 - x2y1 = 0
-	var res Line2D = Line2D{};
-	res.A = p1.Y - p2.Y;
-	res.B = p2.X - p1.X;
-	res.C = p1.X * p2.Y - p2.X * p1.Y;
-	return res;
+	var res Line2D = Line2D{}
+	res.A = p1.Y - p2.Y
+	res.B = p2.X - p1.X
+	res.C = p1.X*p2.Y - p2.X*p1.Y
+	return res
 }
 
 // направляющий вектор (он же колинеарный) к прямой
@@ -120,7 +125,7 @@ func (l Line2D) Normal() Vector2D {
 // уравнение перпендикулярной прямой через точку
 func (l Line2D) Perpendicular(p Point2D) Line2D {
 	// https://www.desmos.com/calculator/ywbgran4rg
-	return Line2D{-l.B, l.A, p.X * l.B - p.Y * l.A}
+	return Line2D{-l.B, l.A, p.X*l.B - p.Y*l.A}
 }
 
 type Circle struct {
@@ -129,12 +134,12 @@ type Circle struct {
 }
 
 type Rectangle struct {
-	Center Point2D
+	Center        Point2D
 	Height, Width float64
-	Angle float64
+	Angle         float64
 }
 
 type HairLine struct {
 	Start Point2D
-	End Point2D
+	End   Point2D
 }

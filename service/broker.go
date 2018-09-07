@@ -5,11 +5,10 @@ import (
 	"log"
 )
 
-
 // Брокер, который разруливает в какой сервис отправлять сообщение
 type MessageBroker interface {
-	Send(msg ServiceMessage)      // отправка сообщения в брокер для конкретного получателя
-	RegisterService(svc Service)  // регистрация нового сервиса в брокере
+	Send(msg ServiceMessage)     // отправка сообщения в брокер для конкретного получателя
+	RegisterService(svc Service) // регистрация нового сервиса в брокере
 	Start()
 }
 
@@ -26,7 +25,7 @@ type BrokerRegisterServiceResponse struct {
 	Ch chan ServiceMessage
 }
 
-type TypedMessageStub struct {}
+type TypedMessageStub struct{}
 
 func (m TypedMessageStub) GetType() uint64 {
 	log.Println("Warning! Using TypedMessageStub")
@@ -67,7 +66,7 @@ func (broker *BrokerImplementation) StartReading() {
 			serviceType := service.GetType()
 
 			broker.services[nextId] = service
-			broker.serviceByTypes[serviceType] =  service
+			broker.serviceByTypes[serviceType] = service
 
 			//log.Println("Broker: sending registration to service")
 			service.StoreRegisteration(nextId, broker.mainChan)

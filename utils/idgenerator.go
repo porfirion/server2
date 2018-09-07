@@ -9,7 +9,7 @@ type idGeneratorImpl struct {
 }
 
 func (en *idGeneratorImpl) NextId() uint64 {
-	return <- en.ch
+	return <-en.ch
 }
 
 func NewIdGenerator(startWith uint64) IdGenerator {

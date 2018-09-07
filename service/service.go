@@ -2,8 +2,8 @@ package service
 
 import (
 	"errors"
-	"time"
 	"log"
+	"time"
 )
 
 // Начитавшись хабра (https://habrahabr.ru/company/mailru/blog/220359/)

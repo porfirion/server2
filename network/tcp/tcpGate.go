@@ -1,9 +1,9 @@
 package tcp
 
 import (
+	"github.com/porfirion/server2/network/pool"
 	"log"
 	"net"
-	"github.com/porfirion/server2/network/pool"
 )
 
 type TcpGate struct {

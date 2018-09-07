@@ -1,12 +1,12 @@
 package game
 
 import (
+	. "github.com/porfirion/server2/messages"
+	"github.com/porfirion/server2/service"
 	"github.com/porfirion/server2/world"
 	"log"
 	"math/rand"
 	"time"
-	"github.com/porfirion/server2/service"
-	. "github.com/porfirion/server2/messages"
 )
 
 const (
@@ -283,7 +283,7 @@ func (logic *GameLogic) Start() {
 			stepsCount := 0
 			globallyChanged := false
 
-			if (!logic.NextStepTime.Equal(time.Now()) && !logic.NextStepTime.Before(time.Now())) {
+			if !logic.NextStepTime.Equal(time.Now()) && !logic.NextStepTime.Before(time.Now()) {
 				log.Println("WARNING! simulation timer fired before next step!")
 			}
 

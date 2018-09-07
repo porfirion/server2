@@ -1,5 +1,10 @@
 package next
 
+import (
+	"github.com/porfirion/server2/network/pool"
+	"github.com/porfirion/server2/world"
+)
+
 type InputKey int
 
 const (
@@ -22,7 +27,7 @@ const (
 	// пошаговый режим - запускаем следующий шаг только при приходе соответствующей команды
 	SimulationModeStepByStep SimulationMode = 2
 	// непрерывная симуляция для "проигрывания" записи
-	SimulationModeReplay     SimulationMode = 3
+	SimulationModeReplay SimulationMode = 3
 )
 
 type PlayerInput struct {
@@ -37,3 +42,18 @@ func (i PlayerInput) GetGameTick() uint {
 	return i.gameTick
 }
 
+// Описание видимого мира для конкретного игрока
+type PlayerState struct {
+	conn pool.Connection // непосредственное соединение с игроком
+}
+
+type Player struct {
+	preStates         map[uint]PlayerState
+	playerObject      world.MapObject
+	additionalObjects []world.MapObject
+}
+
+func (player Player) SendState(state PlayerState) {
+	// count diff with prev state
+	// send diff to player
+}

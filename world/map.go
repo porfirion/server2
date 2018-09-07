@@ -156,7 +156,6 @@ func (world *WorldMap) ProcessSimulationStep(passedTimeDur time.Duration) (somet
 	return
 }
 
-
 // Ищет возможные коллизии.
 // TODO здесь надо бы переделать на bounding box
 // Wide phase

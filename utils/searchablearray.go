@@ -1,4 +1,4 @@
-package network
+package utils
 
 type SearchableArray []uint64
 

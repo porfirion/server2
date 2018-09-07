@@ -1,9 +1,9 @@
 package pool
 
 import (
-	"time"
 	"errors"
 	"github.com/porfirion/server2/service"
+	"time"
 )
 
 type Connection interface {

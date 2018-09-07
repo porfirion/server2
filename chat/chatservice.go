@@ -1,9 +1,9 @@
 package chat
 
 import (
+	"github.com/porfirion/server2/messages"
 	"github.com/porfirion/server2/service"
 	"log"
-	"github.com/porfirion/server2/messages"
 )
 
 type ChatService struct {

@@ -34,8 +34,8 @@ func (connection *WebsocketConnection) StartReading() {
 			connection.NotifyPoolWeAreClosing()
 		}()
 
-
-		ReadingLoop: for {
+	ReadingLoop:
+		for {
 			if msgType, buffer, err := connection.ws.ReadMessage(); err == nil {
 				switch msgType {
 				case websocket.CloseMessage:

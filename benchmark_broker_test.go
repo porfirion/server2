@@ -1,8 +1,8 @@
 package main
 
 import (
-	"testing"
 	"github.com/porfirion/server2/service"
+	"testing"
 )
 
 type OutputService struct {
