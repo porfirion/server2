@@ -63,7 +63,15 @@ class Drawer {
     }
 
     public removeObject(objectId: number): void {
-
+        let index = this.objects.findIndex((obj) => {
+            return obj.getId() == objectId;
+        });
+        if (index > -1) {
+            this.objects.splice(index, 1);
+        } else {
+            console.warn("object with id %d not found", objectId);
+        }
+        this.objectsById.delete(objectId);
     }
 
     public setCanvasSize(width: number, height: number) {

@@ -34,6 +34,16 @@ var Drawer = /** @class */ (function () {
         return obj;
     };
     Drawer.prototype.removeObject = function (objectId) {
+        var index = this.objects.findIndex(function (obj) {
+            return obj.getId() == objectId;
+        });
+        if (index > -1) {
+            this.objects.splice(index, 1);
+        }
+        else {
+            console.warn("object with id %d not found", objectId);
+        }
+        this.objectsById.delete(objectId);
     };
     Drawer.prototype.setCanvasSize = function (width, height) {
         // this.elem.width = this.elem.clientWidth;

@@ -8,11 +8,12 @@ var CanvasInputController = /** @class */ (function () {
         this.initHandlers();
     }
     CanvasInputController.prototype.initHandlers = function () {
-        $(this.canvas).on('mousedown', this.onMouseDown.bind(this));
+        $(this.canvas).on("mousedown", this.onMouseDown.bind(this));
         $(this.canvas).on('mousemove', this.onMouseMove.bind(this));
         $(this.canvas).on('mouseenter', this.onMouseEnter.bind(this));
         $(this.canvas).on('mouseout', this.onMouseOut.bind(this));
-        $(this.canvas).on('mousewheel DOMMouseScroll', this.onMouseWheel.bind(this));
+        $(this.canvas).on('mousewheel', this.onMouseWheel.bind(this));
+        $(this.canvas).on('DOMMouseScroll', this.onMouseWheel.bind(this));
         $(this.canvas).on('contextmenu', this.onContextMenu.bind(this));
     };
     CanvasInputController.prototype.onMouseDown = function (event) {
@@ -48,14 +49,16 @@ var CanvasInputController = /** @class */ (function () {
     CanvasInputController.prototype.onMouseOut = function (event) {
     };
     CanvasInputController.prototype.onMouseWheel = function (event) {
-        var params = normalizeWheel(event.originalEvent);
-        if (params.spinY > 0) {
-            // на себя
-            this.drawer.getViewport().scaleBy(1.0 / SCALE_STEP);
-        }
-        else {
-            // от себя
-            this.drawer.getViewport().scaleBy(SCALE_STEP);
+        if (typeof event.originalEvent !== 'undefined' && event.originalEvent instanceof MouseEvent) {
+            var params = normalizeWheel(event.originalEvent);
+            if (params.spinY > 0) {
+                // на себя
+                this.drawer.getViewport().scaleBy(1.0 / SCALE_STEP);
+            }
+            else {
+                // от себя
+                this.drawer.getViewport().scaleBy(SCALE_STEP);
+            }
         }
         // capture all scrolling over map
         return false;

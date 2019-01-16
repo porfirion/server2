@@ -14,15 +14,16 @@ class CanvasInputController {
     }
 
     initHandlers(): void {
-        $(this.canvas).on('mousedown', this.onMouseDown.bind(this));
+        $(this.canvas).on("mousedown", this.onMouseDown.bind(this));
         $(this.canvas).on('mousemove', this.onMouseMove.bind(this));
         $(this.canvas).on('mouseenter', this.onMouseEnter.bind(this));
         $(this.canvas).on('mouseout', this.onMouseOut.bind(this));
-        $(this.canvas).on('mousewheel DOMMouseScroll', this.onMouseWheel.bind(this));
+        $(this.canvas).on('mousewheel', this.onMouseWheel.bind(this));
+        $(this.canvas).on('DOMMouseScroll', this.onMouseWheel.bind(this));
         $(this.canvas).on('contextmenu', this.onContextMenu.bind(this));
     }
 
-    onMouseDown(event: MouseEvent): boolean {
+    onMouseDown(event: JQuery.MouseDownEvent<HTMLCanvasElement, undefined, HTMLCanvasElement, HTMLCanvasElement>): boolean {
         let canvasCoords = {x: event.offsetX, y: event.offsetY};
 
         let viewportCoords = this.drawer.getViewport().fromCanvas(canvasCoords);
@@ -48,26 +49,28 @@ class CanvasInputController {
         return false;
     }
 
-    onMouseMove(event: MouseEvent): void {
+    onMouseMove(event: JQuery.MouseMoveEvent<HTMLCanvasElement, undefined, HTMLCanvasElement, HTMLCanvasElement>): void {
         let canvasCoords = {x: event.offsetX, y: event.offsetY};
         let viewportCoords = this.drawer.getViewport().fromCanvas(canvasCoords);
         let realCoords = this.drawer.getViewport().toReal(viewportCoords);
     }
 
-    onMouseEnter(event: MouseEvent): void {
+    onMouseEnter(event: JQuery.MouseEnterEvent<HTMLCanvasElement, undefined, HTMLCanvasElement, HTMLCanvasElement>): void {
     }
 
-    onMouseOut(event: MouseEvent): void {
+    onMouseOut(event: JQuery.MouseOutEvent<HTMLCanvasElement, undefined, HTMLCanvasElement, HTMLCanvasElement>): void {
     }
 
-    onMouseWheel(event: {originalEvent: WheelEvent}): boolean {
-        let params = normalizeWheel(event.originalEvent);
-        if (params.spinY > 0) {
-            // на себя
-            this.drawer.getViewport().scaleBy(1.0/SCALE_STEP);
-        } else {
-            // от себя
-            this.drawer.getViewport().scaleBy(SCALE_STEP);
+    onMouseWheel(event: JQuery.TriggeredEvent<HTMLCanvasElement, undefined, HTMLCanvasElement, HTMLCanvasElement>): boolean {
+        if (typeof event.originalEvent !== 'undefined' && event.originalEvent instanceof MouseEvent) {
+            let params = normalizeWheel(event.originalEvent);
+            if (params.spinY > 0) {
+                // на себя
+                this.drawer.getViewport().scaleBy(1.0 / SCALE_STEP);
+            } else {
+                // от себя
+                this.drawer.getViewport().scaleBy(SCALE_STEP);
+            }
         }
 
         // capture all scrolling over map

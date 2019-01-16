@@ -56,7 +56,7 @@ var Protocol = /** @class */ (function () {
     };
     Protocol.prototype.onMessage = function (eventType, wrapper) {
         if (wrapper.type === MessageType.WELCOME) {
-            this.id = wrapper.id;
+            this.id = wrapper.data.id;
         }
         if (wrapper.type === MessageType.SYNC_TIME) {
             this.syncTime(wrapper);
@@ -97,7 +97,8 @@ var Protocol = /** @class */ (function () {
         if (this.timeCorrections.length > 10) {
             this.timeCorrections.shift();
         }
-        this.trigger("timeSynced" /* TimeSynced */, { latency: latency, correction: correction });
+        // TODO откуда это взялось?
+        //this.trigger(ClientEvent.TimeSynced, {latency: latency, correction: correction});
     };
     return Protocol;
 }());

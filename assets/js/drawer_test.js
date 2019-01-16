@@ -4,6 +4,8 @@ const OBJECTS_DISTANCE = 0;
 const OBJECTS_COUNT = 1000;
 const BOUND = 5000;
 
+const objects = [];
+
 function onLoad() {
     let spriteFactory = new SpriteFactory();
 
@@ -15,56 +17,66 @@ function onLoad() {
     updateViewportSize();
     updateViewportInfo();
 
-    let objects = [];
-    for (let i = 0; i < OBJECTS_COUNT; i++) {
-        let obj = drawer.createObject();
-        obj.setSize(Math.random() * 5 + 10);
-        obj.setPosition({
-            x: Math.random() * OBJECTS_DISTANCE * 2 - OBJECTS_DISTANCE,
-            y: Math.random() * OBJECTS_DISTANCE * 2 - OBJECTS_DISTANCE
+    function initObjects() {
+        // очищаем объекты
+        objects.forEach(function(obj) {
+            drawer.removeObject(obj.obj.id);
         });
-        // obj.addLayer("rect", new RectLayer(obj, randomColor()/*, randomColor()*/));
-        // obj.addLayer("circle", new CircleLayer(obj, randomColor()/*, randomColor()*/));
-        // obj.addLayer("id", new IdLayer(obj));
-        obj.addLayer("image", new ImageLayer(obj, spriteFactory.getSprite("/assets/img/pig.png")));
+        objects.splice(0, objects.length);
 
-        let x = Math.random() - 0.5;
-        let y = Math.random() - 0.5;
+        document.getElementById("info").innerHTML = "Objects count: " + OBJECTS_COUNT;
 
-        // square
-        // let abs = Math.abs(x) + Math.abs(y);
-        // let speed = {x: x / abs, y: y / abs};
+        for (let i = 0; i < OBJECTS_COUNT; i++) {
+            let obj = drawer.createObject();
+            obj.setSize(Math.random() * 5 + 10);
+            obj.setPosition({
+                x: Math.random() * OBJECTS_DISTANCE * 2 - OBJECTS_DISTANCE,
+                y: Math.random() * OBJECTS_DISTANCE * 2 - OBJECTS_DISTANCE
+            });
+            // obj.addLayer("rect", new RectLayer(obj, randomColor()/*, randomColor()*/));
+            // obj.addLayer("circle", new CircleLayer(obj, randomColor()/*, randomColor()*/));
+            // obj.addLayer("id", new IdLayer(obj));
+            obj.addLayer("image", new ImageLayer(obj, spriteFactory.getSprite("/assets/img/pig.png")));
 
-        // circle
-        // let abs = Math.sqrt(x * x + y * y);
-        // let speed = {x: x / abs, y: y / abs};
+            let x = Math.random() - 0.5;
+            let y = Math.random() - 0.5;
 
-        let speed = {x: x, y: y};
+            // square
+            // let abs = Math.abs(x) + Math.abs(y);
+            // let speed = {x: x / abs, y: y / abs};
 
-        if (i < 10) {
-            speed = {x: 0, y: 0};
-            obj.setSize(20);
-            obj.addLayer("id", new IdLayer(obj));
-            obj.setPosition({x: i * 45 - 205, y: 0});
+            // circle
+            // let abs = Math.sqrt(x * x + y * y);
+            // let speed = {x: x / abs, y: y / abs};
+
+            let speed = {x: x, y: y};
+
+            if (i < 10) {
+                speed = {x: 0, y: 0};
+                obj.setSize(20);
+                obj.addLayer("id", new IdLayer(obj));
+                obj.setPosition({x: i * 45 - 205, y: 0});
+            }
+
+            if (i === 0) {
+                obj.addLayer("particle", new ParticleLayer(obj, {
+                    emit: () => {
+                        return new Particle(randomColor(), 10);
+                    }
+                }));
+            } else if (i === 1) {
+
+            }
+
+            objects.push({
+                obj: obj,
+                start: obj.getPosition(),
+                speed: speed,
+                startTime: Date.now(),
+            });
         }
-
-        if (i === 0) {
-            obj.addLayer("particle", new ParticleLayer(obj, {
-                emit: () => {
-                    return new Particle(randomColor(), 10);
-                }
-            }));
-        } else if (i === 1) {
-
-        }
-
-        objects.push({
-            obj: obj,
-            start: obj.getPosition(),
-            speed: speed,
-            startTime: Date.now(),
-        });
     }
+    initObjects();
 
     // drawer.viewport.setScale(0.095); // for global view
     drawer.viewport.setScale(3.500);// for detailed view
@@ -216,4 +228,8 @@ function onLoad() {
             + 'dx: ' + (realCoords.x - realOptCoords.x).toFixed(8) + ' dy: ' + (realCoords.y - realOptCoords.y).toFixed(8)
         ;
     });
+
+    document.getElementById("restartButton").addEventListener("click", function() {
+        initObjects();
+    })
 }

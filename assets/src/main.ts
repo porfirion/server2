@@ -22,7 +22,8 @@ class Application {
 
         this.canvas = canvas;
         this.drawer = new Drawer(canvas.getContext("2d"), 0, 0);
-        this.input = new CanvasInputController(this.canvas, this.drawer, this.gameState);
+        // @ts-ignore
+        this.input = new CanvasInputController(this.canvas, this.drawer, this.gameState, jQuery);
         this.client = new WsClient(SERVER_ADDR);
 
         this.protocol = new Protocol(this.client, this.gameState);
@@ -80,6 +81,7 @@ window.addEventListener('load', function (ev: Event) {
     let canvas = window.document.getElementById("canvas") as HTMLCanvasElement;
     if (canvas != null) {
         let app: Application = new Application(canvas);
+        // @ts-ignore
         window.app = app;
         app.start();
     } else {

@@ -91,7 +91,7 @@ class Protocol {
 
     onMessage(eventType: string, wrapper: MessageWrapper): void {
         if (wrapper.type === MessageType.WELCOME) {
-            this.id = wrapper.id;
+            this.id = wrapper.data.id;
         }
         if (wrapper.type === MessageType.SYNC_TIME) {
             this.syncTime(wrapper);
@@ -142,6 +142,7 @@ class Protocol {
             this.timeCorrections.shift();
         }
 
-        this.trigger(ClientEvent.TimeSynced, {latency: latency, correction: correction});
+        // TODO откуда это взялось?
+        //this.trigger(ClientEvent.TimeSynced, {latency: latency, correction: correction});
     }
 }
