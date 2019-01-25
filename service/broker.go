@@ -84,7 +84,7 @@ func (broker *BrokerImplementation) StartReading() {
 					dest.Deliver(serviceMessage)
 				} else {
 					log.Printf("Broker: can't find service type %d\n", serviceMessage.DestinationServiceType)
-					log.Fatal("Broker: can't find service type %d\n", serviceMessage.DestinationServiceType)
+					log.Fatalf("Broker: can't find service type %d\n", serviceMessage.DestinationServiceType)
 				}
 			} else if destinationServiceType := broker.messageRouter(serviceMessage); destinationServiceType != 0 {
 				if dest := broker.serviceByTypes[destinationServiceType]; dest != nil {

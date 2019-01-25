@@ -30,9 +30,25 @@ const (
 	SimulationModeReplay SimulationMode = 3
 )
 
+type ControlMessage int16
+
+const (
+	ControlMessageStop     ControlMessage = 1
+	ControlMessageSimulate ControlMessage = 2
+)
+
+type PlayerAction int32
+
+const (
+	PlayerActionMove    = 1
+	PlayerActionAbility = 2
+)
+
 type PlayerInput struct {
 	PlayerId    uint
 	gameTick    uint // tick of the game when input was received
+	Action      PlayerAction
+	actionData  interface{}
 	PressedKeys []InputKey
 	MouseVector Vector // position of mouse relative to screen center (aka viewport position/player object position)
 }
@@ -48,7 +64,7 @@ type PlayerState struct {
 }
 
 type Player struct {
-	preStates         map[uint]PlayerState
+	prevStates        map[uint]PlayerState
 	playerObject      world.MapObject
 	additionalObjects []world.MapObject
 }
@@ -56,4 +72,10 @@ type Player struct {
 func (player Player) SendState(state PlayerState) {
 	// count diff with prev state
 	// send diff to player
+}
+
+type GameState = interface{}
+
+func NewGameState() GameState {
+	return nil;
 }
