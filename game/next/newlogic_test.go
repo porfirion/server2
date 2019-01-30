@@ -7,8 +7,9 @@ import (
 )
 
 func TestLogicImpl(t *testing.T) {
-	l := NewLogic(SimulationModeStepByStep, time.Second, time.Second)
+	l := NewLogic(SimulationModeContinuous, time.Second, time.Second)
 	log.Println(l)
 	l.Start()
 	log.Println(l)
+	l.Stop()
 }
