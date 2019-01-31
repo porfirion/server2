@@ -2,7 +2,6 @@ package next
 
 import (
 	"github.com/porfirion/server2/network/pool"
-	"github.com/porfirion/server2/world"
 )
 
 type InputKey int
@@ -67,8 +66,8 @@ type PlayerState struct {
 
 type Player struct {
 	prevStates        map[uint]PlayerState
-	playerObject      world.MapObject
-	additionalObjects []world.MapObject
+	playerObjectId    uint64
+	additionalObjects []uint64
 }
 
 func (player Player) SendState(state PlayerState) {

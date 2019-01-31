@@ -1,12 +1,15 @@
 package next
 
 import (
-	"log"
+	logMod "log"
 	"math"
+	"os"
 	"time"
 
 	"github.com/porfirion/server2/world"
 )
+
+var log = logMod.New(os.Stdout, "Newlogic: ", logMod.Ltime | logMod.Lshortfile)
 
 type LogicImpl struct {
 	gameTick         uint64
@@ -48,7 +51,7 @@ func (l *LogicImpl) ShouldSimulate() bool {
 
 func (l *LogicImpl) receiveInputsUntilShouldSimulate() []PlayerInput {
 	//listen to control chan in parallel.
-	log.Println("Receiving inputs")
+	log.Println("receiving inputs")
 
 	var inputsBuffer []PlayerInput
 
@@ -58,7 +61,7 @@ func (l *LogicImpl) receiveInputsUntilShouldSimulate() []PlayerInput {
 		// receive everything from input chan until next simulation time
 		timeout = l.NextSimulationTime().Sub(time.Now())
 		if timeout <= 0 {
-			log.Println("Time to tick has already come!")
+			log.Println("time to tick has already come!")
 			// время уже прошло!
 			return inputsBuffer;
 		}
@@ -92,7 +95,7 @@ func (l *LogicImpl) receiveInputsUntilShouldSimulate() []PlayerInput {
 		select {
 		case msg := <-l.inputChan:
 			inputsBuffer = append(inputsBuffer, msg)
-			log.Println("Logic: received message ", msg)
+			log.Println("received message ", msg)
 			countReceived++
 		case ctrl := <-l.controlChan:
 			switch ctrl {
@@ -106,7 +109,7 @@ func (l *LogicImpl) receiveInputsUntilShouldSimulate() []PlayerInput {
 			default:
 				log.Printf("Unknown control message %d", ctrl)
 			}
-			log.Println("Logic: SHOULD STOP!!!")
+			log.Println("SHOULD STOP!!!")
 		case <-timer.C:
 			// пришло время, больше ничего читать не будем
 			log.Println("timer fired")
@@ -115,7 +118,7 @@ func (l *LogicImpl) receiveInputsUntilShouldSimulate() []PlayerInput {
 		}
 	}
 
-	log.Printf("Received %d inputs\n", countReceived)
+	log.Printf("received %d inputs\n", countReceived)
 
 	return inputsBuffer
 }
@@ -171,7 +174,7 @@ func (l *LogicImpl) mainStep(inputs []PlayerInput) {
 // получаем весь инпут, складываем его в очередь
 // как только настаёт время - выполняем основной шаг (mainStep)
 func (l *LogicImpl) mainLoop() {
-	log.Println("Starting main loop")
+	log.Println("starting main loop")
 	for !l.flagShouldStop {
 		// вычитываем инпут и кладём в очередь
 		// до тех пор, пока не придёт время симулировать
@@ -179,7 +182,7 @@ func (l *LogicImpl) mainLoop() {
 
 		l.mainStep(inputsBuffer)
 	}
-	log.Println("Main loop stopped")
+	log.Println("main loop stopped")
 }
 
 func (l *LogicImpl) Start() {
