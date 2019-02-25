@@ -2,6 +2,8 @@ package next
 
 import (
 	"github.com/porfirion/server2/network/pool"
+	"io"
+	"time"
 )
 
 type InputKey int
@@ -34,8 +36,11 @@ const (
 type ControlMessage int16
 
 const (
-	ControlMessageStop     ControlMessage = 1
-	ControlMessageSimulate ControlMessage = 2
+	ControlMessageStop       ControlMessage = 1
+	ControlMessageSimulate   ControlMessage = 2
+	ControlMessageChangeModeContinuous ControlMessage = 4 | 1
+	ControlMessageChangeModeStepByStep ControlMessage = 4 | 2
+	ControlMessageChangeModeReplay ControlMessage = 4 | 3
 )
 
 type PlayerAction int32
@@ -75,8 +80,19 @@ func (player Player) SendState(state PlayerState) {
 	// send diff to player
 }
 
-type GameState = interface{}
+type GameState interface {
+	ProcessSimulationStep(time.Duration)
 
-func NewGameState() GameState {
-	return nil;
+	Copy() GameState
+
+	GetTickAndTime() (int64, time.Time)
+	SetTickAndTime(int64, time.Time)
+
+	Serialize(writer io.Writer)
+}
+
+type History struct {
+	state GameState
+	tick int64
+	time time.Time
 }

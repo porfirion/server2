@@ -31,7 +31,7 @@ type LogicImpl struct {
 	simulationStepTime     time.Duration // сколько виртуального времени проходит за один тик
 	simulationStepRealTime time.Duration // сколько реального времени проходит за один тик
 
-	prevStates map[uint64]GameState
+	prevStates []GameState
 	state      GameState
 }
 
@@ -106,6 +106,15 @@ func (l *LogicImpl) receiveInputsUntilShouldSimulate() []PlayerInput {
 				// если у нас обычная симуляция, то мы просто заставим шаг произойти преждевременно
 				l.flagShouldSimulate = true
 				stopReceiving = true
+			case ControlMessageChangeModeContinuous:
+				l.Mode = SimulationModeContinuous
+				stopReceiving = true
+			case ControlMessageChangeModeStepByStep:
+				l.Mode = SimulationModeStepByStep
+				stopReceiving = true
+			case ControlMessageChangeModeReplay:
+				l.Mode = SimulationModeReplay
+				stopReceiving = true
 			default:
 				log.Printf("Unknown control message %d", ctrl)
 			}
@@ -140,32 +149,26 @@ func (l *LogicImpl) sendStateToPlayers(state GameState) {
 	}
 }
 
-func (l *LogicImpl) simulateStep(state GameState, deltaTime time.Duration) GameState {
-	log.Println("simulate step stub")
-	l.gameTick++
-	l.gameTime = l.gameTime.Add(l.simulationStepTime);
-	l.prevTickRealTime = time.Now()
-	l.flagShouldSimulate = false
-
-	return state;
-}
-
 // Main step of server. Apply pending players inputs
 // run physics engine simulation,
 // calculate states for all players,
 // sending states to respective players
 func (l *LogicImpl) mainStep(inputs []PlayerInput) {
 	log.Println("main step started")
-	// ждём когда придёт время симулировать
-	if !l.ShouldSimulate() {
-		log.Println("We shouldn't simulate now!")
-		return;
-	}
 
+	l.prevStates = append(l.prevStates, l.state)
+
+	l.state = l.state.Copy()
+	tick, tm := l.state.GetTickAndTime()
+	l.state.SetTickAndTime(tick + 1, tm.Add(l.simulationStepTime))
 
 	l.state = l.applyPlayerInputs(l.state, inputs)
 	l.state = l.applyQueuedEvents(l.state)
-	l.state = l.simulateStep(l.state, l.simulationStepTime)
+
+	l.prevTickRealTime = time.Now()
+	l.flagShouldSimulate = false
+
+	l.state.ProcessSimulationStep(l.simulationStepTime)
 
 	log.Println("main step finished")
 }
@@ -175,12 +178,21 @@ func (l *LogicImpl) mainStep(inputs []PlayerInput) {
 // как только настаёт время - выполняем основной шаг (mainStep)
 func (l *LogicImpl) mainLoop() {
 	log.Println("starting main loop")
-	for !l.flagShouldStop {
-		// вычитываем инпут и кладём в очередь
-		// до тех пор, пока не придёт время симулировать
-		inputsBuffer := l.receiveInputsUntilShouldSimulate()
+	var inputsBuffer []PlayerInput
 
-		l.mainStep(inputsBuffer)
+	for !l.flagShouldStop {
+		// Read the inputs and put into queue until simulation time comes.
+		// But reading can break in case of receiving control message. So before simulation
+		// we should check if simulation time has come really
+		inputsBuffer := append(inputsBuffer, l.receiveInputsUntilShouldSimulate()...)
+
+		if l.ShouldSimulate() {
+			l.mainStep(inputsBuffer)
+
+			// Clear inputs buffer only after simulation,
+			// because receiving could be aborted before simulation time
+			inputsBuffer = inputsBuffer[:0]
+		}
 	}
 	log.Println("main loop stopped")
 }
@@ -209,13 +221,12 @@ func NewLogic(mode SimulationMode, stepTime, stepRealTime time.Duration) *LogicI
 		controlChan:            make(chan ControlMessage),
 		inputChan:              make(chan PlayerInput),
 		players:                make(map[uint]Player),
-		worldMap:               world.NewWorldMap(),
 		Mode:                   mode,
 		flagShouldStop:         false,
 		flagShouldSimulate:     false,
 		simulationStepTime:     stepTime,
 		simulationStepRealTime: stepRealTime,
-		prevStates:             make(map[uint64]GameState),
+		prevStates:             make([]GameState, 0, 10),
 		state:                  NewGameState(),
 	}
 	return logic

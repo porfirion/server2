@@ -113,8 +113,7 @@ func (world *WorldMap) GetCurrentTimeMillis() uint64 {
 
 //Выполнение симуляции.
 //return произошли ли какие-то существенные изменения
-func (world *WorldMap) ProcessSimulationStep(passedTimeDur time.Duration) (somethingChanged bool) {
-	somethingChanged = false
+func (world *WorldMap) ProcessSimulationStep(passedTimeDur time.Duration) {
 
 	world.SimulationTime += passedTimeDur
 
@@ -129,7 +128,6 @@ func (world *WorldMap) ProcessSimulationStep(passedTimeDur time.Duration) (somet
 				obj.CurrentPosition = obj.DestinationPosition
 				obj.DestinationPosition = NilPosition
 				obj.Speed = Vector2D{}
-				somethingChanged = true
 			} else {
 				//dx := obj.DestinationPosition.X - obj.CurrentPosition.X
 				//dy := obj.DestinationPosition.Y - obj.CurrentPosition.Y
@@ -149,8 +147,7 @@ func (world *WorldMap) ProcessSimulationStep(passedTimeDur time.Duration) (somet
 	}
 
 	if collisions := world.detectPossibleCollisions(); len(collisions) > 0 {
-		res := world.resolveCollisions(collisions)
-		somethingChanged = somethingChanged || res
+		world.resolveCollisions(collisions)
 	}
 
 	return

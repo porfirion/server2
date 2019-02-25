@@ -190,11 +190,10 @@ func (logic *GameLogic) getServerStateMessage() ServerStateMessage {
 	}
 }
 
-func (logic *GameLogic) executeSimulation(dt time.Duration) (changed bool) {
-	changed = logic.mWorldMap.ProcessSimulationStep(logic.Params.SimulationStepTime)
+func (logic *GameLogic) executeSimulation(dt time.Duration) {
+	logic.mWorldMap.ProcessSimulationStep(logic.Params.SimulationStepTime)
 	logic.PrevStepTime = time.Now()
 	logic.NextStepTime = logic.NextStepTime.Add(logic.Params.SimulationStepRealTime)
-	return
 }
 
 func (logic *GameLogic) Start() {
@@ -281,7 +280,6 @@ func (logic *GameLogic) Start() {
 			//log.Printf("Now %v next %v\n", time.Now(), service.NextStepTime)
 
 			stepsCount := 0
-			globallyChanged := false
 
 			if !logic.NextStepTime.Equal(time.Now()) && !logic.NextStepTime.Before(time.Now()) {
 				log.Println("WARNING! simulation timer fired before next step!")
@@ -292,8 +290,7 @@ func (logic *GameLogic) Start() {
 			// если уже пора симулировать, то симулируем, н оне больше 10 шагов
 			for (logic.NextStepTime.Equal(time.Now()) || logic.NextStepTime.Before(time.Now())) && stepsCount < logic.Params.MaxSimulationStepsAtOnce {
 				// если что-то изменилось - нужно разослать всем уведомления
-				changed := logic.executeSimulation(logic.Params.SimulationStepTime)
-				globallyChanged = globallyChanged || changed
+				logic.executeSimulation(logic.Params.SimulationStepTime)
 				stepsCount++
 
 				if stepsCount > 1 {
@@ -304,9 +301,7 @@ func (logic *GameLogic) Start() {
 			passedTime := time.Now().Sub(startTime)
 			log.Printf("Simulated %d steps (%d mcs): world time %d ms\n", stepsCount, passedTime/time.Microsecond, logic.mWorldMap.GetCurrentTimeMillis())
 
-			if globallyChanged || time.Now().Sub(logic.prevSyncTime) > MAX_SYNC_TIMEOUT {
-				logic.sendSyncPositionMessage()
-			}
+			logic.sendSyncPositionMessage()
 
 			timeToNextStep := logic.NextStepTime.Sub(time.Now())
 			//log.Printf("Delaying timer for %v nanoseconds\n", timeToNextStep.Nanoseconds())
