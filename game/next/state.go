@@ -10,8 +10,12 @@ type GameStateImpl struct {
 	*world.WorldMap
 }
 
+func (st *GameStateImpl) ProcessSimulationStep(time.Duration) GameState {
+	return st
+}
+
 func (st *GameStateImpl) Copy() GameState {
-	panic("implement me")
+	return st
 }
 
 func (st *GameStateImpl) GetTickAndTime() (int64, time.Time) {

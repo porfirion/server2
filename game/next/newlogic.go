@@ -1,6 +1,7 @@
 package next
 
 import (
+	"fmt"
 	logMod "log"
 	"math"
 	"os"
@@ -9,7 +10,7 @@ import (
 	"github.com/porfirion/server2/world"
 )
 
-var log = logMod.New(os.Stdout, "Newlogic: ", logMod.Ltime | logMod.Lshortfile)
+var log = logMod.New(os.Stdout, "NewLogic: ", logMod.Ltime|logMod.Lshortfile)
 
 type LogicImpl struct {
 	gameTick         uint64
@@ -17,27 +18,36 @@ type LogicImpl struct {
 
 	gameTime time.Time
 
-	controlChan chan ControlMessage
-	inputChan   chan PlayerInput
+	// канал, в который поступают управляющие события
+	controlChan <-chan ControlMessage
+
+	// канал, в который поступают действия игроков
+	inputChan <-chan PlayerInput
+
+	// заготовка под канал по которому будет отправляться информация для игроков
+	outputChan chan interface{}
+
+	// канал в окторый мы будем писать стейт целиком. Можно использовать для отладки
+	monitorChan chan<- GameState
 
 	players map[uint]Player
 
 	worldMap *world.WorldMap
 
-	Mode               SimulationMode // режим логики
+	Mode               SimulationMode // режим логики (нормальный/пошаговый/воспроизведение)
 	flagShouldStop     bool           // говорит что нужно остановить логику
 	flagShouldSimulate bool           // сбрасывается при начале mainStep
 
-	simulationStepTime     time.Duration // сколько виртуального времени проходит за один тик
-	simulationStepRealTime time.Duration // сколько реального времени проходит за один тик
+	simulationStepDuration     time.Duration // сколько виртуального времени проходит за один тик
+	simulationStepRealDuration time.Duration // сколько реального времени проходит за один тик
 
-	prevStates []GameState
-	state      GameState
+	history []HistoryEntry
+	state   GameState
 }
 
 func (l *LogicImpl) NextSimulationTime() time.Time {
 	if l.Mode == SimulationModeContinuous {
-		return l.prevTickRealTime.Add(l.simulationStepRealTime)
+		return l.prevTickRealTime.Add(l.simulationStepRealDuration)
 	} else {
 		// never
 		return time.Unix(math.MaxInt64, 0)
@@ -46,29 +56,35 @@ func (l *LogicImpl) NextSimulationTime() time.Time {
 
 // Говорит наступило ли время для симуляции
 func (l *LogicImpl) ShouldSimulate() bool {
-	return l.flagShouldSimulate || l.NextSimulationTime().Before(time.Now())
+	return l.flagShouldSimulate ||
+		(l.Mode == SimulationModeContinuous && l.NextSimulationTime().Before(time.Now()))
 }
 
 func (l *LogicImpl) receiveInputsUntilShouldSimulate() []PlayerInput {
 	//listen to control chan in parallel.
 	log.Println("receiving inputs")
 
+	countReceived := 0
+	defer func() {
+		log.Printf("received %d inputs\n", countReceived)
+	}()
+
 	var inputsBuffer []PlayerInput
 
 	var timeout time.Duration
 
-	if (l.Mode == SimulationModeContinuous) {
+	if l.Mode == SimulationModeContinuous {
 		// receive everything from input chan until next simulation time
 		timeout = l.NextSimulationTime().Sub(time.Now())
 		if timeout <= 0 {
 			log.Println("time to tick has already come!")
 			// время уже прошло!
-			return inputsBuffer;
+			return inputsBuffer
 		}
-	} else if (l.Mode == SimulationModeStepByStep) {
+	} else if l.Mode == SimulationModeStepByStep {
 		// receive everything from input chang until simulateMessage
 		timeout = math.MaxInt64
-	} else if (l.Mode == SimulationModeReplay) {
+	} else if l.Mode == SimulationModeReplay {
 		// get everything from replay source (aka input chan) and/not wait for simulate message
 
 		// будем предполагать, что воспроизведение - это будет обёртка над логикой, а логика об этом не будет ничего знать
@@ -87,9 +103,11 @@ func (l *LogicImpl) receiveInputsUntilShouldSimulate() []PlayerInput {
 		}
 	}()
 
-	countReceived := 0
+	var stopReceiving bool = false
 
-	var stopReceiving bool
+	if l.ShouldSimulate() {
+		fmt.Println("strange - we already should simulate")
+	}
 
 	for !stopReceiving && !l.ShouldSimulate() {
 		select {
@@ -127,8 +145,6 @@ func (l *LogicImpl) receiveInputsUntilShouldSimulate() []PlayerInput {
 		}
 	}
 
-	log.Printf("received %d inputs\n", countReceived)
-
 	return inputsBuffer
 }
 
@@ -147,6 +163,10 @@ func (l *LogicImpl) sendStateToPlayers(state GameState) {
 		// отправить пользователю найденные объекты пользователю
 		// TODO как быть с теми объектами, которые раньше пользователю отправляли а теперь они исчезли?
 	}
+
+	if l.monitorChan != nil {
+		l.monitorChan <- state
+	}
 }
 
 // Main step of server. Apply pending players inputs
@@ -156,26 +176,34 @@ func (l *LogicImpl) sendStateToPlayers(state GameState) {
 func (l *LogicImpl) mainStep(inputs []PlayerInput) {
 	log.Println("main step started")
 
-	l.prevStates = append(l.prevStates, l.state)
-
 	l.state = l.state.Copy()
-	tick, tm := l.state.GetTickAndTime()
-	l.state.SetTickAndTime(tick + 1, tm.Add(l.simulationStepTime))
+	l.gameTick += 1
+	l.gameTime.Add(l.simulationStepDuration)
 
 	l.state = l.applyPlayerInputs(l.state, inputs)
 	l.state = l.applyQueuedEvents(l.state)
 
 	l.prevTickRealTime = time.Now()
+
 	l.flagShouldSimulate = false
 
-	l.state.ProcessSimulationStep(l.simulationStepTime)
+	l.state = l.state.ProcessSimulationStep(l.simulationStepDuration)
+
+	l.history = append(l.history, HistoryEntry{
+		state:    l.state,
+		tick:     l.gameTick,
+		gameTime: l.gameTime,
+		realTime: time.Now(),
+	})
+
+	l.sendStateToPlayers(l.state)
 
 	log.Println("main step finished")
 }
 
 // основной цикл логики
-// получаем весь инпут, складываем его в очередь
-// как только настаёт время - выполняем основной шаг (mainStep)
+// receive inputs, put them into queue
+// when time has come - simulate next step
 func (l *LogicImpl) mainLoop() {
 	log.Println("starting main loop")
 	var inputsBuffer []PlayerInput
@@ -205,7 +233,12 @@ func (l *LogicImpl) Start() {
 // В реальности логика остановится только тогда, когда она проверит этот канал,
 // а это происходит тогда, когда она принимает инпуты
 func (l *LogicImpl) Stop() {
-	l.controlChan <- ControlMessageStop
+	if l.monitorChan != nil {
+		close(l.monitorChan)
+	}
+	if l.outputChan != nil {
+		close(l.outputChan)
+	}
 }
 
 // предполагаем, что события будут инициироваться не только игроками, но и самой логикой.
@@ -214,20 +247,26 @@ func (l *LogicImpl) applyQueuedEvents(state GameState) GameState {
 	return state
 }
 
-func NewLogic(mode SimulationMode, stepTime, stepRealTime time.Duration) *LogicImpl {
+func (l *LogicImpl) SetMonitorChan(ch chan<- GameState) {
+	l.monitorChan = ch
+}
+
+func NewLogic(controlChan <-chan ControlMessage, inputChan <-chan PlayerInput, mode SimulationMode, stepTime, stepRealTime time.Duration) *LogicImpl {
 	logic := &LogicImpl{
-		gameTick:               0,
-		prevTickRealTime:       time.Time{},
-		controlChan:            make(chan ControlMessage),
-		inputChan:              make(chan PlayerInput),
-		players:                make(map[uint]Player),
-		Mode:                   mode,
-		flagShouldStop:         false,
-		flagShouldSimulate:     false,
-		simulationStepTime:     stepTime,
-		simulationStepRealTime: stepRealTime,
-		prevStates:             make([]GameState, 0, 10),
-		state:                  NewGameState(),
+		gameTick:                   0,
+		prevTickRealTime:           time.Time{},
+		controlChan:                controlChan,
+		inputChan:                  inputChan,
+		outputChan:                 make(chan interface{}, 10),
+		monitorChan:                nil,
+		players:                    make(map[uint]Player),
+		Mode:                       mode,
+		flagShouldStop:             false,
+		flagShouldSimulate:         false,
+		simulationStepDuration:     stepTime,
+		simulationStepRealDuration: stepRealTime,
+		history:                    make([]HistoryEntry, 0, 10),
+		state:                      NewGameState(),
 	}
 	return logic
 }

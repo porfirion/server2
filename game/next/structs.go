@@ -36,11 +36,11 @@ const (
 type ControlMessage int16
 
 const (
-	ControlMessageStop       ControlMessage = 1
-	ControlMessageSimulate   ControlMessage = 2
+	ControlMessageStop                 ControlMessage = 1
+	ControlMessageSimulate             ControlMessage = 2
 	ControlMessageChangeModeContinuous ControlMessage = 4 | 1
 	ControlMessageChangeModeStepByStep ControlMessage = 4 | 2
-	ControlMessageChangeModeReplay ControlMessage = 4 | 3
+	ControlMessageChangeModeReplay     ControlMessage = 4 | 3
 )
 
 type PlayerAction int32
@@ -80,19 +80,18 @@ func (player Player) SendState(state PlayerState) {
 	// send diff to player
 }
 
+// GameState should contain all information about players, objects, etc.
 type GameState interface {
-	ProcessSimulationStep(time.Duration)
+	ProcessSimulationStep(time.Duration) GameState
 
 	Copy() GameState
-
-	GetTickAndTime() (int64, time.Time)
-	SetTickAndTime(int64, time.Time)
 
 	Serialize(writer io.Writer)
 }
 
-type History struct {
-	state GameState
-	tick int64
-	time time.Time
+type HistoryEntry struct {
+	state    GameState
+	tick     uint64
+	gameTime time.Time //(tick * stepDuration)
+	realTime time.Time
 }
