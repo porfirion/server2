@@ -70,7 +70,7 @@ type PlayerState struct {
 }
 
 type Player struct {
-	prevStates        map[uint]PlayerState
+	userId            uint64
 	playerObjectId    uint64
 	additionalObjects []uint64
 }
@@ -81,6 +81,10 @@ func (player Player) SendState(state PlayerState) {
 }
 
 // GameState should contain all information about players, objects, etc.
+// Consists of parts:
+//   1) list of PlayerState (can contain link to physical object)
+//   2) list of physical objects (can contain additional attributes such as playerId, etc)
+//   3) current time and all settings (does it differs from Logic itself?)
 type GameState interface {
 	ProcessSimulationStep(time.Duration) GameState
 

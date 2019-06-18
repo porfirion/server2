@@ -255,11 +255,13 @@ func NewLogic(controlChan <-chan ControlMessage, inputChan <-chan PlayerInput, m
 	logic := &LogicImpl{
 		gameTick:                   0,
 		prevTickRealTime:           time.Time{},
+		gameTime:                   time.Time{},
 		controlChan:                controlChan,
 		inputChan:                  inputChan,
 		outputChan:                 make(chan interface{}, 10),
 		monitorChan:                nil,
 		players:                    make(map[uint]Player),
+		worldMap:                   nil,
 		Mode:                       mode,
 		flagShouldStop:             false,
 		flagShouldSimulate:         false,

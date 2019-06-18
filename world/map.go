@@ -94,10 +94,10 @@ func (world *WorldMap) GetUserObject(userId uint64) *MapObject {
 	return world.UsersObjects[userId]
 }
 
-func (world *WorldMap) GetObjectsPositions() map[string]MapObjectDescription {
-	res := make(map[string]MapObjectDescription)
+func (world *WorldMap) GetObjectsPositions() map[string]MapObjectDTO {
+	res := make(map[string]MapObjectDTO)
 	for id, obj := range world.ObjectsById {
-		res[strconv.FormatUint(id, 10)] = obj.GetDescription()
+		res[strconv.FormatUint(id, 10)] = CreateDTOFromMapObject(obj)
 	}
 	//log.Printf("Map: users positions %#v\n", res)
 

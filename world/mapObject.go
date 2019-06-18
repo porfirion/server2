@@ -12,7 +12,7 @@ const (
 	MapObjectTypeUser                   = 100 // объект, который может изменять своё положение и принадлежащий какому-либо пользователю
 )
 
-type MapObjectDescription struct {
+type MapObjectDTO struct {
 	Id          uint64        `json:"id"`
 	ObjectType  MapObjectType `json:"objectType"`
 	Speed       Vector2D      `json:"speed"`
@@ -20,6 +20,30 @@ type MapObjectDescription struct {
 	UserId      uint64        `json:"userId"`
 	Size        float64       `json:"size"`
 	Destination Point2D       `json:"destination"`
+}
+
+func CreateDTOFromMapObject(obj *MapObject) MapObjectDTO {
+	dto := MapObjectDTO{
+		Id:          obj.Id,
+		ObjectType:  obj.ObjectType,
+		Position:    obj.CurrentPosition,
+		Speed:       obj.Speed,
+		Size:        obj.Size,
+		Destination: obj.DestinationPosition,
+		//StartPosition:       obj.StartPosition,
+		//StartTime:           obj.StartTime.UnixNano() / int64(time.Millisecond),
+		//DestinationPosition: obj.DestinationPosition,
+		//DestinationTime:     obj.DestinationTime.UnixNano() / int64(time.Millisecond),
+		//Direction:           direction.Modulus(),
+	}
+
+	if obj.UserId != 0 {
+		dto.UserId = obj.UserId
+	} else {
+		dto.UserId = 0
+	}
+
+	return dto
 }
 
 type MapObject struct {
@@ -42,30 +66,6 @@ func (a ByLeft) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 type MapObjectCollision struct {
 	obj1 *MapObject
 	obj2 *MapObject
-}
-
-func (obj *MapObject) GetDescription() MapObjectDescription {
-	description := MapObjectDescription{
-		Id:          obj.Id,
-		ObjectType:  obj.ObjectType,
-		Position:    obj.CurrentPosition,
-		Speed:       obj.Speed,
-		Size:        obj.Size,
-		Destination: obj.DestinationPosition,
-		//StartPosition:       obj.StartPosition,
-		//StartTime:           obj.StartTime.UnixNano() / int64(time.Millisecond),
-		//DestinationPosition: obj.DestinationPosition,
-		//DestinationTime:     obj.DestinationTime.UnixNano() / int64(time.Millisecond),
-		//Direction:           direction.Modulus(),
-	}
-
-	if obj.UserId != 0 {
-		description.UserId = obj.UserId
-	} else {
-		description.UserId = 0
-	}
-
-	return description
 }
 
 func (obj *MapObject) StartMoveTo(dest Point2D) {
