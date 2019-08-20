@@ -6,39 +6,39 @@ import (
 	"time"
 )
 
+func drain(ch chan interface{}) {
+	go func() {
+		for range ch {}
+	}()
+}
+
+func drainStates(ch chan GameState) <-chan int {
+	drained := 0
+	resp := make(chan int, 1)
+	go func() {
+		for range ch {
+			drained++
+		}
+
+		resp <- drained
+		close(resp)
+	}()
+
+	return resp
+}
+
 func TestLogicImplContinuous(t *testing.T) {
 	controlChan := make(chan ControlMessage)
 	inputChan := make(chan PlayerInput)
-	monitorChan := make(chan GameState)
 
 	l := NewLogic(controlChan, inputChan, SimulationModeContinuous, time.Second, time.Second)
-	l.SetMonitorChan(monitorChan)
 
-	go func() {
-		for msg := range monitorChan {
-			fmt.Println("State: %v", msg)
-		}
-	}()
-
-	go func() {
-		for msg := range l.outputChan {
-			fmt.Println("Output %v", msg)
-		}
-	}()
-
-	log.Println(l)
+	drain(l.outputChan)
 	l.Start()
-
-	//for i := 0; i < 10; i++ {
-	//	controlChan <- ControlMessageSimulate
-	//}
-
-	log.Println(l)
-	l.Stop()
+	<-l.Stop()
 }
 
-// Each simulate command should result in message from monitor chan
-func TestLogicImplStepByStep(t *testing.T) {
+func TestLogicImplStep(t *testing.T) {
 	controlChan := make(chan ControlMessage)
 	inputChan := make(chan PlayerInput)
 	monitorChan := make(chan GameState)
@@ -46,26 +46,54 @@ func TestLogicImplStepByStep(t *testing.T) {
 	l := NewLogic(controlChan, inputChan, SimulationModeStepByStep, time.Second, time.Second)
 	l.SetMonitorChan(monitorChan)
 
-	go func() {
-		for msg := range monitorChan {
-			fmt.Println("State: %v", msg)
-		}
-	}()
+	iterationsCount := 10
 
-	go func() {
-		for msg := range l.outputChan {
-			fmt.Println("Output %v", msg)
-		}
-	}()
+	drain(l.outputChan)
+	dr := drainStates(monitorChan)
 
-	log.Println(l)
 	l.Start()
 
-	for i := 0; i < 10; i++ {
+	for i := 0; i < iterationsCount; i++ {
+		fmt.Println("sending simulate")
 		controlChan <- ControlMessageSimulate
-		<-monitorChan
 	}
 
-	log.Println(l)
-	l.Stop()
+	<-l.Stop()
+	statesCount := <- dr
+
+	if iterationsCount != statesCount {
+		t.Fatalf("iterations count was %d and received %d states", iterationsCount, statesCount)
+	} else {
+		t.Logf("processed %d iterations", iterationsCount)
+	}
+}
+
+func TestLogicImplReplay(t *testing.T) {
+	controlChan := make(chan ControlMessage)
+	inputChan := make(chan PlayerInput)
+	monitorChan := make(chan GameState)
+
+	l := NewLogic(controlChan, inputChan, SimulationModeReplay, time.Second, time.Second)
+	l.SetMonitorChan(monitorChan)
+
+	iterationsCount := 10
+
+	drain(l.outputChan)
+	dr := drainStates(monitorChan)
+
+	l.Start()
+
+	for i := 0; i < iterationsCount; i++ {
+		fmt.Println("sending simulate")
+		controlChan <- ControlMessageSimulate
+	}
+
+	<-l.Stop()
+	statesCount := <- dr
+
+	if iterationsCount != statesCount {
+		t.Fatalf("iterations count was %d and received %d states", iterationsCount, statesCount)
+	} else {
+		t.Logf("processed %d steps", iterationsCount)
+	}
 }

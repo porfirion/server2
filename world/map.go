@@ -33,65 +33,64 @@ type WorldMap struct {
 	//213503,9823	дней
 	//584,9424174	лет
 	SimulationTime      time.Duration // сколько прошло игрового времени с начала симуляции
-	SimulationStartTime time.Time     // время начала симуляции (по идее оно чисто условное и может начинаться с любого времени)
 }
 
-func NewWorldMap() *WorldMap {
+func NewWorldMap(width, height float64) *WorldMap {
 	var world = new(WorldMap)
-	world.Width = 10000
-	world.Height = 10000
+	world.Width = width
+	world.Height = height
 	world.ObjectsById = make(map[uint64]*MapObject)
 	world.UsersObjects = make(map[uint64]*MapObject)
-	for i := 0; i < 10; i++ {
-		obj := world.NewObject(
-			Point2D{
-				X: rand.Float64()*200 - 100,
-				Y: rand.Float64()*200 - 100,
-			},
-			MapObjectTypeObstacle)
-		world.AddObject(obj)
-	}
 
-	world.SimulationStartTime = time.Now()
 	world.SimulationTime = 0 //time.Duration(10000000000 * rand.Float32())
 
 	log.Println("world created")
 	return world
 }
 
-func (world *WorldMap) NewObject(pos Point2D, objectType MapObjectType) *MapObject {
-	world.NextObjectId++
-	return &MapObject{Id: world.NextObjectId, ObjectType: objectType, CurrentPosition: pos, DestinationPosition: NilPosition, Mass: 10, Size: 10}
+func (m *WorldMap) TestFill() {
+	for i := 0; i < 10; i++ {
+		m.NewObject(
+			Point2D{
+				X: rand.Float64()*200 - 100,
+				Y: rand.Float64()*200 - 100,
+			},
+			MapObjectTypeObstacle)
+	}
 }
 
-func (world *WorldMap) AddObject(obj *MapObject) {
-	world.ObjectsById[obj.Id] = obj
-	world.Objects = append(world.Objects, obj)
-	sort.Sort(ByLeft(world.Objects))
-}
-
-func (world *WorldMap) AddUser(userId uint64, pos Point2D) *MapObject {
-	obj := world.NewObject(pos, MapObjectTypeUser)
-	world.AddObject(obj)
-	obj.UserId = userId
-
-	world.UsersObjects[userId] = obj
+func (m *WorldMap) NewObject(pos Point2D, objectType MapObjectType) *MapObject {
+	m.NextObjectId++
+	obj := &MapObject{Id: m.NextObjectId, ObjectType: objectType, CurrentPosition: pos, DestinationPosition: NilPosition, Mass: 10, Size: 10}
+	m.ObjectsById[obj.Id] = obj
+	m.Objects = append(m.Objects, obj)
+	sort.Sort(ByLeft(m.Objects))
 
 	return obj
 }
 
-func (world *WorldMap) RemoveObject(obj *MapObject) {
-	delete(world.ObjectsById, obj.Id)
+// should be removed from map
+func (m *WorldMap) AddUser(userId uint64, pos Point2D) *MapObject {
+	obj := m.NewObject(pos, MapObjectTypeUser)
+	obj.UserId = userId
+
+	m.UsersObjects[userId] = obj
+
+	return obj
 }
 
-func (world *WorldMap) RemoveUser(userId uint64) {
-	obj := world.UsersObjects[userId]
-	delete(world.UsersObjects, userId)
-	world.RemoveObject(obj)
+func (m *WorldMap) RemoveObject(obj *MapObject) {
+	delete(m.ObjectsById, obj.Id)
 }
 
-func (world *WorldMap) GetUserObject(userId uint64) *MapObject {
-	return world.UsersObjects[userId]
+func (m *WorldMap) RemoveUser(userId uint64) {
+	obj := m.UsersObjects[userId]
+	delete(m.UsersObjects, userId)
+	m.RemoveObject(obj)
+}
+
+func (m *WorldMap) GetUserObject(userId uint64) *MapObject {
+	return m.UsersObjects[userId]
 }
 
 func (world *WorldMap) GetObjectsPositions() map[string]MapObjectDTO {
@@ -104,23 +103,37 @@ func (world *WorldMap) GetObjectsPositions() map[string]MapObjectDTO {
 	return res
 }
 
+func (*WorldMap) GetObjectsInRadius(center Point2D, radius float64) []*MapObject {
+	panic("implement me!")
+}
+
+func (*WorldMap) GetObjectsInRect(leftTop Point2D, rightBottom Point2D) []*MapObject {
+	panic("implement me!")
+}
+
+// получение размеров карты
+func (m WorldMap) GetSize() Point2D {
+	return Point2D{m.Width, m.Height}
+}
+
+
 // возвращает текущее время в миллисекундах
 // (начиная с неизвестно чего). Имеет смысл ориентироваться только на разницу во времени,
 // а не на его абсолютное значение
-func (world *WorldMap) GetCurrentTimeMillis() uint64 {
-	return uint64(world.SimulationTime / time.Millisecond)
+func (m *WorldMap) GetCurrentTimeMillis() uint64 {
+	return uint64(m.SimulationTime / time.Millisecond)
 }
 
 //Выполнение симуляции.
 //return произошли ли какие-то существенные изменения
-func (world *WorldMap) ProcessSimulationStep(passedTimeDur time.Duration) {
+func (m *WorldMap) ProcessSimulationStep(passedTimeDur time.Duration) {
 
-	world.SimulationTime += passedTimeDur
+	m.SimulationTime += passedTimeDur
 
 	// время, которое прошло за шаг, секунды
 	var dt = float64(passedTimeDur) / float64(time.Second)
 
-	for _, obj := range world.ObjectsById {
+	for _, obj := range m.ObjectsById {
 		if obj.DestinationPosition != NilPosition {
 			//log.Println("moving ", id)
 			distance := obj.CurrentPosition.Distance2To(obj.DestinationPosition)
@@ -146,8 +159,8 @@ func (world *WorldMap) ProcessSimulationStep(passedTimeDur time.Duration) {
 		//log.Println("id, obj", id, obj)
 	}
 
-	if collisions := world.detectPossibleCollisions(); len(collisions) > 0 {
-		world.resolveCollisions(collisions)
+	if collisions := m.detectPossibleCollisions(); len(collisions) > 0 {
+		m.resolveCollisions(collisions)
 	}
 
 	return
@@ -156,14 +169,14 @@ func (world *WorldMap) ProcessSimulationStep(passedTimeDur time.Duration) {
 // Ищет возможные коллизии.
 // TODO здесь надо бы переделать на bounding box
 // Wide phase
-func (world *WorldMap) detectPossibleCollisions() []MapObjectCollision {
+func (m *WorldMap) detectPossibleCollisions() []MapObjectCollision {
 	collisions := make([]MapObjectCollision, 0)
-	for i := 0; i < len(world.Objects); i++ {
-		obj1 := world.Objects[i]
-		if i < len(world.Objects)-1 {
+	for i := 0; i < len(m.Objects); i++ {
+		obj1 := m.Objects[i]
+		if i < len(m.Objects)-1 {
 			// это не послдений объект в списке
-			for j := i + 1; j < len(world.Objects); j++ {
-				obj2 := world.Objects[j]
+			for j := i + 1; j < len(m.Objects); j++ {
+				obj2 := m.Objects[j]
 
 				if obj1.Id == obj2.Id {
 					log.Println("WARNING! the same objects!")
@@ -190,7 +203,7 @@ func (world *WorldMap) detectPossibleCollisions() []MapObjectCollision {
 	return collisions
 }
 
-func (world *WorldMap) resolveCollisions(collisions []MapObjectCollision) bool {
+func (m *WorldMap) resolveCollisions(collisions []MapObjectCollision) bool {
 	changed := false
 	log.Printf("Resolving %d collisions", len(collisions))
 	for _, collision := range collisions {

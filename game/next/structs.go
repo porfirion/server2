@@ -66,13 +66,14 @@ func (i PlayerInput) GetGameTick() uint {
 
 // Описание видимого мира для конкретного игрока
 type PlayerState struct {
-	conn pool.Connection // непосредственное соединение с игроком
 }
 
 type Player struct {
-	userId            uint64
-	playerObjectId    uint64
-	additionalObjects []uint64
+	Id                   uint
+	prevStates           map[uint]PlayerState
+	playerObjectId       uint64
+	additionalObjectsIds []uint64
+	conn                 pool.Connection // непосредственное соединение с игроком
 }
 
 func (player Player) SendState(state PlayerState) {
@@ -87,10 +88,9 @@ func (player Player) SendState(state PlayerState) {
 //   3) current time and all settings (does it differs from Logic itself?)
 type GameState interface {
 	ProcessSimulationStep(time.Duration) GameState
-
 	Copy() GameState
-
 	Serialize(writer io.Writer)
+	GetPlayerState(playerId uint) PlayerState
 }
 
 type HistoryEntry struct {

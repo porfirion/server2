@@ -203,7 +203,8 @@ func (logic *GameLogic) Start() {
 	logic.changeSimulationModeChannel = make(chan bool, 2)
 	logic.forceSimulationChannel = make(chan int, 1)
 
-	logic.mWorldMap = world.NewWorldMap()
+	logic.mWorldMap = world.NewWorldMap(10000, 10000)
+	logic.mWorldMap.TestFill()
 
 	logic.NextStepTime = time.Now()
 	logic.prevSyncTime = time.Unix(0, 0)

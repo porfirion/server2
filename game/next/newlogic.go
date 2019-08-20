@@ -1,16 +1,13 @@
 package next
 
 import (
-	"fmt"
 	logMod "log"
 	"math"
 	"os"
 	"time"
-
-	"github.com/porfirion/server2/world"
 )
 
-var log = logMod.New(os.Stdout, "NewLogic: ", logMod.Ltime|logMod.Lshortfile)
+var log = logMod.New(os.Stdout, "NewLogic: ", logMod.Lmicroseconds|logMod.Lshortfile)
 
 type LogicImpl struct {
 	gameTick         uint64
@@ -19,7 +16,7 @@ type LogicImpl struct {
 	gameTime time.Time
 
 	// канал, в который поступают управляющие события
-	controlChan <-chan ControlMessage
+	controlChan chan ControlMessage
 
 	// канал, в который поступают действия игроков
 	inputChan <-chan PlayerInput
@@ -32,8 +29,6 @@ type LogicImpl struct {
 
 	players map[uint]Player
 
-	worldMap *world.WorldMap
-
 	Mode               SimulationMode // режим логики (нормальный/пошаговый/воспроизведение)
 	flagShouldStop     bool           // говорит что нужно остановить логику
 	flagShouldSimulate bool           // сбрасывается при начале mainStep
@@ -41,8 +36,9 @@ type LogicImpl struct {
 	simulationStepDuration     time.Duration // сколько виртуального времени проходит за один тик
 	simulationStepRealDuration time.Duration // сколько реального времени проходит за один тик
 
-	history []HistoryEntry
-	state   GameState
+	history      []HistoryEntry
+	state        GameState
+	finishedChan chan bool // канал, единственная функция которого - быть открытым или закрытым
 }
 
 func (l *LogicImpl) NextSimulationTime() time.Time {
@@ -64,9 +60,10 @@ func (l *LogicImpl) receiveInputsUntilShouldSimulate() []PlayerInput {
 	//listen to control chan in parallel.
 	log.Println("receiving inputs")
 
-	countReceived := 0
+	inputsReceived := 0
+	controlsReceived := 0
 	defer func() {
-		log.Printf("received %d inputs\n", countReceived)
+		log.Printf("received %d inputs, %d controls\n", inputsReceived, controlsReceived)
 	}()
 
 	var inputsBuffer []PlayerInput
@@ -103,19 +100,22 @@ func (l *LogicImpl) receiveInputsUntilShouldSimulate() []PlayerInput {
 		}
 	}()
 
-	var stopReceiving bool = false
+	stopReceiving := false
 
 	if l.ShouldSimulate() {
-		fmt.Println("strange - we already should simulate")
+		log.Println("strange - we already should simulate")
+		stopReceiving = true
 	}
 
 	for !stopReceiving && !l.ShouldSimulate() {
 		select {
 		case msg := <-l.inputChan:
 			inputsBuffer = append(inputsBuffer, msg)
-			log.Println("received message ", msg)
-			countReceived++
+			log.Printf("input message %v\n", msg)
+			inputsReceived++
 		case ctrl := <-l.controlChan:
+			controlsReceived++
+			log.Printf("control message %v\n", ctrl)
 			switch ctrl {
 			case ControlMessageStop:
 				l.flagShouldStop = true
@@ -136,7 +136,7 @@ func (l *LogicImpl) receiveInputsUntilShouldSimulate() []PlayerInput {
 			default:
 				log.Printf("Unknown control message %d", ctrl)
 			}
-			log.Println("SHOULD STOP!!!")
+			log.Println("stopping wait loop")
 		case <-timer.C:
 			// пришло время, больше ничего читать не будем
 			log.Println("timer fired")
@@ -157,11 +157,9 @@ func (l *LogicImpl) applyPlayerInputs(state GameState, inputs []PlayerInput) Gam
 }
 
 func (l *LogicImpl) sendStateToPlayers(state GameState) {
-	for range l.players {
-		// взять вьюпорт пользователя
-		// найти объекты, которые в него попадают
-		// отправить пользователю найденные объекты пользователю
-		// TODO как быть с теми объектами, которые раньше пользователю отправляли а теперь они исчезли?
+	for _, player := range l.players {
+
+		player.SendState(state.GetPlayerState(player.Id));
 	}
 
 	if l.monitorChan != nil {
@@ -223,6 +221,7 @@ func (l *LogicImpl) mainLoop() {
 		}
 	}
 	log.Println("main loop stopped")
+	l.stop()
 }
 
 func (l *LogicImpl) Start() {
@@ -232,13 +231,14 @@ func (l *LogicImpl) Start() {
 // Говорит логике остановиться
 // В реальности логика остановится только тогда, когда она проверит этот канал,
 // а это происходит тогда, когда она принимает инпуты
-func (l *LogicImpl) Stop() {
+func (l *LogicImpl) stop() {
 	if l.monitorChan != nil {
 		close(l.monitorChan)
 	}
 	if l.outputChan != nil {
 		close(l.outputChan)
 	}
+	close(l.finishedChan)
 }
 
 // предполагаем, что события будут инициироваться не только игроками, но и самой логикой.
@@ -251,7 +251,14 @@ func (l *LogicImpl) SetMonitorChan(ch chan<- GameState) {
 	l.monitorChan = ch
 }
 
-func NewLogic(controlChan <-chan ControlMessage, inputChan <-chan PlayerInput, mode SimulationMode, stepTime, stepRealTime time.Duration) *LogicImpl {
+// синхронная операция - ждёт пока логика действительно не остановится
+func (l *LogicImpl) Stop() chan bool {
+	l.controlChan <- ControlMessageStop
+	// ждём пока этот канал не закроют
+	return l.finishedChan
+}
+
+func NewLogic(controlChan chan ControlMessage, inputChan <-chan PlayerInput, mode SimulationMode, stepTime, stepRealTime time.Duration) *LogicImpl {
 	logic := &LogicImpl{
 		gameTick:                   0,
 		prevTickRealTime:           time.Time{},
@@ -261,7 +268,6 @@ func NewLogic(controlChan <-chan ControlMessage, inputChan <-chan PlayerInput, m
 		outputChan:                 make(chan interface{}, 10),
 		monitorChan:                nil,
 		players:                    make(map[uint]Player),
-		worldMap:                   nil,
 		Mode:                       mode,
 		flagShouldStop:             false,
 		flagShouldSimulate:         false,
@@ -269,6 +275,7 @@ func NewLogic(controlChan <-chan ControlMessage, inputChan <-chan PlayerInput, m
 		simulationStepRealDuration: stepRealTime,
 		history:                    make([]HistoryEntry, 0, 10),
 		state:                      NewGameState(),
+		finishedChan:               make(chan bool),
 	}
 	return logic
 }

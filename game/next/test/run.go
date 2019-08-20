@@ -11,8 +11,10 @@ import (
 func main() {
 	log.SetOutput(os.Stdout)
 
+	control := make(chan next.ControlMessage)
+	input := make(chan next.PlayerInput)
 	log.Println("Creating")
-	logic := next.NewLogic(next.SimulationModeContinuous, time.Second, time.Second)
+	logic := next.NewLogic(control, input, next.SimulationModeContinuous, time.Second, time.Second)
 	log.Println("Starting")
 	logic.Start()
 	log.Println("Started")
