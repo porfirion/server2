@@ -2,6 +2,7 @@ package next
 
 import (
 	"github.com/porfirion/server2/network/pool"
+	"github.com/porfirion/server2/service"
 	"io"
 	"time"
 )
@@ -66,6 +67,7 @@ func (i PlayerInput) GetGameTick() uint {
 
 // Описание видимого мира для конкретного игрока
 type PlayerState struct {
+
 }
 
 type Player struct {
@@ -79,6 +81,7 @@ type Player struct {
 func (player Player) SendState(state PlayerState) {
 	// count diff with prev state
 	// send diff to player
+	player.conn.WriteMessage(service.TypedMessage())
 }
 
 // GameState should contain all information about players, objects, etc.

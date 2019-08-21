@@ -6,6 +6,8 @@ import (
 	"time"
 )
 
+type ServiceType uint64
+
 // Начитавшись хабра (https://habrahabr.ru/company/mailru/blog/220359/)
 // пришёл к выводу, что чат с игровой механикой не стоит держать в одном месте
 // Более того - это скорее даже мешает - всё валится в одну кучу.
@@ -15,17 +17,17 @@ type Service interface {
 	StoreRegisteration(id uint64, ch chan ServiceMessage) // уведомляет сервис о том, что он был зарегистрирован
 	//GetRequiredMessageTypes() []uint            // отдаёт список ожидаемых сообщений
 	Start()
-	GetType() uint64
+	GetType() ServiceType
 	GetId() uint64
 }
 
 // сообщение, которое ходит между сервисами
 type ServiceMessage struct {
-	SourceServiceType   uint64
+	SourceServiceType   ServiceType
 	SourceServiceId     uint64
 	SourceServiceClient uint64 // по идее у нас не может быть только один отправитель или не быть его вообще
 
-	DestinationServiceType    uint64
+	DestinationServiceType    ServiceType
 	DestinationServiceId      uint64
 	DestinationServiceClients []uint64 // зато может быть много получателей
 
@@ -37,21 +39,21 @@ type TypedMessage interface {
 }
 
 const (
-	TypeLogic   uint64 = 1
-	TypeAuth           = 2
-	TypeNetwork        = 3
-	TypeChat           = 4
+	TypeLogic   ServiceType = 1
+	TypeAuth                = 2
+	TypeNetwork             = 3
+	TypeChat                = 4
 )
 
 type BasicService struct {
 	Id   uint64
-	Type uint64
+	Type ServiceType
 
 	IncomingMessages chan ServiceMessage // это канал для полечения сообщений от брокера
 	OutgoingMessages chan ServiceMessage // это канал для отправки и нам должен дать его сам брокер, когда зарегистрирует наш сервис
 }
 
-func (service *BasicService) GetType() uint64 {
+func (service *BasicService) GetType() ServiceType {
 	return service.Type
 }
 
@@ -80,7 +82,7 @@ func (service *BasicService) StoreRegisteration(serviceId uint64, out chan Servi
 func (service *BasicService) SendMessageToBroker(
 	msg TypedMessage,
 	sourceClientId uint64,
-	targetServiceType uint64,
+	targetServiceType ServiceType,
 	targetServiceId uint64,
 	targets []uint64) error {
 
@@ -120,7 +122,7 @@ func (service *BasicService) WaitForRegistration() {
 	//log.Println("BasicService: Registration received")
 }
 
-func NewBasicService(serviceType uint64) *BasicService {
+func NewBasicService(serviceType ServiceType) *BasicService {
 	return &BasicService{
 		Id:               0,
 		Type:             serviceType,

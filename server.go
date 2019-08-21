@@ -19,7 +19,7 @@ func main() {
 	log.SetFlags(log.Lmicroseconds)
 	log.SetOutput(os.Stdout)
 
-	broker := service.NewBroker(func(message service.ServiceMessage) uint64 {
+	broker := service.NewBroker(func(message service.ServiceMessage) service.ServiceType {
 		switch message.MessageData.(type) {
 		case *messages.TextMessage:
 			if message.SourceServiceType == service.TypeNetwork {
