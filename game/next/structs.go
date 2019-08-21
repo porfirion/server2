@@ -2,7 +2,6 @@ package next
 
 import (
 	"github.com/porfirion/server2/network/pool"
-	"github.com/porfirion/server2/service"
 	"io"
 	"time"
 )
@@ -81,7 +80,8 @@ type Player struct {
 func (player Player) SendState(state PlayerState) {
 	// count diff with prev state
 	// send diff to player
-	player.conn.WriteMessage(service.TypedMessage())
+	//player.conn.WriteMessage( )
+	panic("not implemented")
 }
 
 // GameState should contain all information about players, objects, etc.

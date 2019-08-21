@@ -4,7 +4,6 @@ import (
 	"log"
 	"math/rand"
 	"sort"
-	"strconv"
 	"time"
 )
 
@@ -14,6 +13,15 @@ const (
 	// Чтобы из-за точности float не происходило лишних расчётов столкновений,
 	// когда объекты сталкиваются на 1.1368683772161603e-13, вводим эту константу
 	CollisionThreshold = 0.001 // минимальное расстояние, которое считается столкновением
+)
+
+type MapLayer int64 // слои на карте, чтобы считать коллизии
+
+const (
+	LayerDefault     = 1
+	LayerUnderground = 1 << 2
+	LayerAir         = 1 << 3
+	// и т.д. до 63
 )
 
 type WorldMap struct {
@@ -32,7 +40,7 @@ type WorldMap struct {
 	//5124095,576	часов
 	//213503,9823	дней
 	//584,9424174	лет
-	SimulationTime      time.Duration // сколько прошло игрового времени с начала симуляции
+	SimulationTime time.Duration // сколько прошло игрового времени с начала симуляции
 }
 
 func NewWorldMap(width, height float64) *WorldMap {
@@ -93,10 +101,12 @@ func (m *WorldMap) GetUserObject(userId uint64) *MapObject {
 	return m.UsersObjects[userId]
 }
 
-func (world *WorldMap) GetObjectsPositions() map[string]MapObjectDTO {
-	res := make(map[string]MapObjectDTO)
+// получает положение всех видимых объектов
+// TODO добавить дополнительные параметры - может ли игрок видеть невидимые объекты; какие слои видит
+func (world *WorldMap) GetObjectsPositions(center Point2D, radius float64) map[uint64]MapObjectDTO {
+	res := make(map[uint64]MapObjectDTO)
 	for id, obj := range world.ObjectsById {
-		res[strconv.FormatUint(id, 10)] = CreateDTOFromMapObject(obj)
+		res[id] = CreateDTOFromMapObject(obj)
 	}
 	//log.Printf("Map: users positions %#v\n", res)
 
@@ -115,7 +125,6 @@ func (*WorldMap) GetObjectsInRect(leftTop Point2D, rightBottom Point2D) []*MapOb
 func (m WorldMap) GetSize() Point2D {
 	return Point2D{m.Width, m.Height}
 }
-
 
 // возвращает текущее время в миллисекундах
 // (начиная с неизвестно чего). Имеет смысл ориентироваться только на разницу во времени,

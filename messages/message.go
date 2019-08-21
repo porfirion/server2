@@ -70,7 +70,7 @@ type UserLoggedoutMessage struct {
 
 // Отправляет на клиент список объектов с координатами
 type SyncPositionsMessage struct {
-	Positions map[string]world.MapObjectDTO `json:"positions"` // список объектов
+	Positions map[uint64]world.MapObjectDTO `json:"positions"` // список объектов
 	Time      uint64                        `json:"time"`      // время по серверу
 }
 

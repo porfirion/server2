@@ -91,7 +91,7 @@ func (logic *GameLogic) RemoveUser(id uint64) {
 func (logic *GameLogic) sendSyncPositionMessage() {
 	logic.SendMessage(
 		SyncPositionsMessage{
-			logic.mWorldMap.GetObjectsPositions(),
+			logic.mWorldMap.GetObjectsPositions(world.Point2D{}, 0),
 			logic.mWorldMap.GetCurrentTimeMillis(),
 		},
 	)
@@ -145,7 +145,7 @@ func (logic *GameLogic) processUserMessage(message UserMessage) (needSync bool) 
 		logic.SendMessage(UserLoggedinMessage{Id: user.Id, Name: user.Name}, []uint64{}, []uint64{user.Id})
 		logic.SendMessage(UserListMessage{logic.GetUserList(user.Id)}, []uint64{user.Id})
 		log.Println("sent. sync next")
-		logic.SendMessage(SyncPositionsMessage{logic.mWorldMap.GetObjectsPositions(), logic.mWorldMap.GetCurrentTimeMillis()})
+		logic.SendMessage(SyncPositionsMessage{logic.mWorldMap.GetObjectsPositions(world.Point2D{}, 0), logic.mWorldMap.GetCurrentTimeMillis()})
 	case *LogoutMessage:
 		log.Println("GameLogic: Logout message", msg.Id)
 		logic.RemoveUser(msg.Id)
