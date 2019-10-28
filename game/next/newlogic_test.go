@@ -12,15 +12,18 @@ func drain(ch chan interface{}) {
 	}()
 }
 
-func drainStates(ch chan GameState) <-chan int {
-	drained := 0
-	resp := make(chan int, 1)
+func drainStates(ch chan GameState) <-chan ([]GameState) {
+	drainedCount := 0
+	resp := make(chan []GameState, 1)
+	states := make([]GameState, 0)
+
 	go func() {
-		for range ch {
-			drained++
+		for state := range ch {
+			states = append(states, state)
+			drainedCount++
 		}
 
-		resp <- drained
+		resp <- states
 		close(resp)
 	}()
 
@@ -59,10 +62,10 @@ func TestLogicImplStep(t *testing.T) {
 	}
 
 	<-l.Stop()
-	statesCount := <- dr
+	states := <- dr
 
-	if iterationsCount != statesCount {
-		t.Fatalf("iterations count was %d and received %d states", iterationsCount, statesCount)
+	if iterationsCount != len(states) {
+		t.Fatalf("iterations count was %d and received %d states", iterationsCount, len(states))
 	} else {
 		t.Logf("processed %d iterations", iterationsCount)
 	}
@@ -89,10 +92,10 @@ func TestLogicImplReplay(t *testing.T) {
 	}
 
 	<-l.Stop()
-	statesCount := <- dr
+	states := <- dr
 
-	if iterationsCount != statesCount {
-		t.Fatalf("iterations count was %d and received %d states", iterationsCount, statesCount)
+	if iterationsCount != len(states) {
+		t.Fatalf("iterations count was %d and received %d states", iterationsCount, len(states))
 	} else {
 		t.Logf("processed %d steps", iterationsCount)
 	}

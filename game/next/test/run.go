@@ -23,6 +23,8 @@ func main() {
 	signal.Notify(interrupt, os.Interrupt, os.Kill)
 	select {
 		case <-interrupt:
-			logic.Stop()
+			<-logic.Stop()
+			log.Println("Stopped")
+
 	}
 }

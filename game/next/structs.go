@@ -89,6 +89,7 @@ func (player Player) SendState(state PlayerState) {
 //   1) list of PlayerState (can contain link to physical object)
 //   2) list of physical objects (can contain additional attributes such as playerId, etc)
 //   3) current time and all settings (does it differs from Logic itself?)
+//   4) timers?
 type GameState interface {
 	ProcessSimulationStep(time.Duration) GameState
 	Copy() GameState
