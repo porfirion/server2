@@ -1,6 +1,7 @@
 package network
 
 import (
+	"github.com/porfirion/server2/network/http"
 	"github.com/porfirion/server2/network/pool"
 	"github.com/porfirion/server2/network/tcp"
 	"github.com/porfirion/server2/network/ws"
@@ -45,24 +46,29 @@ func (s *NetworkService) startReadingFromClients() {
 
 }
 
-func NewService() *NetworkService {
+func NewService(wsport, tcpport, httpport int, nostatic bool) *NetworkService {
 	pool := pool.NewConnectionsPool()
 	go pool.Start()
 	log.Println("Pool started")
 
 	wsGate := &ws.WebSocketGate{
-		Addr: &net.TCPAddr{IP: net.IPv4(0, 0, 0, 0), Port: 8080},
+		Addr: &net.TCPAddr{IP: net.IPv4(0, 0, 0, 0), Port: wsport},
 		Pool: pool,
 	}
 	go wsGate.Start()
 	log.Println("WsGate started")
 
 	tcpGate := &tcp.TcpGate{
-		Addr: &net.TCPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 25001},
+		Addr: &net.TCPAddr{IP: net.IPv4(127, 0, 0, 1), Port: tcpport},
 		Pool: pool,
 	}
 	go tcpGate.Start()
 	log.Println("TcpGate started")
+
+	if !nostatic {
+		go http.ServeStatic(httpport)
+		log.Println("HttpStaticServer started")
+	}
 
 	return &NetworkService{
 		BasicService: service.NewBasicService(service.TypeNetwork),

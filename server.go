@@ -1,20 +1,27 @@
 package main
 
 import (
+	"flag"
 	"fmt"
-	"log"
-	"os"
-	"os/signal"
-
 	"github.com/porfirion/server2/auth"
 	"github.com/porfirion/server2/chat"
 	"github.com/porfirion/server2/game"
 	"github.com/porfirion/server2/messages"
 	"github.com/porfirion/server2/network"
 	"github.com/porfirion/server2/service"
+	"log"
+	"os"
+	"os/signal"
 )
 
 func main() {
+	wsport := flag.Int("wsport", 8080, "port to listen for WebSocket connections")
+	tcpport := flag.Int("tcpport", 25001, "port to listen to TCP connections")
+	httpport := flag.Int("httpport", 2018, "")
+	nostatic := flag.Bool("nostatic", false, "disables serving static files")
+
+	flag.Parse()
+
 	log.SetFlags(log.Ltime | log.Lshortfile) //may be very useful to know where print was called
 	log.SetFlags(log.Lmicroseconds)
 	log.SetOutput(os.Stdout)
@@ -48,7 +55,7 @@ func main() {
 	go logicSvc.Start()
 	broker.RegisterService(logicSvc)
 
-	networkSvc := network.NewService()
+	networkSvc := network.NewService(*wsport, *tcpport, *httpport, *nostatic)
 	go networkSvc.Start()
 	broker.RegisterService(networkSvc)
 

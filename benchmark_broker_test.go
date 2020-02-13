@@ -45,7 +45,7 @@ var (
 )
 
 func setupBrokerAndServices() {
-	broker = service.NewBroker(func(message service.ServiceMessage) uint64 {
+	broker = service.NewBroker(func(message service.ServiceMessage) service.ServiceType {
 		return 0
 	})
 	go broker.Start()

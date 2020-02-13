@@ -21,12 +21,20 @@ var upgrader = websocket.Upgrader{
 	WriteBufferSize: 1024,
 }
 
-func (gate *WebSocketGate) Start() error {
-	http.HandleFunc("/", gate.indexHandler)
-	http.HandleFunc("/assets/", gate.assetsHandler)
-	http.HandleFunc("/ws", gate.wsHandler)
+func init() {
+	upgrader.CheckOrigin = func(r *http.Request) bool { return true };
+}
 
-	server := &http.Server{}
+func (gate *WebSocketGate) Start() error {
+	mux := &http.ServeMux{}
+
+	mux.HandleFunc("/", gate.indexHandler)
+	mux.HandleFunc("/assets/", gate.assetsHandler)
+	mux.HandleFunc("/ws", gate.wsHandler)
+
+	server := &http.Server{
+		Handler: mux,
+	}
 	listener, err := net.ListenTCP("tcp4", gate.Addr)
 
 	if err != nil {
@@ -34,7 +42,9 @@ func (gate *WebSocketGate) Start() error {
 		return err
 	} else {
 		log.Println("Listening http:", gate.Addr)
-		server.Serve(listener)
+		if err := server.Serve(listener); err != nil {
+			log.Fatal(err)
+		}
 		return nil
 	}
 }
@@ -47,7 +57,7 @@ func (gate *WebSocketGate) wsHandler(rw http.ResponseWriter, request *http.Reque
 
 	if err != nil {
 		if _, ok := err.(websocket.HandshakeError); ok {
-			log.Println("WSGate: Not a websocket handshake")
+			log.Println("WSGate: Not a websocket handshake", err)
 			http.Error(rw, "Not a websocket handshake", 400)
 			return
 		} else {
