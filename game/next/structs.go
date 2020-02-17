@@ -71,7 +71,7 @@ type PlayerState struct {
 
 type Player struct {
 	Id                   uint
-	prevStates           map[uint]PlayerState
+	prevStates           map[uint]PlayerState // по идее это не должно храниться в описании игрока. Это должно храниться в синхронизаторе, который отправляет состояния на клиент
 	playerObjectId       uint64
 	additionalObjectsIds []uint64
 	conn                 pool.Connection // непосредственное соединение с игроком

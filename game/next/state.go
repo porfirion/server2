@@ -72,5 +72,7 @@ func (st *GameStateImpl) Serialize(writer io.Writer) {
 }
 
 func NewGameState() GameState {
-	return &GameStateImpl{ world.NewWorldMap(10000, 10000) };
+	return &GameStateImpl{
+		WorldMap: world.NewWorldMap(10000, 10000),
+	};
 }
