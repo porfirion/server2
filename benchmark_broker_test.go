@@ -15,7 +15,7 @@ func (s *OutputService) Start() {
 
 	//log.Println("registration received")
 
-	for _ = range s.IncomingMessages {
+	for range s.IncomingMessages {
 		output <- true
 	}
 }

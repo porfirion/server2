@@ -38,8 +38,8 @@ func (connection *TcpConnection) StartReading(ch chan pool.MessageFromClient) {
 				log.Println("read bytes: ", n)
 				if msg, err := messages.DeserializeFromBinary(buffer); err == nil {
 					ch <- pool.MessageFromClient{
-						connection.Id,
-						msg,
+						ClientId: connection.Id,
+						Data:     msg,
 					}
 				} else {
 					log.Println("Error parsing binary message", err)

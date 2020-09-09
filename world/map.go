@@ -171,8 +171,6 @@ func (m *WorldMap) ProcessSimulationStep(passedTimeDur time.Duration) {
 	if collisions := m.detectPossibleCollisions(); len(collisions) > 0 {
 		m.resolveCollisions(collisions)
 	}
-
-	return
 }
 
 // Ищет возможные коллизии.

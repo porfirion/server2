@@ -37,14 +37,14 @@ func (m TypedMessageStub) GetType() uint64 {
 // Если эта функция вернёт 0 - значит сообщение никуда не будет отправлено.
 //
 // Возвращает тип сервиса, в который нужно передать сообщение
-type MessageRouter func(msg ServiceMessage) ServiceType
+type MessageRouterFunc func(msg ServiceMessage) ServiceType
 
 type BrokerImplementation struct {
 	utils.IdGenerator
 	mainChan       chan ServiceMessage
-	services       map[uint64]Service // each service has unique id
+	services       map[uint64]Service      // each service has unique id
 	serviceByTypes map[ServiceType]Service // пока упрощённое - по одному сервису каждого типа
-	messageRouter  MessageRouter
+	messageRouter  MessageRouterFunc
 }
 
 func (broker *BrokerImplementation) Start() {
@@ -117,13 +117,13 @@ func (broker *BrokerImplementation) RegisterService(svc Service) {
 	})
 }
 
-func NewBroker(messageRouter MessageRouter) MessageBroker {
+func NewBroker(messageRouterFunc MessageRouterFunc) MessageBroker {
 
 	return &BrokerImplementation{
 		IdGenerator:    utils.NewIdGenerator(1),
 		mainChan:       make(chan ServiceMessage, 100),
 		services:       make(map[uint64]Service),
 		serviceByTypes: make(map[ServiceType]Service),
-		messageRouter:  messageRouter,
+		messageRouter:  messageRouterFunc,
 	}
 }

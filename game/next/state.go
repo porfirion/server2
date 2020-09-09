@@ -13,9 +13,10 @@ package next
 
 import (
 	"encoding/gob"
-	"github.com/porfirion/server2/world"
 	"io"
 	"time"
+
+	"github.com/porfirion/server2/world"
 )
 
 type PhysicalObjectComponent struct {
@@ -26,24 +27,24 @@ type HealthComponent struct {
 }
 
 type Component struct {
-	id uint64
-	tp uint64
+	Id uint64
+	Tp uint64
 }
 
 type Entity struct {
-	owner uint64 // playerId
-	visibility uint // private (player's private state), public (visible for other players in field of view), global (visible for everyone)?
-	components []Component // list of components for this entity // maybe should be fixes size to decrease allocations?
+	Owner      uint64      // playerId
+	Visibility uint        // private (player's private state), public (visible for other players in field of view), global (visible for everyone)?
+	Components []Component // list of components for this entity // maybe should be fixes size to decrease allocations?
 
-	children []*Component // ? child entities for complex cases
+	Children []*Component // ? child entities for complex cases
 }
 
 type GameStateImpl struct {
 	*world.WorldMap // SYSTEM!
 
-	entities []*Entity // all entities in the world
-	playersEntities map[uint64]*Entity // entities bound to players (copy of links from entities)
-	globalEntities []*Entity // list of entities visible for all
+	Entities        []*Entity          // all entities in the world
+	PlayersEntities map[uint64]*Entity // entities bound to players (copy of links from entities)
+	GlobalEntities  []*Entity          // list of entities visible for all
 }
 
 func (st *GameStateImpl) GetPlayerState(playerId uint) PlayerState {
@@ -74,5 +75,5 @@ func (st *GameStateImpl) Serialize(writer io.Writer) {
 func NewGameState() GameState {
 	return &GameStateImpl{
 		WorldMap: world.NewWorldMap(10000, 10000),
-	};
+	}
 }

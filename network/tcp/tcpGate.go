@@ -11,13 +11,12 @@ type TcpGate struct {
 	Pool *pool.ConnectionsPool
 }
 
-func (gate *TcpGate) Start() error {
+func (gate *TcpGate) Start() {
 
 	listener, err := net.ListenTCP("tcp4", gate.Addr)
 
 	if err != nil {
-		log.Println("Error opening listener: ", err)
-		return err
+		log.Fatal("Error opening listener: ", err)
 	}
 
 	log.Println("Listening tcp:", gate.Addr)
@@ -42,7 +41,6 @@ func (gate *TcpGate) Start() error {
 
 		gate.Pool.IncomingConnections <- connection
 	}
-	log.Println("finished")
 
-	return nil
+	log.Println("TCP Gate finished")
 }

@@ -3,8 +3,8 @@ package messages
 import (
 	"encoding/binary"
 	"encoding/json"
-	"errors"
 	"fmt"
+
 	"github.com/porfirion/server2/service"
 )
 
@@ -45,15 +45,11 @@ func DeserializeFromJson(bytes []byte) (service.TypedMessage, error) {
 		case 1000002:
 			typedMessage = &ChangeSimulationMode{}
 		default:
-			return nil, errors.New(fmt.Sprintf("Unknown message type %d", msg.GetType()))
+			return nil, fmt.Errorf("Unknown message type %d", msg.GetType())
 		}
 
-		if typedMessage != nil {
-			err := json.Unmarshal(msg.Data, typedMessage)
-			return typedMessage, err
-		} else {
-			return msg, err
-		}
+		err := json.Unmarshal(msg.Data, typedMessage)
+		return typedMessage, err
 	} else {
 		return msg, err
 	}

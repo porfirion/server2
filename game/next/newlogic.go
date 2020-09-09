@@ -72,7 +72,8 @@ func (l *LogicImpl) receiveInputsUntilShouldSimulate() []PlayerInput {
 
 	if l.Mode == SimulationModeContinuous {
 		// receive everything from input chan until next simulation time
-		timeout = l.NextSimulationTime().Sub(time.Now())
+
+		timeout = time.Until(l.NextSimulationTime())
 		if timeout <= 0 {
 			log.Println("time to tick has already come!")
 			// время уже прошло!
@@ -159,7 +160,7 @@ func (l *LogicImpl) applyPlayerInputs(state GameState, inputs []PlayerInput) Gam
 func (l *LogicImpl) sendStateToPlayers(state GameState) {
 	for _, player := range l.players {
 
-		player.SendState(state.GetPlayerState(player.Id));
+		player.SendState(state.GetPlayerState(player.Id))
 	}
 
 	if l.monitorChan != nil {
@@ -210,7 +211,7 @@ func (l *LogicImpl) mainLoop() {
 		// Read the inputs and put into queue until simulation time comes.
 		// But reading can break in case of receiving control message. So before simulation
 		// we should check if simulation time has come really
-		inputsBuffer := append(inputsBuffer, l.receiveInputsUntilShouldSimulate()...)
+		inputsBuffer = append(inputsBuffer, l.receiveInputsUntilShouldSimulate()...)
 
 		if l.ShouldSimulate() {
 			l.mainStep(inputsBuffer)

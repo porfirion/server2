@@ -20,8 +20,11 @@ type WebsocketConnection struct {
 func (connection *WebsocketConnection) Close(message string) {
 	log.Println("WSCon: Closing websocket connection")
 	close(connection.OutgoingChannel)
-	connection.ws.WriteControl(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, message), time.Time{})
-	connection.ws.Close()
+	err := connection.ws.WriteControl(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, message), time.Time{})
+	if err != nil {
+		log.Println("Error: ", err)
+	}
+	_ = connection.ws.Close()
 }
 
 func (connection *WebsocketConnection) StartReading() {
@@ -50,7 +53,10 @@ func (connection *WebsocketConnection) StartReading() {
 							connection.WriteMessage(messages.SyncTimeMessage{Time: (int64)(time.Now().UnixNano() / int64(time.Millisecond))})
 						default:
 							//log.Printf("WsConnection: sending message %T to pool\n", msg)
-							connection.NotifyPoolMessage(msg)
+							err := connection.NotifyPoolMessage(msg)
+							if err != nil {
+								log.Println("Error notify pool message", err)
+							}
 						}
 
 					} else {
@@ -79,7 +85,10 @@ func (connection *WebsocketConnection) StartWriting() {
 		for message := range connection.OutgoingChannel {
 			//log.Println(fmt.Sprintf("WsCon. Sending message %T for %d", message, connection.id))
 			if bytes, err := messages.SerializeToJson(message.Data); err == nil {
-				connection.ws.WriteMessage(websocket.TextMessage, bytes)
+				err := connection.ws.WriteMessage(websocket.TextMessage, bytes)
+				if err != nil {
+					log.Println("Error sending to websocket", err)
+				}
 			} else {
 				log.Println("WsConnection: error serializing message", err)
 			}

@@ -52,35 +52,34 @@ const (
 
 type PlayerInput struct {
 	PlayerId    uint
-	gameTick    uint // tick of the game when input was received
+	GameTick    uint // tick of the game when input was received
 	Action      PlayerAction
-	actionData  interface{}
+	ActionData  interface{}
 	PressedKeys []InputKey
 	MouseVector Vector // position of mouse relative to screen center (aka viewport position/player object position)
 }
 
 // Maybe some time we will adjust GameTick with player latency - so we should use this getter instead of field itself
 func (i PlayerInput) GetGameTick() uint {
-	return i.gameTick
+	return i.GameTick
 }
 
 // Описание видимого мира для конкретного игрока
 type PlayerState struct {
-
 }
 
 type Player struct {
 	Id                   uint
-	prevStates           map[uint]PlayerState // по идее это не должно храниться в описании игрока. Это должно храниться в синхронизаторе, который отправляет состояния на клиент
-	playerObjectId       uint64
-	additionalObjectsIds []uint64
-	conn                 pool.Connection // непосредственное соединение с игроком
+	PrevStates           map[uint]PlayerState // по идее это не должно храниться в описании игрока. Это должно храниться в синхронизаторе, который отправляет состояния на клиент
+	PlayerObjectId       uint64
+	AdditionalObjectsIds []uint64
+	Conn                 pool.Connection // непосредственное соединение с игроком
 }
 
 func (player Player) SendState(state PlayerState) {
 	// count diff with prev state
 	// send diff to player
-	//player.conn.WriteMessage( )
+	//player.Conn.WriteMessage( )
 	panic("not implemented")
 }
 

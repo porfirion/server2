@@ -1,12 +1,13 @@
 package game
 
 import (
-	. "github.com/porfirion/server2/messages"
-	"github.com/porfirion/server2/service"
-	"github.com/porfirion/server2/world"
 	"log"
 	"math/rand"
 	"time"
+
+	. "github.com/porfirion/server2/messages"
+	"github.com/porfirion/server2/service"
+	"github.com/porfirion/server2/world"
 )
 
 const (
@@ -91,8 +92,8 @@ func (logic *GameLogic) RemoveUser(id uint64) {
 func (logic *GameLogic) sendSyncPositionMessage() {
 	logic.SendMessage(
 		SyncPositionsMessage{
-			logic.mWorldMap.GetObjectsPositions(world.Point2D{}, 0),
-			logic.mWorldMap.GetCurrentTimeMillis(),
+			Positions: logic.mWorldMap.GetObjectsPositions(world.Point2D{}, 0),
+			Time:      logic.mWorldMap.GetCurrentTimeMillis(),
 		},
 	)
 	logic.prevSyncTime = time.Now()
@@ -143,9 +144,12 @@ func (logic *GameLogic) processUserMessage(message UserMessage) (needSync bool) 
 		logic.SendTextMessageToUser("GameLogic: Welcome, "+user.Name, 0, user.Id)
 		logic.SendMessage(logic.getServerStateMessage(), []uint64{user.Id})
 		logic.SendMessage(UserLoggedinMessage{Id: user.Id, Name: user.Name}, []uint64{}, []uint64{user.Id})
-		logic.SendMessage(UserListMessage{logic.GetUserList(user.Id)}, []uint64{user.Id})
+		logic.SendMessage(UserListMessage{Users: logic.GetUserList(user.Id)}, []uint64{user.Id})
 		log.Println("sent. sync next")
-		logic.SendMessage(SyncPositionsMessage{logic.mWorldMap.GetObjectsPositions(world.Point2D{}, 0), logic.mWorldMap.GetCurrentTimeMillis()})
+		logic.SendMessage(SyncPositionsMessage{
+			Positions: logic.mWorldMap.GetObjectsPositions(world.Point2D{}, 0),
+			Time:      logic.mWorldMap.GetCurrentTimeMillis(),
+		})
 	case *LogoutMessage:
 		log.Println("GameLogic: Logout message", msg.Id)
 		logic.RemoveUser(msg.Id)
@@ -275,7 +279,7 @@ func (logic *GameLogic) Start() {
 			} else {
 				log.Printf("Simulation mode already was %v\n", mode)
 			}
-		case _ = <-simulationTimer.C:
+		case <-simulationTimer.C:
 			// по идее уже пора выполнять очередной шаг симуляции
 			//log.Println("Timer fired!")
 			//log.Printf("Now %v next %v\n", time.Now(), service.NextStepTime)
@@ -299,21 +303,21 @@ func (logic *GameLogic) Start() {
 				}
 			}
 
-			passedTime := time.Now().Sub(startTime)
+			passedTime := time.Since(startTime)
 			log.Printf("Simulated %d steps (%d mcs): world time %d ms\n", stepsCount, passedTime/time.Microsecond, logic.mWorldMap.GetCurrentTimeMillis())
 
 			logic.sendSyncPositionMessage()
 
-			timeToNextStep := logic.NextStepTime.Sub(time.Now())
+			timeToNextStep := time.Until(logic.NextStepTime)
 			//log.Printf("Delaying timer for %v nanoseconds\n", timeToNextStep.Nanoseconds())
 			simulationTimer.Reset(timeToNextStep)
-		case _ = <-logic.forceSimulationChannel:
+		case <-logic.forceSimulationChannel:
 			// нас попросили выполнить очередной шаг симуляции
 			if logic.Params.SimulateByStep {
 				log.Println("Simulating!")
 				startTime := time.Now()
 				logic.executeSimulation(logic.Params.SimulationStepTime)
-				passedTime := time.Now().Sub(startTime)
+				passedTime := time.Since(startTime)
 				log.Printf("Simulated 1 step (%d mcs): world time %d ms", passedTime/time.Microsecond, logic.mWorldMap.GetCurrentTimeMillis())
 				logic.sendSyncPositionMessage()
 			} else {

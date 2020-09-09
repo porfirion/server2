@@ -40,9 +40,9 @@ type TypedMessage interface {
 
 const (
 	TypeLogic   ServiceType = 1
-	TypeAuth                = 2
-	TypeNetwork             = 3
-	TypeChat                = 4
+	TypeAuth    ServiceType = 2
+	TypeNetwork ServiceType = 3
+	TypeChat    ServiceType = 4
 )
 
 type BasicService struct {

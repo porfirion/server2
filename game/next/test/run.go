@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"syscall"
 	"time"
 )
 
@@ -20,11 +21,9 @@ func main() {
 	log.Println("Started")
 
 	interrupt := make(chan os.Signal, 1)
-	signal.Notify(interrupt, os.Interrupt, os.Kill)
-	select {
-		case <-interrupt:
-			<-logic.Stop()
-			log.Println("Stopped")
+	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
 
-	}
+	<-interrupt
+	<-logic.Stop()
+	log.Println("Stopped")
 }

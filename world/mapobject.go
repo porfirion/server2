@@ -8,8 +8,8 @@ type MapObjectType int
 
 const (
 	MapObjectTypeObstacle MapObjectType = 1   // неподвижный объект, который не может изменять своё положение
-	MapObjectTypeMovable                = 10  // объект, который может изменять своё положение, но не управляется пользователем
-	MapObjectTypeUser                   = 100 // объект, который может изменять своё положение и принадлежащий какому-либо пользователю
+	MapObjectTypeMovable  MapObjectType = 10  // объект, который может изменять своё положение, но не управляется пользователем
+	MapObjectTypeUser     MapObjectType = 100 // объект, который может изменять своё положение и принадлежащий какому-либо пользователю
 )
 
 type MapObjectDTO struct {

@@ -23,7 +23,10 @@ func (s *ChatService) StartReading() {
 		log.Printf("ChatService: %#v", msg.MessageData)
 		switch msg.MessageData.(type) {
 		case *messages.TextMessage, messages.TextMessage:
-			s.SendMessageToBroker(msg.MessageData, 0, service.TypeNetwork, 0, nil)
+			err := s.SendMessageToBroker(msg.MessageData, 0, service.TypeNetwork, 0, nil)
+			if err != nil {
+				log.Printf("Error sending message to broker: %v\n", err)
+			}
 		default:
 			log.Printf("Chat: unexpected message type %T\n", msg.MessageData)
 		}

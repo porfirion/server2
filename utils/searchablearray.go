@@ -2,7 +2,7 @@ package utils
 
 type SearchableArray []uint64
 
-func (arr SearchableArray) indexOf(value uint64) (bool, int) {
+func (arr SearchableArray) IndexOf(value uint64) (bool, int) {
 	if len(arr) == 0 {
 		return false, -1
 	}

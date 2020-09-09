@@ -3,22 +3,24 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
+	"os"
+	"os/signal"
+	"syscall"
+
 	"github.com/porfirion/server2/auth"
 	"github.com/porfirion/server2/chat"
 	"github.com/porfirion/server2/game"
 	"github.com/porfirion/server2/messages"
 	"github.com/porfirion/server2/network"
 	"github.com/porfirion/server2/service"
-	"log"
-	"os"
-	"os/signal"
 )
 
 func main() {
-	wsport := flag.Int("wsport", 8080, "port to listen for WebSocket connections")
-	tcpport := flag.Int("tcpport", 25001, "port to listen to TCP connections")
-	httpport := flag.Int("httpport", 2018, "")
-	nostatic := flag.Bool("nostatic", false, "disables serving static files")
+	wsPort := flag.Int("wsport", 8080, "port to listen for WebSocket connections")
+	tcpPort := flag.Int("tcpport", 25001, "port to listen to TCP connections")
+	httpPort := flag.Int("httpport", 2018, "")
+	noStatic := flag.Bool("nostatic", false, "disables serving static files")
 
 	flag.Parse()
 
@@ -43,31 +45,28 @@ func main() {
 	})
 	go broker.Start()
 
-	auth := auth.NewService()
-	go auth.Start()
-	broker.RegisterService(auth)
+	authService := auth.NewService()
+	go authService.Start()
+	broker.RegisterService(authService)
 
-	chat := chat.NewService()
-	go chat.Start()
-	broker.RegisterService(chat)
+	chatService := chat.NewService()
+	go chatService.Start()
+	broker.RegisterService(chatService)
 
-	logicSvc := game.NewService()
-	go logicSvc.Start()
-	broker.RegisterService(logicSvc)
+	logicService := game.NewService()
+	go logicService.Start()
+	broker.RegisterService(logicService)
 
-	networkSvc := network.NewService(*wsport, *tcpport, *httpport, *nostatic)
-	go networkSvc.Start()
-	broker.RegisterService(networkSvc)
+	networkService := network.NewService(*wsPort, *tcpPort, *httpPort, *noStatic)
+	go networkService.Start()
+	broker.RegisterService(networkService)
 
 	log.Println("All services started")
 
-	interrupt := make(chan os.Signal, 1)
-	signal.Notify(interrupt, os.Interrupt, os.Kill)
+	interruptChan := make(chan os.Signal, 1)
+	signal.Notify(interruptChan, os.Interrupt, syscall.SIGTERM)
 
-	select {
-	case sig := <-interrupt:
-		fmt.Printf("Got signal \"%s\"\n", sig.String())
-	}
-
+	sig := <-interruptChan
+	fmt.Printf("Got signal \"%s\"\n", sig.String())
 	fmt.Println("FINISH MAIN LOOP")
 }

@@ -1,14 +1,17 @@
 package ws
 
 import (
-	"github.com/gorilla/websocket"
-	"github.com/porfirion/server2/network/pool"
+	"fmt"
 	"html/template"
 	"log"
 	"net"
 	"net/http"
 	"os"
 	"strings"
+
+	"github.com/gorilla/websocket"
+
+	"github.com/porfirion/server2/network/pool"
 )
 
 type WebSocketGate struct {
@@ -22,10 +25,10 @@ var upgrader = websocket.Upgrader{
 }
 
 func init() {
-	upgrader.CheckOrigin = func(r *http.Request) bool { return true };
+	upgrader.CheckOrigin = func(r *http.Request) bool { return true }
 }
 
-func (gate *WebSocketGate) Start() error {
+func (gate *WebSocketGate) Start() {
 	mux := &http.ServeMux{}
 
 	mux.HandleFunc("/", gate.indexHandler)
@@ -38,14 +41,12 @@ func (gate *WebSocketGate) Start() error {
 	listener, err := net.ListenTCP("tcp4", gate.Addr)
 
 	if err != nil {
-		log.Printf("Error creating listener %v", err)
-		return err
+		log.Fatalf("Error creating listener %v", err)
 	} else {
 		log.Println("Listening http:", gate.Addr)
 		if err := server.Serve(listener); err != nil {
 			log.Fatal(err)
 		}
-		return nil
 	}
 }
 
@@ -59,11 +60,11 @@ func (gate *WebSocketGate) wsHandler(rw http.ResponseWriter, request *http.Reque
 		if _, ok := err.(websocket.HandshakeError); ok {
 			log.Println("WSGate: Not a websocket handshake", err)
 			http.Error(rw, "Not a websocket handshake", 400)
-			return
 		} else {
 			log.Println("WSGate: Unknown error", err)
-			return
 		}
+
+		return
 	}
 
 	conn := NewWebSocketConnection(
@@ -92,11 +93,12 @@ func (gate *WebSocketGate) indexHandler(rw http.ResponseWriter, request *http.Re
 	if _, err := os.Stat(path); err == nil {
 		indexTempl := template.Must(template.ParseFiles(path))
 		data := struct{}{}
-		indexTempl.Execute(rw, data)
+		err := indexTempl.Execute(rw, data)
+		if err != nil {
+			http.Error(rw, "Error rendering template", 500)
+		}
 	} else {
-		rw.WriteHeader(404)
-		rw.Write([]byte(path))
-		rw.Write([]byte("404 Not Found"))
+		http.Error(rw, fmt.Sprintf("404 Not Found (%s)", path), 404)
 	}
 }
 
