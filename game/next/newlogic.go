@@ -125,15 +125,20 @@ func (l *LogicImpl) receiveInputsUntilShouldSimulate() []PlayerInput {
 				// если у нас обычная симуляция, то мы просто заставим шаг произойти преждевременно
 				l.flagShouldSimulate = true
 				stopReceiving = true
-			case ControlMessageChangeModeContinuous:
-				l.Mode = SimulationModeContinuous
-				stopReceiving = true
-			case ControlMessageChangeModeStepByStep:
-				l.Mode = SimulationModeStepByStep
-				stopReceiving = true
-			case ControlMessageChangeModeReplay:
-				l.Mode = SimulationModeReplay
-				stopReceiving = true
+			case ControlMessageChangeModeContinuous, ControlMessageChangeModeStepByStep, ControlMessageChangeModeReplay:
+				var newMode SimulationMode
+				switch ctrl {
+				case ControlMessageChangeModeContinuous:
+					newMode = SimulationModeContinuous
+				case ControlMessageChangeModeStepByStep:
+					newMode = SimulationModeStepByStep
+				case ControlMessageChangeModeReplay:
+					newMode = SimulationModeReplay
+				}
+				if l.Mode != newMode {
+					l.Mode = newMode
+					stopReceiving = true
+				}
 			default:
 				log.Printf("Unknown control message %d", ctrl)
 			}
@@ -151,8 +156,14 @@ func (l *LogicImpl) receiveInputsUntilShouldSimulate() []PlayerInput {
 
 func (l *LogicImpl) applyPlayerInputs(state GameState, inputs []PlayerInput) GameState {
 	log.Println("apply inputs stub")
-	for range inputs {
-
+	for _, inp := range inputs {
+		switch inp.Action {
+		case PlayerActionMove:
+			inp.
+		case PlayerActionAbility:
+			// TODO
+			log.Println("Player abilities not implemented")
+		}
 	}
 	return state
 }
@@ -176,17 +187,15 @@ func (l *LogicImpl) mainStep(inputs []PlayerInput) {
 	log.Println("main step started")
 
 	l.state = l.state.Copy()
-	l.gameTick += 1
+	l.gameTick++
 	l.gameTime.Add(l.simulationStepDuration)
 
 	l.state = l.applyPlayerInputs(l.state, inputs)
 	l.state = l.applyQueuedEvents(l.state)
+	l.state = l.state.ProcessSimulationStep(l.simulationStepDuration)
 
 	l.prevTickRealTime = time.Now()
-
 	l.flagShouldSimulate = false
-
-	l.state = l.state.ProcessSimulationStep(l.simulationStepDuration)
 
 	l.history = append(l.history, HistoryEntry{
 		state:    l.state,
