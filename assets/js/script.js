@@ -202,7 +202,16 @@ var Player = function (id, name) {
 jQuery(document).ready(function () {
     myName = getName();
     $('.playerName').html(myName);
-    client = new WsClient("ws://" + window.location.host + "/ws", myName);
+
+    var uri = ""
+    if (window.location.protocol === 'https:') {
+        uri = 'wss:';
+    } else {
+        uri = 'ws:';
+    }
+    uri += '//' + window.location.host + "/ws"
+
+    client = new WsClient(uri , myName);
     client.on('message', onmessage);
     client.on('close', onclose);
     client.on('open', function () {
