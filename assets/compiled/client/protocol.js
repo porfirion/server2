@@ -33,6 +33,7 @@ var Protocol = /** @class */ (function () {
         this.client.on("open" /* Open */, this.onOpen.bind(this));
         this.client.on("error" /* Error */, this.onError.bind(this));
         this.client.on("timeSynced" /* TimeSynced */, this.onTimeSynced.bind(this));
+        this.client.on("message" /* Message */, this.onMessage.bind(this));
     }
     Protocol.prototype.onOpen = function (eventType, data) {
         this.client.sendMessage(MessageType.AUTH, { name: randomName() });
@@ -52,19 +53,27 @@ var Protocol = /** @class */ (function () {
         }
     };
     Protocol.prototype.onTimeSynced = function (eventType, data) {
-        console.log('onTimeSynced', arguments);
+        console.log('protocol: onTimeSynced', arguments);
     };
     Protocol.prototype.onMessage = function (eventType, wrapper) {
-        if (wrapper.type === MessageType.WELCOME) {
-            this.id = wrapper.data.id;
-        }
-        if (wrapper.type === MessageType.SYNC_TIME) {
-            this.syncTime(wrapper);
-            return;
-        }
+        // eventType === 'message'
+        console.log('protocol: on message', wrapper);
         switch (wrapper.type) {
             case MessageType.WELCOME:
+                console.log("protocol: this is: ", wrapper.data.id);
+                // this.id = wrapper.data.id;
                 this.id = wrapper.data.id;
+                break;
+            case MessageType.SYNC_TIME:
+                console.log("protocol: time sync");
+                this.syncTime(wrapper);
+                break;
+            case MessageType.TEXT:
+                console.log('protocol: text message', wrapper.data);
+                break;
+            default:
+                console.log("protocol: unknown message type", wrapper.data);
+                break;
         }
     };
     Protocol.prototype.requestTime = function () {

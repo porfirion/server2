@@ -2,13 +2,14 @@ package pool
 
 import (
 	"errors"
-	"github.com/porfirion/server2/service"
 	"time"
+
+	"github.com/porfirion/server2/service"
 )
 
 type Connection interface {
 	Close(message string)
-	WriteMessage(data service.TypedMessage)
+	WriteMessage(data interface{})
 	GetId() uint64
 }
 
@@ -25,7 +26,7 @@ func (connection *BasicConnection) GetId() uint64 {
 	return connection.Id
 }
 
-func (connection *BasicConnection) WriteMessage(data service.TypedMessage) {
+func (connection *BasicConnection) WriteMessage(data interface{}) {
 	connection.OutgoingChannel <- MessageForClient{Data: data}
 }
 

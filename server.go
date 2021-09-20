@@ -10,14 +10,14 @@ import (
 
 	"github.com/porfirion/server2/auth"
 	"github.com/porfirion/server2/chat"
-	"github.com/porfirion/server2/game"
+	"github.com/porfirion/server2/game/next"
 	"github.com/porfirion/server2/messages"
 	"github.com/porfirion/server2/network"
 	"github.com/porfirion/server2/service"
 )
 
 func main() {
-	wsPort := flag.Int("wsport", 8080, "port to listen for WebSocket connections")
+	wsPort := flag.Int("wsport", 18080, "port to listen for WebSocket connections")
 	tcpPort := flag.Int("tcpport", 25001, "port to listen to TCP connections")
 	httpPort := flag.Int("httpport", 2018, "")
 	noStatic := flag.Bool("nostatic", false, "disables serving static files")
@@ -53,7 +53,7 @@ func main() {
 	go chatService.Start()
 	broker.RegisterService(chatService)
 
-	logicService := game.NewService()
+	logicService := next.NewService()
 	go logicService.Start()
 	broker.RegisterService(logicService)
 

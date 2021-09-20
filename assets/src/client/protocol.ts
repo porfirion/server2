@@ -64,6 +64,8 @@ class Protocol {
         this.client.on(ClientEvent.Open, this.onOpen.bind(this));
         this.client.on(ClientEvent.Error, this.onError.bind(this));
         this.client.on(ClientEvent.TimeSynced, this.onTimeSynced.bind(this));
+
+        this.client.on(ClientEvent.Message, this.onMessage.bind(this));
     }
 
     onOpen(eventType: string, data?: any): void {
@@ -86,21 +88,28 @@ class Protocol {
     }
 
     onTimeSynced(eventType: string, data?: any): void {
-        console.log('onTimeSynced', arguments);
+        console.log('protocol: onTimeSynced', arguments);
     }
 
     onMessage(eventType: string, wrapper: MessageWrapper): void {
-        if (wrapper.type === MessageType.WELCOME) {
-            this.id = wrapper.data.id;
-        }
-        if (wrapper.type === MessageType.SYNC_TIME) {
-            this.syncTime(wrapper);
-            return;
-        }
-
+        // eventType === 'message'
+        console.log('protocol: on message', wrapper)
         switch (wrapper.type) {
             case MessageType.WELCOME:
+                console.log("protocol: this is: ", wrapper.data.id)
+                // this.id = wrapper.data.id;
                 this.id = (wrapper.data as Welcome).id;
+                break;
+            case MessageType.SYNC_TIME:
+                console.log("protocol: time sync")
+                this.syncTime(wrapper);
+                break;
+            case MessageType.TEXT:
+                console.log('protocol: text message', wrapper.data)
+                break;
+            default:
+                console.log("protocol: unknown message type", wrapper.data)
+                break;
         }
     }
 

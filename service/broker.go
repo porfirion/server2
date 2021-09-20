@@ -1,8 +1,9 @@
 package service
 
 import (
-	"github.com/porfirion/server2/utils"
 	"log"
+
+	"github.com/porfirion/server2/utils"
 )
 
 // Брокер, который разруливает в какой сервис отправлять сообщение
@@ -69,7 +70,7 @@ func (broker *BrokerImplementation) StartReading() {
 			broker.serviceByTypes[serviceType] = service
 
 			//log.Println("Broker: sending registration to service")
-			service.StoreRegisteration(nextId, broker.mainChan)
+			service.StoreRegistration(nextId, broker.mainChan)
 			//log.Printf("Broker: registered service %d %s\n", service.GetId(), service.GetType())
 		default:
 			//log.Printf("Broker: Delivering message type %T\n", msg)

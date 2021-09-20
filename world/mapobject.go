@@ -48,10 +48,10 @@ func CreateDTOFromMapObject(obj *MapObject) MapObjectDTO {
 
 type MapObject struct {
 	Id                  uint64        // id объекта
-	ObjectType          MapObjectType // тип обхекта. Задаётся константами типа MapObjectType
-	UserId              uint64        // ссылка на обхект пользователя, если это пользовательский объект
+	ObjectType          MapObjectType // тип объекта. Задаётся константами типа MapObjectType
+	UserId              uint64        // ссылка на объект пользователя, если это пользовательский объект
 	Speed               Vector2D      // speed pixels/second
-	CurrentPosition     Point2D       // текущее положение обхекта
+	CurrentPosition     Point2D       // текущее положение объекта
 	DestinationPosition Point2D       // точка, к которой движется объект
 	Size                float64       // размер объекта в пикселях (пока оперируем только с кругами)
 	Mass                uint16        // Масса объекта

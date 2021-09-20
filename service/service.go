@@ -13,12 +13,17 @@ type ServiceType uint64
 // Более того - это скорее даже мешает - всё валится в одну кучу.
 // Также авторизация остаётся незакрытым вопросом.
 type Service interface {
-	Deliver(msg ServiceMessage)                           // через этот метод сообщения закидываются в сервис
-	StoreRegisteration(id uint64, ch chan ServiceMessage) // уведомляет сервис о том, что он был зарегистрирован
-	//GetRequiredMessageTypes() []uint            // отдаёт список ожидаемых сообщений
+	Deliver(msg ServiceMessage)                          // через этот метод сообщения закидываются в сервис
+	StoreRegistration(id uint64, ch chan ServiceMessage) // уведомляет сервис о том, что он был зарегистрирован
 	Start()
 	GetType() ServiceType
 	GetId() uint64
+}
+
+type ServiceWithPreferredMessages interface {
+	Service
+
+	GetRequiredMessageTypes() []uint // отдаёт список ожидаемых сообщений
 }
 
 // сообщение, которое ходит между сервисами
@@ -31,7 +36,7 @@ type ServiceMessage struct {
 	DestinationServiceId      uint64
 	DestinationServiceClients []uint64 // зато может быть много получателей
 
-	MessageData TypedMessage
+	MessageData interface{}
 }
 
 type TypedMessage interface {
@@ -66,7 +71,7 @@ func (service *BasicService) Deliver(msg ServiceMessage) {
 	service.IncomingMessages <- msg
 }
 
-func (service *BasicService) StoreRegisteration(serviceId uint64, out chan ServiceMessage) {
+func (service *BasicService) StoreRegistration(serviceId uint64, out chan ServiceMessage) {
 	if (service).IncomingMessages == nil {
 		log.Fatal("incoming messages chan is not initialized")
 	}
@@ -80,7 +85,7 @@ func (service *BasicService) StoreRegisteration(serviceId uint64, out chan Servi
 
 // Отправляет сообщение брокеру
 func (service *BasicService) SendMessageToBroker(
-	msg TypedMessage,
+	msg interface{},
 	sourceClientId uint64,
 	targetServiceType ServiceType,
 	targetServiceId uint64,
@@ -115,11 +120,11 @@ func (service *BasicService) SendMessageToBroker(
 
 // первое сообщение, которое должно придти в канал - это сообщение от брокера о регистрации сервиса
 func (service *BasicService) WaitForRegistration() {
-	//log.Println("BasicService: wating for registration")
+	// log.Println("BasicService: wating for registration")
 	dt := (<-service.IncomingMessages).MessageData.(BrokerRegisterServiceResponse)
 	service.Id = dt.Id
 	service.OutgoingMessages = dt.Ch
-	//log.Println("BasicService: Registration received")
+	// log.Println("BasicService: Registration received")
 }
 
 func NewBasicService(serviceType ServiceType) *BasicService {
@@ -131,25 +136,25 @@ func NewBasicService(serviceType ServiceType) *BasicService {
 	}
 }
 
-//Пример регистрации сервиса:
+// Пример регистрации сервиса:
 
-//type Svc struct {
+// type Svc struct {
 //	*BasicService
-//}
+// }
 //
-//func (s *Svc) Start() {
+// func (s *Svc) Start() {
 //	// первое сообщение, которое должно придти в канал - это сообщение от брокера о регистрации сервиса
 //  s.WaitForRegistration()
 //
 //	for msg := range s.IncomingMessages {
 //		fmt.Println(msg)
 //	}
-//}
+// }
 //
-//func example() {
+// func example() {
 //	var broker MessageBroker
 //  broker.Start()
 //	svc := &Svc{NewBasicService(1)}
 //	svc.Start()
 //	broker.RegisterService(svc)
-//}
+// }

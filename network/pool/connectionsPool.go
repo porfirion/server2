@@ -1,8 +1,9 @@
 package pool
 
 import (
-	"github.com/porfirion/server2/service"
 	"log"
+
+	"github.com/porfirion/server2/service"
 )
 
 type MessageFromClient struct {
@@ -12,7 +13,7 @@ type MessageFromClient struct {
 
 type MessageForClient struct {
 	Targets []uint64 // send only to
-	Data    service.TypedMessage
+	Data    interface{}
 }
 
 type ConnectionsPool struct {

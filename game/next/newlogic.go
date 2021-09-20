@@ -5,6 +5,8 @@ import (
 	"math"
 	"os"
 	"time"
+
+	"github.com/porfirion/server2/world"
 )
 
 var log = logMod.New(os.Stdout, "NewLogic: ", logMod.Lmicroseconds|logMod.Lshortfile)
@@ -157,11 +159,11 @@ func (l *LogicImpl) receiveInputsUntilShouldSimulate() []PlayerInput {
 func (l *LogicImpl) applyPlayerInputs(state GameState, inputs []PlayerInput) GameState {
 	log.Println("apply inputs stub")
 	for _, inp := range inputs {
+		// TODO
 		switch inp.Action {
 		case PlayerActionMove:
-			inp.
+			log.Println("Player actions not implemented")
 		case PlayerActionAbility:
-			// TODO
 			log.Println("Player abilities not implemented")
 		}
 	}
@@ -287,5 +289,14 @@ func NewLogic(controlChan chan ControlMessage, inputChan <-chan PlayerInput, mod
 		state:                      NewGameState(),
 		finishedChan:               make(chan bool),
 	}
+
+	var rad float64 = 100
+	for i := 0; i < 10; i++ {
+		obj := logic.state.NewObject(world.Point2D{0, 0}, world.MapObjectTypeObstacle)
+		obj.Size = 10
+		angle := math.Pi * 2 * float64(i) / 10
+		obj.CurrentPosition = world.Point2D{X: math.Cos(angle) * rad, Y: math.Sin(angle) * rad}
+	}
+
 	return logic
 }

@@ -1,6 +1,7 @@
 package ws
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"time"
@@ -8,6 +9,7 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/porfirion/server2/messages"
 	"github.com/porfirion/server2/network/pool"
+	"github.com/porfirion/server2/service"
 )
 
 type WebsocketConnection struct {
@@ -50,7 +52,7 @@ func (connection *WebsocketConnection) StartReading() {
 					if msg, err := messages.DeserializeFromJson(buffer); err == nil {
 						switch msg.(type) {
 						case *messages.SyncTimeMessage:
-							connection.WriteMessage(messages.SyncTimeMessage{Time: (int64)(time.Now().UnixNano() / int64(time.Millisecond))})
+							connection.WriteMessage(messages.SyncTimeMessage{Time: time.Now().UnixNano() / int64(time.Millisecond)})
 						default:
 							//log.Printf("WsConnection: sending message %T to pool\n", msg)
 							err := connection.NotifyPoolMessage(msg)
@@ -83,14 +85,22 @@ func (connection *WebsocketConnection) StartWriting() {
 		//log.Println("Writing started ", connection.id)
 
 		for message := range connection.OutgoingChannel {
-			//log.Println(fmt.Sprintf("WsCon. Sending message %T for %d", message, connection.id))
-			if bytes, err := messages.SerializeToJson(message.Data); err == nil {
-				err := connection.ws.WriteMessage(websocket.TextMessage, bytes)
-				if err != nil {
-					log.Println("Error sending to websocket", err)
+			if data, ok := message.Data.(service.TypedMessage); ok {
+				// log.Println(fmt.Sprintf("WsCon. Sending message %T for %d", message, connection.id))
+				if bytes, err := messages.SerializeToJson(data); err == nil {
+					err := connection.ws.WriteMessage(websocket.TextMessage, bytes)
+					if err != nil {
+						log.Println("Error sending to websocket", err)
+					}
+				} else {
+					log.Println("WsConnection: error serializing message", err)
 				}
 			} else {
-				log.Println("WsConnection: error serializing message", err)
+				if bts, err := json.Marshal(message.Data); err == nil {
+					connection.ws.WriteMessage(websocket.TextMessage, bts)
+				} else {
+					log.Println("errro serializing message", err)
+				}
 			}
 		}
 

@@ -2,8 +2,10 @@ package messages
 
 import (
 	"fmt"
-	"github.com/porfirion/server2/world"
 	"reflect"
+
+	"github.com/porfirion/server2/network/pool"
+	"github.com/porfirion/server2/world"
 )
 
 type ErrorMessage struct {
@@ -25,24 +27,26 @@ type DataMessage struct {
 	Data []byte `json:"data"`
 }
 
-// Посылается пользователм на сервер для прохождения авторизации
+// AuthMessage посылается пользователем на сервер для прохождения авторизации
 type AuthMessage struct {
 	Name string `json:"name"`
+	Conn pool.Connection
 }
 
 func (AuthMessage) GetType() uint64 {
 	return 1
 }
 
-// Посылается клиенту, чтобы сообщить, что он успешно подключился и сказать ему его id
+// WelcomeMessage посылается клиенту, чтобы сообщить, что он успешно подключился и сказать ему его id
 type WelcomeMessage struct {
 	Id uint64 `json:"id"`
 }
 
-// Посылается пулом соединений для извещения о входе
+// LoginMessage посылается пулом соединений для извещения о входе
 type LoginMessage struct {
 	Id   uint64 `json:"id"`
 	Name string `json:"name"`
+	Conn pool.Connection
 }
 
 func (LoginMessage) GetType() uint64 {

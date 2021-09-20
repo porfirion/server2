@@ -1,9 +1,10 @@
 package chat
 
 import (
+	"log"
+
 	"github.com/porfirion/server2/messages"
 	"github.com/porfirion/server2/service"
-	"log"
 )
 
 type ChatService struct {
@@ -21,11 +22,16 @@ func (s *ChatService) StartReading() {
 
 	for msg := range s.IncomingMessages {
 		log.Printf("ChatService: %#v", msg.MessageData)
-		switch msg.MessageData.(type) {
+		switch data := msg.MessageData.(type) {
 		case *messages.TextMessage, messages.TextMessage:
 			err := s.SendMessageToBroker(msg.MessageData, 0, service.TypeNetwork, 0, nil)
 			if err != nil {
 				log.Printf("Error sending message to broker: %v\n", err)
+			}
+		case *messages.AuthMessage:
+			err := s.SendMessageToBroker(&messages.TextMessage{Text: "welcome to " + data.Name}, 0, service.TypeNetwork, 0, nil)
+			if err != nil {
+				log.Println("error welcoming", err)
 			}
 		default:
 			log.Printf("Chat: unexpected message type %T\n", msg.MessageData)

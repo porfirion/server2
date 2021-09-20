@@ -17,14 +17,14 @@ class Application {
     private input: CanvasInputController;
     private protocol: Protocol;
 
-    constructor(canvas: HTMLCanvasElement) {
+    constructor(serverAddr: string, canvas: HTMLCanvasElement) {
         this.gameState = new GameState();
 
         this.canvas = canvas;
         this.drawer = new Drawer(canvas.getContext("2d"), 0, 0);
         // @ts-ignore
         this.input = new CanvasInputController(this.canvas, this.drawer, this.gameState, jQuery);
-        this.client = new WsClient(SERVER_ADDR);
+        this.client = new WsClient(serverAddr);
 
         this.protocol = new Protocol(this.client, this.gameState);
     }
@@ -67,6 +67,7 @@ class Application {
     }
 
     simulateToTime(time: number) {
+        
     }
 
     draw(): void {
@@ -79,12 +80,21 @@ class Application {
 
 window.addEventListener('load', function (ev: Event) {
     let canvas = window.document.getElementById("canvas") as HTMLCanvasElement;
-    if (canvas != null) {
-        let app: Application = new Application(canvas);
-        // @ts-ignore
-        window.app = app;
-        app.start();
-    } else {
+    if (canvas == null) {
         console.error("Can't find canvas");
+        return
     }
+
+    // let serverAddr = SERVER_ADDR;
+    let serverAddr =  window.location.host + '/ws'
+    if (window.location.protocol == 'http:') {
+        serverAddr = 'ws://' + serverAddr
+    } else {
+        serverAddr = 'wss://' + serverAddr
+    }
+
+    let app: Application = new Application(serverAddr, canvas);
+    // @ts-ignore
+    window.app = app;
+    app.start();
 });

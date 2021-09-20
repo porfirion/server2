@@ -2,6 +2,8 @@ package next
 
 import (
 	"github.com/porfirion/server2/network/pool"
+	"github.com/porfirion/server2/world"
+
 	"io"
 	"time"
 )
@@ -94,6 +96,8 @@ type GameState interface {
 	Copy() GameState
 	Serialize(writer io.Writer)
 	GetPlayerState(playerId uint) PlayerState
+
+	NewObject(pos world.Point2D, objectType world.MapObjectType) *world.MapObject
 }
 
 type HistoryEntry struct {

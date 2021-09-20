@@ -1,13 +1,14 @@
 package network
 
 import (
+	"log"
+	"net"
+
 	"github.com/porfirion/server2/network/http"
 	"github.com/porfirion/server2/network/pool"
 	"github.com/porfirion/server2/network/tcp"
 	"github.com/porfirion/server2/network/ws"
 	"github.com/porfirion/server2/service"
-	"log"
-	"net"
 )
 
 type NetworkService struct {
@@ -39,7 +40,7 @@ func (s *NetworkService) startReadingFromClients() {
 	// TODO здесь ещё нужна проверка на то, зарегистрировали ли нас и есть ли нам куда писать
 	for msg := range s.pool.IncomingMessages {
 		//log.Printf("NetworkService: Received msg %T", msg)
-		// TODO сейчас в пробкер отправляются сырые байты и никакого парсинга не происходит
+		// TODO сейчас в брокер отправляются сырые байты и никакого парсинга не происходит
 		// также не указывается целевой сервис, в который мы отправляем эти данные
 		err := s.SendMessageToBroker(msg.Data, msg.ClientId, 0, 0, nil)
 		if err != nil {

@@ -2,12 +2,12 @@ package tcp
 
 import (
 	"fmt"
-	"github.com/porfirion/server2/messages"
-	"github.com/porfirion/server2/network/pool"
-	"github.com/porfirion/server2/service"
 	"io"
 	"log"
 	"net"
+
+	"github.com/porfirion/server2/messages"
+	"github.com/porfirion/server2/network/pool"
 )
 
 type TcpConnection struct {
@@ -15,7 +15,7 @@ type TcpConnection struct {
 	socket net.Conn
 }
 
-func (connection *TcpConnection) WriteMessage(messageData service.TypedMessage) {
+func (connection *TcpConnection) WriteMessage(messageData interface{}) {
 	panic("implement me")
 }
 

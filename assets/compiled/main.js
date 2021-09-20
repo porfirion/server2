@@ -11,7 +11,7 @@ var SimulationMode;
     SimulationMode[SimulationMode["StepByStep"] = 1] = "StepByStep";
 })(SimulationMode || (SimulationMode = {}));
 var Application = /** @class */ (function () {
-    function Application(canvas) {
+    function Application(serverAddr, canvas) {
         this.drawer = null;
         this.simulationMode = SimulationMode.Continuous;
         this.gameState = new GameState();
@@ -19,7 +19,7 @@ var Application = /** @class */ (function () {
         this.drawer = new Drawer(canvas.getContext("2d"), 0, 0);
         // @ts-ignore
         this.input = new CanvasInputController(this.canvas, this.drawer, this.gameState, jQuery);
-        this.client = new WsClient(SERVER_ADDR);
+        this.client = new WsClient(serverAddr);
         this.protocol = new Protocol(this.client, this.gameState);
     }
     Application.prototype.start = function () {
@@ -61,14 +61,21 @@ var Application = /** @class */ (function () {
 }());
 window.addEventListener('load', function (ev) {
     var canvas = window.document.getElementById("canvas");
-    if (canvas != null) {
-        var app = new Application(canvas);
-        // @ts-ignore
-        window.app = app;
-        app.start();
+    if (canvas == null) {
+        console.error("Can't find canvas");
+        return;
+    }
+    // let serverAddr = SERVER_ADDR;
+    var serverAddr = window.location.host + '/ws';
+    if (window.location.protocol == 'http:') {
+        serverAddr = 'ws://' + serverAddr;
     }
     else {
-        console.error("Can't find canvas");
+        serverAddr = 'wss://' + serverAddr;
     }
+    var app = new Application(serverAddr, canvas);
+    // @ts-ignore
+    window.app = app;
+    app.start();
 });
 //# sourceMappingURL=main.js.map
