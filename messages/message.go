@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/porfirion/server2/network/pool"
 	"github.com/porfirion/server2/world"
 )
 
@@ -30,7 +29,6 @@ type DataMessage struct {
 // AuthMessage посылается пользователем на сервер для прохождения авторизации
 type AuthMessage struct {
 	Name string `json:"name"`
-	Conn pool.Connection
 }
 
 func (AuthMessage) GetType() uint64 {
@@ -46,7 +44,6 @@ type WelcomeMessage struct {
 type LoginMessage struct {
 	Id   uint64 `json:"id"`
 	Name string `json:"name"`
-	Conn pool.Connection
 }
 
 func (LoginMessage) GetType() uint64 {
@@ -131,7 +128,7 @@ type MessagesChannel chan interface{}
 type ServerMessagesChannel chan ServerMessage
 type UserMessagesChannel chan UserMessage
 
-var dict = map[reflect.Type]int{
+var AvailableMessageTypes = map[reflect.Type]int{
 	reflect.TypeOf(AuthMessage{}):          1,
 	reflect.TypeOf(WelcomeMessage{}):       2,
 	reflect.TypeOf(LoginMessage{}):         10,
@@ -152,7 +149,7 @@ var dict = map[reflect.Type]int{
 }
 
 func GetMessageTypeId(value interface{}) int {
-	if id, ok := dict[reflect.TypeOf(value)]; ok {
+	if id, ok := AvailableMessageTypes[reflect.TypeOf(value)]; ok {
 		return id
 	} else {
 		fmt.Println("Type is not presented in list")
@@ -161,7 +158,7 @@ func GetMessageTypeId(value interface{}) int {
 }
 
 func GetValueByTypeId(typeId int) interface{} {
-	for typeDec, id := range dict {
+	for typeDec, id := range AvailableMessageTypes {
 		if id == typeId {
 			return reflect.New(typeDec).Interface()
 		}
