@@ -3,8 +3,6 @@ package pool
 import (
 	"errors"
 	"time"
-
-	"github.com/porfirion/server2/service"
 )
 
 type Connection interface {
@@ -31,7 +29,7 @@ func (connection *BasicConnection) WriteMessage(data interface{}) {
 }
 
 // Отправляет сообщение "наверх" (в пул / сервис / брокер)
-func (connection *BasicConnection) NotifyPoolMessage(data service.TypedMessage) error {
+func (connection *BasicConnection) NotifyPoolMessage(data interface{}) error {
 	t := time.NewTimer(time.Millisecond * 100)
 	select {
 	case connection.PoolIncomingChannel <- MessageFromClient{

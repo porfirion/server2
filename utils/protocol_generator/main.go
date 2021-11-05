@@ -12,6 +12,7 @@ import (
 
 var (
 	flagOutputFilename string
+	flagInputFilename  string
 
 	tpl = template.Must(template.New("").Parse(``))
 )
@@ -22,9 +23,14 @@ func init() {
 }
 
 func main() {
+	if flagInputFilename == "" {
+		log.Fatal("input file not specified")
+	}
 	if flagOutputFilename == "" {
 		log.Fatal("output file not specified")
 	}
+
+	// parser.Par
 
 	out, err := os.Create(flagOutputFilename)
 	if err != nil {

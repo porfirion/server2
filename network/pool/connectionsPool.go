@@ -2,13 +2,11 @@ package pool
 
 import (
 	"log"
-
-	"github.com/porfirion/server2/service"
 )
 
 type MessageFromClient struct {
 	ClientId uint64
-	Data     service.TypedMessage
+	Data     interface{}
 }
 
 type MessageForClient struct {
