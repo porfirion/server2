@@ -59,7 +59,7 @@ func (l *LogicImpl) ShouldSimulate() bool {
 }
 
 func (l *LogicImpl) receiveInputsUntilShouldSimulate() []PlayerInput {
-	//listen to control chan in parallel.
+	// listen to control chan in parallel.
 	log.Println("receiving inputs")
 
 	inputsReceived := 0
@@ -172,12 +172,13 @@ func (l *LogicImpl) applyPlayerInputs(state GameState, inputs []PlayerInput) Gam
 
 func (l *LogicImpl) sendStateToPlayers(state GameState) {
 	for _, player := range l.players {
-
 		player.SendState(state.GetPlayerState(player.Id))
 	}
 
-	if l.monitorChan != nil {
-		l.monitorChan <- state
+	// send state if available
+	select {
+	case l.monitorChan <- state:
+	default:
 	}
 }
 
