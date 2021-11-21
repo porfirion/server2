@@ -8,7 +8,7 @@ import (
 
 type svc struct {
 	*service.BasicService
-	logic *LogicImpl
+	logic *Logic
 }
 
 func (s *svc) Start() {

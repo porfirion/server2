@@ -8,14 +8,15 @@ import (
 
 func drain(ch chan interface{}) {
 	go func() {
-		for range ch {}
+		for range ch {
+		}
 	}()
 }
 
-func drainStates(ch chan GameState) <-chan ([]GameState) {
+func drainStates(ch chan *GameState) <-chan ([]*GameState) {
 	drainedCount := 0
-	resp := make(chan []GameState, 1)
-	states := make([]GameState, 0)
+	resp := make(chan []*GameState, 1)
+	states := make([]*GameState, 0)
 
 	go func() {
 		for state := range ch {
@@ -44,7 +45,7 @@ func TestLogicImplContinuous(t *testing.T) {
 func TestLogicImplStep(t *testing.T) {
 	controlChan := make(chan ControlMessage)
 	inputChan := make(chan PlayerInput)
-	monitorChan := make(chan GameState)
+	monitorChan := make(chan *GameState)
 
 	l := NewLogic(controlChan, inputChan, SimulationModeStepByStep, time.Second, time.Second)
 	l.SetMonitorChan(monitorChan)
@@ -62,7 +63,7 @@ func TestLogicImplStep(t *testing.T) {
 	}
 
 	<-l.Stop()
-	states := <- dr
+	states := <-dr
 
 	if iterationsCount != len(states) {
 		t.Fatalf("iterations count was %d and received %d states", iterationsCount, len(states))
@@ -74,7 +75,7 @@ func TestLogicImplStep(t *testing.T) {
 func TestLogicImplReplay(t *testing.T) {
 	controlChan := make(chan ControlMessage)
 	inputChan := make(chan PlayerInput)
-	monitorChan := make(chan GameState)
+	monitorChan := make(chan *GameState)
 
 	l := NewLogic(controlChan, inputChan, SimulationModeReplay, time.Second, time.Second)
 	l.SetMonitorChan(monitorChan)
@@ -92,7 +93,7 @@ func TestLogicImplReplay(t *testing.T) {
 	}
 
 	<-l.Stop()
-	states := <- dr
+	states := <-dr
 
 	if iterationsCount != len(states) {
 		t.Fatalf("iterations count was %d and received %d states", iterationsCount, len(states))

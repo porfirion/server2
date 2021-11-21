@@ -1,3 +1,4 @@
+// Package next contains new version of Logic and GameState.
 // GameState - all the information about game
 // Some entities belong to player
 // Some player entities have physical representation (map objects)
@@ -39,15 +40,20 @@ type Entity struct {
 	Children []*Component // ? child entities for complex cases
 }
 
-type GameStateImpl struct {
+// GameState describes state of the game world. Contains list of entities, link to physical world (WorldMap), etc
+// Consists of parts:
+//   1) list of PlayerState (can contain link to physical object)
+//   2) list of physical objects (can contain additional attributes such as playerId, etc)
+//   3) current time and all settings (does it differs from Logic itself?)
+//   4) timers?
+type GameState struct {
 	*world.WorldMap // SYSTEM!
 
 	Entities        []*Entity          // all entities in the world
 	PlayersEntities map[uint64]*Entity // entities bound to players (copy of links from entities)
-	GlobalEntities  []*Entity          // list of entities visible for all
 }
 
-func (st *GameStateImpl) GetPlayerState(playerId uint) PlayerState {
+func (st *GameState) GetPlayerState(playerId uint) PlayerState {
 	// взять вьюпорт пользователя
 	// найти объекты, которые в него попадают
 	// отправить пользователю найденные объекты пользователю
@@ -57,23 +63,23 @@ func (st *GameStateImpl) GetPlayerState(playerId uint) PlayerState {
 	return PlayerState{}
 }
 
-func (st *GameStateImpl) ProcessSimulationStep(time.Duration) GameState {
+func (st *GameState) ProcessSimulationStep(time.Duration) *GameState {
 	return st
 }
 
-func (st *GameStateImpl) Copy() GameState {
+func (st *GameState) Copy() *GameState {
 	return st
 }
 
-func (st *GameStateImpl) Serialize(writer io.Writer) {
+func (st *GameState) Serialize(writer io.Writer) {
 	encoder := gob.NewEncoder(writer)
 	if err := encoder.Encode(st); err != nil {
 		log.Fatal("Can't encode current state")
 	}
 }
 
-func NewGameState() GameState {
-	return &GameStateImpl{
+func NewGameState() *GameState {
+	return &GameState{
 		WorldMap: world.NewWorldMap(1000, 1000),
 	}
 }

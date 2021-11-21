@@ -1,11 +1,9 @@
 package next
 
 import (
-	"github.com/porfirion/server2/network/pool"
-	"github.com/porfirion/server2/world"
-
-	"io"
 	"time"
+
+	"github.com/porfirion/server2/network/pool"
 )
 
 type InputKey int
@@ -85,23 +83,8 @@ func (player Player) SendState(state PlayerState) {
 	panic("not implemented")
 }
 
-// GameState should contain all information about players, objects, etc.
-// Consists of parts:
-//   1) list of PlayerState (can contain link to physical object)
-//   2) list of physical objects (can contain additional attributes such as playerId, etc)
-//   3) current time and all settings (does it differs from Logic itself?)
-//   4) timers?
-type GameState interface {
-	ProcessSimulationStep(time.Duration) GameState
-	Copy() GameState
-	Serialize(writer io.Writer)
-	GetPlayerState(playerId uint) PlayerState
-
-	NewObject(pos world.Point2D, objectType world.MapObjectType) *world.MapObject
-}
-
 type HistoryEntry struct {
-	state    GameState
+	state    *GameState
 	tick     uint64
 	gameTime time.Time //(tick * stepDuration)
 	realTime time.Time

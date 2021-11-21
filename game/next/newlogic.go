@@ -5,13 +5,12 @@ import (
 	"math"
 	"os"
 	"time"
-
-	"github.com/porfirion/server2/world"
 )
 
 var log = logMod.New(os.Stdout, "NewLogic: ", logMod.Lmicroseconds|logMod.Lshortfile)
 
-type LogicImpl struct {
+// Logic describes logic of receiving inputs, processing simulation step, etc.
+type Logic struct {
 	gameTick         uint64
 	prevTickRealTime time.Time
 
@@ -27,7 +26,7 @@ type LogicImpl struct {
 	outputChan chan interface{}
 
 	// канал в окторый мы будем писать стейт целиком. Можно использовать для отладки
-	monitorChan chan<- GameState
+	monitorChan chan<- *GameState
 
 	players map[uint]Player
 
@@ -39,11 +38,11 @@ type LogicImpl struct {
 	simulationStepRealDuration time.Duration // сколько реального времени проходит за один тик
 
 	history      []HistoryEntry
-	state        GameState
+	State        *GameState
 	finishedChan chan bool // канал, единственная функция которого - быть открытым или закрытым
 }
 
-func (l *LogicImpl) NextSimulationTime() time.Time {
+func (l *Logic) NextSimulationTime() time.Time {
 	if l.Mode == SimulationModeContinuous {
 		return l.prevTickRealTime.Add(l.simulationStepRealDuration)
 	} else {
@@ -53,12 +52,12 @@ func (l *LogicImpl) NextSimulationTime() time.Time {
 }
 
 // Говорит наступило ли время для симуляции
-func (l *LogicImpl) ShouldSimulate() bool {
+func (l *Logic) ShouldSimulate() bool {
 	return l.flagShouldSimulate ||
 		(l.Mode == SimulationModeContinuous && l.NextSimulationTime().Before(time.Now()))
 }
 
-func (l *LogicImpl) receiveInputsUntilShouldSimulate() []PlayerInput {
+func (l *Logic) receiveInputsUntilShouldSimulate() []PlayerInput {
 	// listen to control chan in parallel.
 	log.Println("receiving inputs")
 
@@ -156,7 +155,7 @@ func (l *LogicImpl) receiveInputsUntilShouldSimulate() []PlayerInput {
 	return inputsBuffer
 }
 
-func (l *LogicImpl) applyPlayerInputs(state GameState, inputs []PlayerInput) GameState {
+func (l *Logic) applyPlayerInputs(state *GameState, inputs []PlayerInput) *GameState {
 	log.Println("apply inputs stub")
 	for _, inp := range inputs {
 		// TODO
@@ -170,7 +169,7 @@ func (l *LogicImpl) applyPlayerInputs(state GameState, inputs []PlayerInput) Gam
 	return state
 }
 
-func (l *LogicImpl) sendStateToPlayers(state GameState) {
+func (l *Logic) sendStateToPlayers(state *GameState) {
 	for _, player := range l.players {
 		player.SendState(state.GetPlayerState(player.Id))
 	}
@@ -186,28 +185,28 @@ func (l *LogicImpl) sendStateToPlayers(state GameState) {
 // run physics engine simulation,
 // calculate states for all players,
 // sending states to respective players
-func (l *LogicImpl) mainStep(inputs []PlayerInput) {
+func (l *Logic) mainStep(inputs []PlayerInput) {
 	log.Println("main step started")
 
-	l.state = l.state.Copy()
+	l.State = l.State.Copy()
 	l.gameTick++
 	l.gameTime.Add(l.simulationStepDuration)
 
-	l.state = l.applyPlayerInputs(l.state, inputs)
-	l.state = l.applyQueuedEvents(l.state)
-	l.state = l.state.ProcessSimulationStep(l.simulationStepDuration)
+	l.State = l.applyPlayerInputs(l.State, inputs)
+	l.State = l.applyQueuedEvents(l.State)
+	l.State = l.State.ProcessSimulationStep(l.simulationStepDuration)
 
 	l.prevTickRealTime = time.Now()
 	l.flagShouldSimulate = false
 
 	l.history = append(l.history, HistoryEntry{
-		state:    l.state,
+		state:    l.State,
 		tick:     l.gameTick,
 		gameTime: l.gameTime,
 		realTime: time.Now(),
 	})
 
-	l.sendStateToPlayers(l.state)
+	l.sendStateToPlayers(l.State)
 
 	log.Println("main step finished")
 }
@@ -215,7 +214,7 @@ func (l *LogicImpl) mainStep(inputs []PlayerInput) {
 // основной цикл логики
 // receive inputs, put them into queue
 // when time has come - simulate next step
-func (l *LogicImpl) mainLoop() {
+func (l *Logic) mainLoop() {
 	log.Println("starting main loop")
 	var inputsBuffer []PlayerInput
 
@@ -237,14 +236,14 @@ func (l *LogicImpl) mainLoop() {
 	l.stop()
 }
 
-func (l *LogicImpl) Start() {
+func (l *Logic) Start() {
 	go l.mainLoop()
 }
 
 // Говорит логике остановиться
 // В реальности логика остановится только тогда, когда она проверит этот канал,
 // а это происходит тогда, когда она принимает инпуты
-func (l *LogicImpl) stop() {
+func (l *Logic) stop() {
 	if l.monitorChan != nil {
 		close(l.monitorChan)
 	}
@@ -256,23 +255,24 @@ func (l *LogicImpl) stop() {
 
 // предполагаем, что события будут инициироваться не только игроками, но и самой логикой.
 // Они будут складываться в очередь и срабатывать в назначенное время.
-func (l *LogicImpl) applyQueuedEvents(state GameState) GameState {
+func (l *Logic) applyQueuedEvents(state *GameState) *GameState {
+	// TODO
 	return state
 }
 
-func (l *LogicImpl) SetMonitorChan(ch chan<- GameState) {
+func (l *Logic) SetMonitorChan(ch chan<- *GameState) {
 	l.monitorChan = ch
 }
 
 // синхронная операция - ждёт пока логика действительно не остановится
-func (l *LogicImpl) Stop() chan bool {
+func (l *Logic) Stop() chan bool {
 	l.controlChan <- ControlMessageStop
 	// ждём пока этот канал не закроют
 	return l.finishedChan
 }
 
-func NewLogic(controlChan chan ControlMessage, inputChan <-chan PlayerInput, mode SimulationMode, stepTime, stepRealTime time.Duration) *LogicImpl {
-	logic := &LogicImpl{
+func NewLogic(controlChan chan ControlMessage, inputChan <-chan PlayerInput, mode SimulationMode, stepTime, stepRealTime time.Duration) *Logic {
+	logic := &Logic{
 		gameTick:                   0,
 		prevTickRealTime:           time.Time{},
 		gameTime:                   time.Time{},
@@ -287,16 +287,8 @@ func NewLogic(controlChan chan ControlMessage, inputChan <-chan PlayerInput, mod
 		simulationStepDuration:     stepTime,
 		simulationStepRealDuration: stepRealTime,
 		history:                    make([]HistoryEntry, 0, 10),
-		state:                      NewGameState(),
+		State:                      NewGameState(),
 		finishedChan:               make(chan bool),
-	}
-
-	var rad float64 = 100
-	for i := 0; i < 10; i++ {
-		obj := logic.state.NewObject(world.Point2D{0, 0}, world.MapObjectTypeObstacle)
-		obj.Size = 10
-		angle := math.Pi * 2 * float64(i) / 10
-		obj.CurrentPosition = world.Point2D{X: math.Cos(angle) * rad, Y: math.Sin(angle) * rad}
 	}
 
 	return logic
