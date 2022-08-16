@@ -147,7 +147,25 @@ func main() {
 		obj.Size = 10
 		angle := math.Pi * 2 * float64(i) / 12
 		obj.CurrentPosition = world.Point2D{X: math.Cos(angle) * rad, Y: math.Sin(angle) * rad}
-		obj.DestinationPosition = world.Point2D{X: math.Cos(angle) * rad * 2, Y: math.Sin(angle) * rad * 2}
+		obj.DestinationPosition = world.Point2D{X: math.Cos(angle) * (rad + 100), Y: math.Sin(angle) * (rad + 100)}
+	}
+
+	rad = 200
+	for i := 0; i < 24; i++ {
+		obj := g.Logic.State.NewObject(world.Point2D{0, 0})
+		obj.Size = 10
+		angle := math.Pi * 2 * (float64(i) + 0.5) / 24
+		obj.CurrentPosition = world.Point2D{X: math.Cos(angle) * rad, Y: math.Sin(angle) * rad}
+		obj.DestinationPosition = world.Point2D{X: math.Cos(angle) * (rad + 100), Y: math.Sin(angle) * (rad + 100)}
+	}
+
+	rad = 300
+	for i := 0; i < 48; i++ {
+		obj := g.Logic.State.NewObject(world.Point2D{0, 0})
+		obj.Size = 10
+		angle := math.Pi * 2 * (float64(i) + 0.5) / 48
+		obj.CurrentPosition = world.Point2D{X: math.Cos(angle) * rad, Y: math.Sin(angle) * rad}
+		obj.DestinationPosition = world.Point2D{X: math.Cos(angle) * (rad + 100), Y: math.Sin(angle) * (rad + 100)}
 	}
 
 	obj := g.Logic.State.WorldMap.NewObject(world.Point2D{0, 0})
